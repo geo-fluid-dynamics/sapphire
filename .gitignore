@@ -1,0 +1,15 @@
+output
+debug
+old*
+*.pyc
+*.pvsm
+.cache
+build
+dist
+.idea/
+phaseflow.egg-info
+log.txt
+.coverage
+**/.ipynb_checkpoints/
+.pytest_cache/
+.vscode
