@@ -12,11 +12,14 @@ class AbstractModel(metaclass = abc.ABCMeta):
             dirichlet_boundary_conditions = [
                 {"subspace": None, "value": 0., "subdomain": "on_boundary"},],
             quadrature_degree = 2,
+            residual_parameters = {},
             solver_parameters = {
                 "ksp_type": "preonly", 
                 "pc_type": "lu", 
                 "mat_type": "aij",
                 "pc_factor_mat_solver_type": "mumps"}):
+        
+        self.residual_parameters = residual_parameters
         
         self.mesh = mesh
         

@@ -5,7 +5,7 @@ import sys
 
 def test__verify_convergence_order_via_MMS():
 
-    def strong_form_residual(solution):
+    def strong_form_residual(solution, mesh):
     
         grad, dot, div, sym = fe.grad, fe.dot, fe.div, fe.sym
         

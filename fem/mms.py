@@ -13,12 +13,15 @@ def augment_weak_form(
     
     r = weak_form_residual()
     
+    mesh = function_space.mesh()
+    
+    u = manufactured_solution(mesh)
+    
     try:
     
         for psi, s_i in zip(
                 fe.TestFunctions(function_space), 
-                strong_form_residual(
-                    manufactured_solution(function_space.mesh()))):
+                strong_form_residual(u, mesh)):
 
             r -= fe.inner(psi, s_i)
             
@@ -26,8 +29,8 @@ def augment_weak_form(
     
         psi = fe.TestFunction(function_space)
         
-        s = strong_form_residual(manufactured_solution(function_space.mesh()))
-                    
+        s = strong_form_residual(u, mesh)
+        
         r -= fe.inner(psi, s)
         
     return r
@@ -64,6 +67,7 @@ def verify_convergence_order(
         manufactured_solution,
         grid_sizes = (8, 16, 32),
         quadrature_degree = None,
+        residual_parameters = {},
         tolerance = 0.1):
     
     class MMSVerificationModel(Model):
@@ -98,7 +102,8 @@ def verify_convergence_order(
         model = MMSVerificationModel(
             mesh = mesh, 
             dirichlet_boundary_conditions = bcs,
-            quadrature_degree = quadrature_degree)
+            quadrature_degree = quadrature_degree,
+            residual_parameters = residual_parameters)
         
         model.solver.solve()
         
