@@ -8,26 +8,48 @@ def augment_weak_form(
         strong_form_residual, 
         manufactured_solution):
     
-    R = weak_form_residual()
+    r = weak_form_residual()
     
-    for psi, s in zip(
-            fe.TestFunctions(function_space), 
-            strong_form_residual(
-                manufactured_solution(function_space.mesh()))):
+    try:
+    
+        for psi, s_i in zip(
+                fe.TestFunctions(function_space), 
+                strong_form_residual(
+                    manufactured_solution(function_space.mesh()))):
 
-        R -= fe.inner(psi, s)*fe.dx
+            r -= fe.inner(psi, s_i)*fe.dx
+            
+    except NotImplementedError as error:
+    
+        psi = fe.TestFunction(function_space)
         
-    return R
+        s = strong_form_residual(manufactured_solution(function_space.mesh()))
+                    
+        r -= fe.inner(psi, s)*fe.dx
+        
+    return r
 
 def L2_error(manufactured_solution, computed_solution):
     
-    L2_error = 0.
+    mesh = computed_solution.function_space().mesh()
     
-    for u_m, u_h in zip(manufactured_solution, computed_solution.split()):
+    try:
     
-        L2_error += fe.assemble(fe.inner(u_m - u_h, u_m - u_h)*fe.dx)
+        L2_error = 0.
     
-    return math.sqrt(L2_error)
+        for u_m, u_h in zip(manufactured_solution(mesh), computed_solution.split()):
+        
+            L2_error += fe.assemble(fe.inner(u_m - u_h, u_m - u_h)*fe.dx)
+
+        L2_error = math.sqrt(L2_error)
+        
+    except NotImplementedError as error:
+    
+        u_m, u_h = manufactured_solution(mesh), computed_solution
+        
+        L2_error = math.sqrt(fe.assemble(fe.inner(u_m - u_h, u_m - u_h)*fe.dx))
+        
+    return L2_error
     
     
 def verify_convergence_order(
@@ -60,8 +82,7 @@ def verify_convergence_order(
         
         model.solver.solve()
         
-        L2_errors.append(
-            L2_error(manufactured_solution(mesh), model.solution))
+        L2_errors.append(L2_error(manufactured_solution, model.solution))
     
     edge_lengths = [1./float(M) for M in grid_sizes]
 

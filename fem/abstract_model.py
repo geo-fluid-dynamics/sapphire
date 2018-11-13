@@ -16,12 +16,21 @@ class AbstractModel(metaclass = abc.ABCMeta):
         
         self.solution = solution
         
-        boundary_conditions = [
-            fe.DirichletBC(
-                function_space.sub(i),
-                boundary_condition_values[i],
-                "on_boundary")
-            for i, g in enumerate(boundary_condition_values)]
+        try:
+        
+            iterator = iter(boundary_condition_values)
+        
+            boundary_conditions = [
+                fe.DirichletBC(
+                    function_space.sub(i),
+                    boundary_condition_values[i],
+                    "on_boundary")
+                for i, g in enumerate(boundary_condition_values)]
+            
+        except NotImplementedError as error:
+        
+            boundary_conditions = fe.DirichletBC(
+                function_space, boundary_condition_values, "on_boundary")
         
         F = self.weak_form_residual()
         
