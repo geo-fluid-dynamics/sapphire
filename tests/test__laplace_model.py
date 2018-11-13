@@ -22,7 +22,7 @@ def test__verify_convergence_order_via_mms():
         return sin(2.*pi*x[0])*sin(pi*x[1])
     
     fem.mms.verify_convergence_order(
-        Model = fem.laplace_model.LaplaceModel,
+        Model = fem.models.laplace_model.LaplaceModel,
         expected_order = 2,
         strong_form_residual = strong_form_residual,
         manufactured_solution = manufactured_solution,

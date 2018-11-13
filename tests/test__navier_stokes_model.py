@@ -32,7 +32,7 @@ def test__verify_convergence_order_via_MMS():
         return u, p
     
     fem.mms.verify_convergence_order(
-        Model = fem.navier_stokes_model.NavierStokesModel,
+        Model = fem.models.navier_stokes_model.NavierStokesModel,
         expected_order = 2,
         strong_form_residual = strong_form_residual,
         manufactured_solution = manufactured_solution,
