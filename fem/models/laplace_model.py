@@ -12,14 +12,10 @@ class LaplaceModel(fem.abstract_model.AbstractModel):
         return fe.FiniteElement("P", self.mesh.ufl_cell(), 1)
     
     def weak_form_residual(self):
-
+        
+        u, v = self.solution, fe.TestFunction(self.solution.function_space())
+        
         dot, grad = fe.dot, fe.grad
         
-        u = self.solution
-        
-        v = fe.TestFunction(self.solution.function_space())
-        
-        dx = fe.dx(degree = 2)
-        
-        return -(dot(grad(v), grad(u)))*dx
+        return - dot(grad(v), grad(u))
     

@@ -22,9 +22,10 @@ class NavierStokesModel(fem.abstract_model.AbstractModel):
         
         psi_u, psi_p = fe.TestFunctions(self.solution.function_space())
         
-        dx = fe.dx(degree = 3)
+        mass = psi_p*div(u)
         
-        return (dot(psi_u, dot(grad(u), u))
-            - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), sym(grad(u)))
-            + psi_p*(div(u)))*dx
+        momentum = dot(psi_u, dot(grad(u), u)) - div(psi_u)*p + \
+            2.*inner(sym(grad(psi_u)), sym(grad(u)))
+        
+        return mass + momentum
     

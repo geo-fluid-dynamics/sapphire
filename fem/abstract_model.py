@@ -7,49 +7,50 @@ import abc
 
 class AbstractModel(metaclass = abc.ABCMeta):
     """ An abstract class on which to base finite element models. """
-    def __init__(self, mesh, boundary_condition_values):
+    def __init__(self, 
+            mesh, 
+            dirichlet_boundary_conditions = [
+                {"subspace": None, "value": 0., "subdomain": "on_boundary"},],
+            quadrature_degree = 2,
+            solver_parameters = {
+                "ksp_type": "preonly", 
+                "pc_type": "lu", 
+                "mat_type": "aij",
+                "pc_factor_mat_solver_type": "mumps"}):
         
         self.mesh = mesh
         
         element = self.element()
         
-        function_space = fe.FunctionSpace(mesh, element)
+        V = fe.FunctionSpace(mesh, element)
         
-        solution = fe.Function(function_space)
+        u = fe.Function(V)
         
-        self.solution = solution
+        self.solution = u
         
-        try:  # Handle either a collection of BC objects...
         
-            iterator = iter(boundary_condition_values)
+        bcs = []
         
-            boundary_conditions = [
-                fe.DirichletBC(
-                    function_space.sub(i),
-                    boundary_condition_values[i],
-                    "on_boundary")
-                for i, g in enumerate(boundary_condition_values)]
+        for i, bc in enumerate(dirichlet_boundary_conditions):
+        
+            if bc["subspace"] is None:
             
-        except NotImplementedError as error: # ...or a single BC object.
+                V_i = V
+                
+            else:
+            
+                V_i = V.sub(i)
+                
+            bcs.append(fe.DirichletBC(V_i, bc["value"], bc["subdomain"]))
         
-            boundary_conditions = fe.DirichletBC(
-                function_space, boundary_condition_values, "on_boundary")
         
-        F = self.weak_form_residual()
+        r = self.weak_form_residual()*fe.dx(degree = quadrature_degree)
         
         problem = fe.NonlinearVariationalProblem(
-            F = F,
-            u = solution,
-            bcs = boundary_conditions,
-            J = fe.derivative(F, solution))
+            r, u, bcs, fe.derivative(r, u))
         
         solver = fe.NonlinearVariationalSolver(
-            problem, 
-            solver_parameters = {
-                "ksp_type": "preonly", 
-                "pc_type": "lu", 
-                "mat_type": "aij",
-                "pc_factor_mat_solver_type": "mumps"})
+            problem, solver_parameters = solver_parameters)
         
         self.solver = solver
         

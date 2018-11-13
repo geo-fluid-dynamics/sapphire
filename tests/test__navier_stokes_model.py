@@ -36,7 +36,8 @@ def test__verify_convergence_order_via_MMS():
         expected_order = 2,
         strong_form_residual = strong_form_residual,
         manufactured_solution = manufactured_solution,
-        grid_sizes = (8, 16, 32), 
+        grid_sizes = (8, 16, 32),
+        quadrature_degree = 4,
         tolerance = 0.1)
     
     

@@ -20,7 +20,7 @@ def augment_weak_form(
                 strong_form_residual(
                     manufactured_solution(function_space.mesh()))):
 
-            r -= fe.inner(psi, s_i)*fe.dx
+            r -= fe.inner(psi, s_i)
             
     except NotImplementedError as error:
     
@@ -28,13 +28,15 @@ def augment_weak_form(
         
         s = strong_form_residual(manufactured_solution(function_space.mesh()))
                     
-        r -= fe.inner(psi, s)*fe.dx
+        r -= fe.inner(psi, s)
         
     return r
 
-def L2_error(manufactured_solution, computed_solution):
+def L2_error(manufactured_solution, computed_solution, quadrature_degree = None):
     
     mesh = computed_solution.function_space().mesh()
+    
+    dx = fe.dx(degree = quadrature_degree)
     
     try:
     
@@ -42,7 +44,7 @@ def L2_error(manufactured_solution, computed_solution):
     
         for u_m, u_h in zip(manufactured_solution(mesh), computed_solution.split()):
         
-            L2_error += fe.assemble(fe.inner(u_m - u_h, u_m - u_h)*fe.dx)
+            L2_error += fe.assemble(fe.inner(u_m - u_h, u_m - u_h)*dx)
 
         L2_error = math.sqrt(L2_error)
         
@@ -50,7 +52,7 @@ def L2_error(manufactured_solution, computed_solution):
     
         u_m, u_h = manufactured_solution(mesh), computed_solution
         
-        L2_error = math.sqrt(fe.assemble(fe.inner(u_m - u_h, u_m - u_h)*fe.dx))
+        L2_error = math.sqrt(fe.assemble(fe.inner(u_m - u_h, u_m - u_h)*dx))
         
     return L2_error
     
@@ -60,7 +62,8 @@ def verify_convergence_order(
         expected_order,
         strong_form_residual,
         manufactured_solution,
-        grid_sizes = (8, 16, 32), 
+        grid_sizes = (8, 16, 32),
+        quadrature_degree = None,
         tolerance = 0.1):
     
     class MMSVerificationModel(Model):
@@ -79,13 +82,31 @@ def verify_convergence_order(
         
         mesh = fe.UnitSquareMesh(M, M)
         
+        u = manufactured_solution(mesh)
+        
+        try:
+        
+            iterable = iter(u)
+        
+            bcs = [{"subspace": i, "value": g, "subdomain": "on_boundary"}
+                for i, g in enumerate(u)]
+            
+        except NotImplementedError as error:
+        
+            bcs = [{"subspace": None, "value": u, "subdomain": "on_boundary"},]
+        
         model = MMSVerificationModel(
-            mesh = mesh,
-            boundary_condition_values = manufactured_solution(mesh))
+            mesh = mesh, 
+            dirichlet_boundary_conditions = bcs,
+            quadrature_degree = quadrature_degree)
         
         model.solver.solve()
         
-        L2_errors.append(L2_error(manufactured_solution, model.solution))
+        L2_errors.append(
+            L2_error(
+                manufactured_solution, 
+                model.solution, 
+                quadrature_degree = quadrature_degree))
     
     edge_lengths = [1./float(M) for M in grid_sizes]
 
