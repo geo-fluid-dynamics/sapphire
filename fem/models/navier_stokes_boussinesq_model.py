@@ -1,5 +1,5 @@
-""" **navier_stokes_model.py** 
-implement a steady incompressible Navier-Stokes model class. 
+""" **navier_stokes_boussinesq_model.py** 
+implements a steady incompressible Navier-Stokes-Boussinesq model class. 
 """
 import firedrake as fe
 import fem.abstract_model
