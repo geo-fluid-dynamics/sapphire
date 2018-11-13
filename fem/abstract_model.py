@@ -27,9 +27,11 @@ class AbstractModel(metaclass = abc.ABCMeta):
         
         V = fe.FunctionSpace(mesh, element)
         
-        u = fe.Function(V)
+        self.function_space = V
         
-        self.solution = u
+        self.init_solution()
+        
+        u = self.solution
         
         
         bcs = []
@@ -56,6 +58,10 @@ class AbstractModel(metaclass = abc.ABCMeta):
             problem, solver_parameters = solver_parameters)
         
         self.solver = solver
+        
+    def init_solution(self):
+    
+        self.solution = fe.Function(self.function_space)
         
     @abc.abstractmethod
     def element(self):
