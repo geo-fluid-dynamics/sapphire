@@ -38,7 +38,7 @@ class NavierStokesBoussinesqModel(fem.abstract_model.AbstractModel):
         momentum = dot(psi_u, dot(grad(u), u) + Ra/Pr*T*ghat) \
             - div(psi_u)*p + 2.*mu*inner(sym(grad(psi_u)), sym(grad(u)))
         
-        energy = dot(grad(psi_T), 1./Pr*grad(T) - T*u)
+        energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))
         
         stabilization = psi_p*gamma*p
         

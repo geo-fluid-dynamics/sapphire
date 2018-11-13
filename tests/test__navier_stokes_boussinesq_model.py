@@ -34,7 +34,7 @@ def test__verify_convergence_order_via_MMS():
         
         r_u = grad(u)*u + grad(p) - 2.*div(mu*sym(grad(u))) + Ra/Pr*T*ghat
         
-        r_T = div(T*u) - 1./Pr*div(grad(T))
+        r_T = dot(u, grad(T)) - 1./Pr*div(grad(T))
         
         return r_p, r_u, r_T
     
