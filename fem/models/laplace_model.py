@@ -1,4 +1,6 @@
-""" Implement a Poisson solver with Firedrake and verify it via MMS. """
+""" **laplace_model.py** 
+implements a Laplace model class. 
+"""
 import firedrake as fe
 import fem.abstract_model
 

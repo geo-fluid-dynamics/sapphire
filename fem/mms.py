@@ -1,3 +1,6 @@
+""" **mms.py**
+facilitates solver verification via the Method of Manufactured Solution (MMS).
+"""
 import firedrake as fe
 import math
 

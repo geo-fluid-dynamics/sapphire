@@ -1,9 +1,12 @@
+""" **abstract_model.py**
+provides an abstract class on which to base finite element models.
+"""
 import firedrake as fe
 import abc
 
 
 class AbstractModel(metaclass = abc.ABCMeta):
-
+    """ An abstract class on which to base finite element models. """
     def __init__(self, mesh, boundary_condition_values):
         
         self.mesh = mesh
@@ -16,7 +19,7 @@ class AbstractModel(metaclass = abc.ABCMeta):
         
         self.solution = solution
         
-        try:
+        try:  # Handle either a collection of BC objects...
         
             iterator = iter(boundary_condition_values)
         
@@ -27,7 +30,7 @@ class AbstractModel(metaclass = abc.ABCMeta):
                     "on_boundary")
                 for i, g in enumerate(boundary_condition_values)]
             
-        except NotImplementedError as error:
+        except NotImplementedError as error: # ...or a single BC object.
         
             boundary_conditions = fe.DirichletBC(
                 function_space, boundary_condition_values, "on_boundary")
@@ -52,9 +55,13 @@ class AbstractModel(metaclass = abc.ABCMeta):
         
     @abc.abstractmethod
     def element(self):
-        """ Redefine this to return a `fe.MixedElement`. """
+        """ Redefine this 
+        to return a `fe.FiniteElement` or `fe.MixedElement`.
+        """
         
     @abc.abstractmethod
     def weak_form_residual(self):
-        """ Redefine this to return a `fe.NonlinearVariationalForm`. """
+        """ Redefine this 
+        to return a `fe.NonlinearVariationalForm`.
+        """
         

@@ -1,4 +1,6 @@
-""" Implement a Poisson solver with Firedrake and verify it via MMS. """
+""" **navier_stokes_model.py** 
+implement a steady incompressible Navier-Stokes model class. 
+"""
 import firedrake as fe
 import fem.abstract_model
 
