@@ -2,10 +2,10 @@
 implements a heat model class. 
 """
 import firedrake as fe
-import fem.abstract_model
+import fem.abstract_unsteady_model
 
     
-class HeatModel(fem.abstract_model.AbstractUnsteadyModel):
+class HeatModel(fem.abstract_unsteady_model.AbstractUnsteadyModel):
     
     def element(self):
     
@@ -17,9 +17,9 @@ class HeatModel(fem.abstract_model.AbstractUnsteadyModel):
         
         u = self.solution
         
-        un = self.old_solution
+        un = self.initial_values
         
-        Delta_t = self.time - self.old_time
+        Delta_t = self.timestep_size
         
         u_t = (u - un)/Delta_t
         

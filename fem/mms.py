@@ -2,8 +2,11 @@
 facilitates solver verification via the Method of Manufactured Solution (MMS).
 """
 import firedrake as fe
+import fem.table
 import math
 
+
+TIME_EPSILON = 1.e-8
 
 def augment_weak_form(
         weak_form_residual, 
@@ -60,12 +63,31 @@ def L2_error(manufactured_solution, computed_solution, quadrature_degree = None)
     return L2_error
     
     
-def verify_convergence_order(
+def boundary_conditions(mesh, u_m):
+        
+    try:
+    
+        iterable = iter(u_m)
+    
+        bcs = [{"subspace": i, "value": g, "subdomain": "on_boundary"}
+            for i, g in enumerate(u_m)]
+        
+    except NotImplementedError as error:
+    
+        bcs = [{"subspace": None, "value": u_m, "subdomain": "on_boundary"},]
+        
+    return bcs
+
+    
+def verify_orders_of_accuracy(
         Model,
-        expected_order,
+        expected_spatial_order,
+        expected_temporal_order,
         strong_form_residual,
         manufactured_solution,
         grid_sizes = (8, 16, 32),
+        endtime = 1.,
+        timestep_sizes = (1., 1./2., 1./4.),
         quadrature_degree = None,
         residual_parameters = {},
         tolerance = 0.1):
@@ -79,54 +101,105 @@ def verify_convergence_order(
                 self.solution.function_space(),
                 strong_form_residual, 
                 manufactured_solution)
-            
-    L2_errors = []
-
+    
+    table = fem.table.Table(("h", "Delta_t", "L2_error"))
+    
+    """ Check spatial order of accuracy. """
+    timestep_size = max(timestep_sizes)
+    
+    time = 0.
+    
     for M in grid_sizes:
         
         mesh = fe.UnitSquareMesh(M, M)
         
-        u = manufactured_solution(mesh)
+        u_m = fe.Expression(manufactured_solution(mesh))
         
-        try:
-        
-            iterable = iter(u)
-        
-            bcs = [{"subspace": i, "value": g, "subdomain": "on_boundary"}
-                for i, g in enumerate(u)]
-            
-        except NotImplementedError as error:
-        
-            bcs = [{"subspace": None, "value": u, "subdomain": "on_boundary"},]
+        u_m.t = time + timestep_size
         
         model = MMSVerificationModel(
             mesh = mesh, 
-            dirichlet_boundary_conditions = bcs,
+            dirichlet_boundary_conditions = boundary_conditions(mesh, u_m),
             quadrature_degree = quadrature_degree,
             residual_parameters = residual_parameters)
         
+        model.set_initial_values(u_m)
+        
+        model.timestep_size.assign(timestep_size)
+        
         model.solver.solve()
         
-        L2_errors.append(
-            L2_error(
+        table.append({
+            "h": 1./float(M), 
+            "Delta_t": Delta_t, 
+            "L2_error": L2_error(
                 manufactured_solution, 
                 model.solution, 
-                quadrature_degree = quadrature_degree))
-    
-    edge_lengths = [1./float(M) for M in grid_sizes]
-
-    e, h = L2_errors, edge_lengths
+                quadrature_degree = quadrature_degree)})
+        
+    print(str(table))
+        
+    e, h = table["L2_error"], table["h"]
 
     log = math.log
 
-    orders = [(log(e[i + 1]) - log(e[i]))/(log(h[i + 1]) - log(h[i]))
-              for i in range(len(e) - 1)]
+    spatial_order = log(e[-2]/e[-1])/log(h[-2]/h[-1])
     
-    print("Edge lengths = " + str(edge_lengths))
+    """ Check temporal order of accuracy. """
+    M = max(grid_sizes)
     
-    print("L2 norm errors = " + str(L2_errors))
+    for Delta_t in timestep_sizes:
     
-    print("Convergence orders = " + str(orders))
+        time = 0.
+        
+        mesh = fe.UnitSquareMesh(M, M)
+        
+        u_m = fe.Expression(manufactured_solution(mesh))
+        
+        u_h = None
+        
+        while time < (endtime - TIME_EPSILON):
+        
+            u_m.t = time + timestep_size
+            
+            model = MMSVerificationModel(
+                mesh = mesh, 
+                dirichlet_boundary_conditions = boundary_conditions(mesh, u_m),
+                quadrature_degree = quadrature_degree,
+                residual_parameters = residual_parameters)
+            
+            if u_h is None:
+            
+                model.set_initial_values(u_m)
+            
+            else:
+            
+                model.set_initial_values(u_h)
+                
+            model.timestep_size.assign(Delta_t)
+            
+            model.solver.solve()
+            
+            time += timestep_size
+            
+            u_h = fe.Function(model.solution)
+        
+        table.append({
+            "h": 1./float(M), 
+            "Delta_t": Delta_t, 
+            "L2_error": L2_error(
+                manufactured_solution, 
+                model.solution, 
+                quadrature_degree = quadrature_degree)})
     
-    assert(abs(orders[-1] - expected_order) < tolerance)
+    print(str(table))
+    
+    e, h = table["L2_error"], table["h"]
+    
+    temporal_order = log(e[-2]/e[-1])/log(h[-2]/h[-1])
+    
+    """ Assert expected orders of accuracy. """
+    assert(abs(spatial_order - expected_spatial_order) < tolerance)
+    
+    assert(abs(temporal_order - expected_temporal_order) < tolerance)
     

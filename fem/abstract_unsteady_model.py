@@ -3,25 +3,33 @@ provides an abstract class on which to base finite element models
 with auxiliary data for unsteady (i.e. time-dependent) simulations.
 """
 import firedrake as fe
-import fempy.abstract_model
+import fem.abstract_model
 
 
-class AbstractUnsteadyModel(fempy.abstract_model):
+class AbstractUnsteadyModel(fem.abstract_model.AbstractModel):
     """ An abstract class on which to base finite element models
         with auxiliary data for unsteady (i.e. time-dependent) simulations.
     """
     def __init__(self, *args, **kwargs):
         
-        self.time = fenics.Constant(0.)
+        self.timestep_size = fe.Constant(0.)
         
-        self.old_time = fenics.Constant(0.)
-        
-        super().__init__()
-        
+        super().__init__(*args, **kwargs)
         
     def init_solution(self):
     
         super().init_solution()
         
-        self.old_solution = fenics.Function(self.solution)
+        self.initial_values = fe.Function(self.solution.function_space())
+        
+    def set_initial_values(self, initial_values):
+    
+        if type(initial_values) is type(self.initial_values):
+        
+            self.initial_values.assign(initial_values)
+            
+        else:
+        
+            u = fe.interpolate(
+                self.initial_values.function_space(), initial_values)
         
