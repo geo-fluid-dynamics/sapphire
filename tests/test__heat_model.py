@@ -3,9 +3,9 @@ import fem
 import sys
 
 
-t = fe.variable(0.)
-
 def test__verify_convergence_order_via_mms():
+
+    t = fe.variable(0.)
 
     alpha = fe.Constant(3.)
     
@@ -23,9 +23,9 @@ def test__verify_convergence_order_via_mms():
         
         x = fe.SpatialCoordinate(mesh)
         
-        return sin(2.*pi*x[0])*sin(pi*x[1])*exp(-t**2)
+        return sin(2.*pi*x[0])*sin(pi*x[1])*exp(-t)
     
-    fem.mms.verify_orders_of_accuracy(
+    fem.mms.verify_order_of_accuracy(
         Model = fem.models.heat_model.HeatModel,
         residual_parameters = {"thermal_diffusivity": alpha},
         strong_form_residual = strong_form_residual,

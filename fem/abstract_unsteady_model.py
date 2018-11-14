@@ -29,7 +29,7 @@ class AbstractUnsteadyModel(fem.abstract_model.AbstractModel):
             self.initial_values.assign(initial_values)
             
         else:
-        
-            u = fe.interpolate(
-                self.initial_values.function_space(), initial_values)
-        
+            
+            self.initial_values.assign(fe.interpolate(
+                initial_values, self.solution.function_space()))
+            

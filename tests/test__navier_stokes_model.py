@@ -31,9 +31,9 @@ def test__verify_convergence_order_via_MMS():
         
         return u, p
     
-    fem.mms.verify_convergence_order(
+    fem.mms.verify_order_of_accuracy(
         Model = fem.models.navier_stokes_model.NavierStokesModel,
-        expected_order = 2,
+        expected_spatial_order = 2,
         strong_form_residual = strong_form_residual,
         manufactured_solution = manufactured_solution,
         grid_sizes = (8, 16, 32),

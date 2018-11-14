@@ -64,33 +64,42 @@ def L2_error(manufactured_solution, computed_solution, quadrature_degree = None)
     
     
 def boundary_conditions(mesh, u_m):
-        
+    
     try:
     
         iterable = iter(u_m)
-    
+        
         bcs = [{"subspace": i, "value": g, "subdomain": "on_boundary"}
             for i, g in enumerate(u_m)]
         
     except NotImplementedError as error:
-    
+        
         bcs = [{"subspace": None, "value": u_m, "subdomain": "on_boundary"},]
         
     return bcs
 
     
-def verify_orders_of_accuracy(
+def verify_order_of_accuracy(
         Model,
-        expected_spatial_order,
-        expected_temporal_order,
+        expected_spatial_order,        
         strong_form_residual,
         manufactured_solution,
         grid_sizes = (8, 16, 32),
+        expected_temporal_order = None,
         endtime = 1.,
         timestep_sizes = (1., 1./2., 1./4.),
         quadrature_degree = None,
         residual_parameters = {},
         tolerance = 0.1):
+    
+    if expected_temporal_order is None:
+    
+        time_accurate = False
+        
+    else:
+    
+        time_accurate = True
+    
     
     class MMSVerificationModel(Model):
     
@@ -102,20 +111,33 @@ def verify_orders_of_accuracy(
                 strong_form_residual, 
                 manufactured_solution)
     
+    
     table = fem.table.Table(("h", "Delta_t", "L2_error"))
     
-    """ Check spatial order of accuracy. """
-    timestep_size = max(timestep_sizes)
     
-    time = 0.
+    print("Verifying spatial order of accuracy. ")
+    
+    if time_accurate:
+    
+        timestep_size = max(timestep_sizes)
+    
+        time = 0.
+        
+    else:
+    
+        timestep_size = None
     
     for M in grid_sizes:
         
         mesh = fe.UnitSquareMesh(M, M)
         
-        u_m = fe.Expression(manufactured_solution(mesh))
+        u_m = manufactured_solution(mesh)
         
-        u_m.t = time + timestep_size
+        if time_accurate:
+        
+            u_m = fe.Expression(u_m)
+        
+            u_m.t = time + timestep_size
         
         model = MMSVerificationModel(
             mesh = mesh, 
@@ -123,15 +145,17 @@ def verify_orders_of_accuracy(
             quadrature_degree = quadrature_degree,
             residual_parameters = residual_parameters)
         
-        model.set_initial_values(u_m)
+        if time_accurate:
         
-        model.timestep_size.assign(timestep_size)
+            model.set_initial_values(u_m)
+            
+            model.timestep_size.assign(timestep_size)
         
         model.solver.solve()
         
         table.append({
             "h": 1./float(M), 
-            "Delta_t": Delta_t, 
+            "Delta_t": timestep_size, 
             "L2_error": L2_error(
                 manufactured_solution, 
                 model.solution, 
@@ -139,13 +163,24 @@ def verify_orders_of_accuracy(
         
     print(str(table))
         
-    e, h = table["L2_error"], table["h"]
+    e, h = table.data["L2_error"], table.data["h"]
 
     log = math.log
 
     spatial_order = log(e[-2]/e[-1])/log(h[-2]/h[-1])
     
-    """ Check temporal order of accuracy. """
+    print("Observed spatial order of accuracy is " + str(spatial_order))
+    
+    assert(abs(spatial_order - expected_spatial_order) < tolerance)
+    
+    
+    if not time_accurate:
+    
+        return
+        
+        
+    print("Verifying temporal order of accuracy. ")
+    
     M = max(grid_sizes)
     
     for Delta_t in timestep_sizes:
@@ -186,7 +221,7 @@ def verify_orders_of_accuracy(
         
         table.append({
             "h": 1./float(M), 
-            "Delta_t": Delta_t, 
+            "Delta_t": timestep_size, 
             "L2_error": L2_error(
                 manufactured_solution, 
                 model.solution, 
@@ -194,12 +229,11 @@ def verify_orders_of_accuracy(
     
     print(str(table))
     
-    e, h = table["L2_error"], table["h"]
+    e, h = table.data["L2_error"], table.data["h"]
     
     temporal_order = log(e[-2]/e[-1])/log(h[-2]/h[-1])
     
-    """ Assert expected orders of accuracy. """
-    assert(abs(spatial_order - expected_spatial_order) < tolerance)
+    print("Observed temporal order of accuracy is " + str(temporal_order))
     
     assert(abs(temporal_order - expected_temporal_order) < tolerance)
     

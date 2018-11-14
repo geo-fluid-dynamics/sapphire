@@ -27,5 +27,5 @@ class HeatModel(fem.abstract_unsteady_model.AbstractUnsteadyModel):
         
         dot, grad = fe.dot, fe.grad
         
-        return u_t + alpha*dot(grad(v), grad(u))
+        return v*u_t + alpha*dot(grad(v), grad(u))
     

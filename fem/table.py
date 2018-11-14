@@ -42,9 +42,9 @@ class Table:
             
             for val in values[:-1]:
             
-                string += val + ", "
+                string += str(val) + ", "
                 
-            string += val + "\n"
+            string += str(values[-1]) + "\n"
             
             return string
         
@@ -54,7 +54,7 @@ class Table:
         
         for i in range(len(self)):
         
-            string += format_row(row(i))
+            string += format_row(self.row(i))
             
         return string
    
