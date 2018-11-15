@@ -11,15 +11,18 @@ def test__verify_convergence_order_via_mms():
     
     def a(x):
     
-        return sin(2.*pi*x[0])*sin(4.*pi*x[1])*ihat + sin(pi*x[0])*sin(2.*pi*x[1])*jhat
+        return sin(2.*pi*x[0])*sin(4.*pi*x[1])*ihat \
+            + sin(pi*x[0])*sin(2.*pi*x[1])*jhat
     
     nu = 0.1
     
     residual_parameters = {"velocity": a, "viscosity": nu}
     
-    def strong_form_residual(solution, mesh):
+    def strong_form_residual(model):
         
-        x = fe.SpatialCoordinate(mesh)
+        x = fe.SpatialCoordinate(model.mesh)
+        
+        u = model.manufactured_solution()
         
         a = residual_parameters["velocity"](x)
         
@@ -27,20 +30,19 @@ def test__verify_convergence_order_via_mms():
         
         dot, grad, div = fe.dot, fe.grad, fe.div
         
-        u = solution
-        
         return dot(a, grad(u)) - div(nu*grad(u))
     
-    def manufactured_solution(mesh):
+    def manufactured_solution(model):
+        
+        x = fe.SpatialCoordinate(model.mesh)
         
         sin, pi = fe.sin, fe.pi
-        
-        x = fe.SpatialCoordinate(mesh)
         
         return sin(2.*pi*x[0])*sin(pi*x[1])
     
     fem.mms.verify_order_of_accuracy(
-        Model = fem.models.convection_diffusion_model.ConvectionDiffusionModel,
+        Model = fem.models.convection_diffusion_model.\
+            ConvectionDiffusionModel,
         residual_parameters = residual_parameters,
         expected_spatial_order = 2,
         strong_form_residual = strong_form_residual,

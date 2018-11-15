@@ -5,27 +5,37 @@ import sys
 
 def test__verify_convergence_order_via_mms():
 
-    def strong_form_residual(solution, mesh):
+    class Model(fem.models.laplace_model.LaplaceModel):
     
-        div, grad, = fe.div, fe.grad
+        def __init__(self, gridsize = 4):
+            
+            self.gridsize = gridsize
+            
+            super().__init__()
+            
+        def set_mesh(self):
+            
+            self.mesh = fe.UnitSquareMesh(self.gridsize, self.gridsize)
+            
+        def strong_form_residual(model):
         
-        u = solution
+            div, grad, = fe.div, fe.grad
+            
+            u = model.manufactured_solution()
+            
+            return div(grad(u))
         
-        return div(grad(u))
-    
-    def manufactured_solution(mesh):
-        
-        sin, pi = fe.sin, fe.pi
-        
-        x = fe.SpatialCoordinate(mesh)
-        
-        return sin(2.*pi*x[0])*sin(pi*x[1])
+        def manufactured_solution(model):
+            
+            sin, pi = fe.sin, fe.pi
+            
+            x = fe.SpatialCoordinate(model.mesh)
+            
+            return sin(2.*pi*x[0])*sin(pi*x[1])
     
     fem.mms.verify_order_of_accuracy(
-        Model = fem.models.laplace_model.LaplaceModel,
+        Model = Model,
         expected_spatial_order = 2,
-        strong_form_residual = strong_form_residual,
-        manufactured_solution = manufactured_solution,
         grid_sizes = (8, 16, 32),
         quadrature_degree = 2,
         tolerance = 0.1)

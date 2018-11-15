@@ -5,11 +5,11 @@ import sys
 
 def test__verify_convergence_order_via_MMS():
 
-    def strong_form_residual(solution, mesh):
+    def strong_form_residual(model):
     
         grad, dot, div, sym = fe.grad, fe.dot, fe.div, fe.sym
         
-        u, p = solution
+        u, p = model.manufactured_solution()
         
         r_u = grad(u)*u + grad(p) - 2.*div(sym(grad(u)))
         
@@ -17,11 +17,11 @@ def test__verify_convergence_order_via_MMS():
         
         return r_u, r_p
     
-    def manufactured_solution(mesh):
+    def manufactured_solution(model):
         
         sin, pi = fe.sin, fe.pi
         
-        x = fe.SpatialCoordinate(mesh)
+        x = fe.SpatialCoordinate(model.mesh)
         
         ihat, jhat = fe.unit_vector(0, 2), fe.unit_vector(1, 2)
         
@@ -30,12 +30,17 @@ def test__verify_convergence_order_via_MMS():
         p = -0.5*(u[0]**2 + u[1]**2)
         
         return u, p
+        
+    def set_parameters(model):
+    
+        pass
     
     fem.mms.verify_order_of_accuracy(
         Model = fem.models.navier_stokes_model.NavierStokesModel,
         expected_spatial_order = 2,
         strong_form_residual = strong_form_residual,
         manufactured_solution = manufactured_solution,
+        set_parameters = set_parameters,
         grid_sizes = (8, 16, 32),
         quadrature_degree = 4,
         tolerance = 0.1)

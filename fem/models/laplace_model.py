@@ -7,9 +7,9 @@ import fem.abstract_model
     
 class LaplaceModel(fem.abstract_model.AbstractModel):
     
-    def element(self):
+    def set_element(self):
     
-        return fe.FiniteElement("P", self.mesh.ufl_cell(), 1)
+        self.element = fe.FiniteElement("P", self.mesh.ufl_cell(), 1)
     
     def weak_form_residual(self):
         

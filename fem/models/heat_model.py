@@ -7,13 +7,19 @@ import fem.abstract_unsteady_model
     
 class HeatModel(fem.abstract_unsteady_model.AbstractUnsteadyModel):
     
+    def __init__(self):
+    
+        self.thermal_diffusivity = fe.Constant(1.)
+        
+        super().__init__()
+        
     def element(self):
     
         return fe.FiniteElement("P", self.mesh.ufl_cell(), 1)
     
     def weak_form_residual(self):
         
-        alpha = self.residual_parameters["thermal_diffusivity"]
+        alpha = self.thermal_diffusivity
         
         u = self.solution
         
@@ -23,7 +29,7 @@ class HeatModel(fem.abstract_unsteady_model.AbstractUnsteadyModel):
         
         u_t = (u - un)/Delta_t
         
-        v = fe.TestFunction(self.solution.function_space())
+        v = fe.TestFunction(self.function_space)
         
         dot, grad = fe.dot, fe.grad
         

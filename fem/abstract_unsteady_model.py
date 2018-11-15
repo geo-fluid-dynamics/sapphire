@@ -10,17 +10,21 @@ class AbstractUnsteadyModel(fem.abstract_model.AbstractModel):
     """ An abstract class on which to base finite element models
         with auxiliary data for unsteady (i.e. time-dependent) simulations.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         
-        self.timestep_size = fe.Constant(0.)
+        self.time = None
         
-        super().__init__(*args, **kwargs)
+        self.ufl_time = fe.variable(0.)
+        
+        self.timestep_size = fe.Constant(1.)
+        
+        super().__init__()
         
     def init_solution(self):
     
         super().init_solution()
         
-        self.initial_values = fe.Function(self.solution.function_space())
+        self.initial_values = fe.Function(self.function_space)
         
     def set_initial_values(self, initial_values):
     
@@ -31,5 +35,5 @@ class AbstractUnsteadyModel(fem.abstract_model.AbstractModel):
         else:
             
             self.initial_values.assign(fe.interpolate(
-                initial_values, self.solution.function_space()))
-            
+                initial_values, self.function_space))
+           

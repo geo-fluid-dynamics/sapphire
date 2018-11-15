@@ -4,32 +4,43 @@ import sys
 
 
 def test__verify_convergence_order_via_mms():
-
-    t = fe.variable(0.)
-
-    alpha = fe.Constant(3.)
     
-    def strong_form_residual(solution, mesh):
-        
-        u = solution
-        
-        diff, div, grad = fe.diff, fe.div, fe.grad
-        
-        return diff(u, t) - alpha*div(grad(u))
+    class Model(fem.models.heat_model.HeatModel):
     
-    def manufactured_solution(mesh):
+        def __init__(self, gridsize = 4):
         
-        sin, pi, exp = fe.sin, fe.pi, fe.exp
+            self.gridsize = gridsize
+            
+            super().__init__()
+            
+            self.thermal_diffusivity.assign(3.)
+            
+        def mesh(self):
         
-        x = fe.SpatialCoordinate(mesh)
+            return fe.UnitSquareMesh(self.gridsize, self.gridsize)
         
-        return sin(2.*pi*x[0])*sin(pi*x[1])*exp(-t)
+        def strong_form_residual(self):
+            
+            u = self.manufactured_solution()
+            
+            t = self.ufl_time
+            
+            diff, div, grad = fe.diff, fe.div, fe.grad
+            
+            return diff(u, t) - alpha*div(grad(u))
     
+        def manufactured_solution(self):
+            
+            x = fe.SpatialCoordinate(self.mesh)
+            
+            t = self.ufl_time
+            
+            sin, pi, exp = fe.sin, fe.pi, fe.exp
+            
+            return sin(2.*pi*x[0])*sin(pi*x[1])*exp(-t)
+        
     fem.mms.verify_order_of_accuracy(
-        Model = fem.models.heat_model.HeatModel,
-        residual_parameters = {"thermal_diffusivity": alpha},
-        strong_form_residual = strong_form_residual,
-        manufactured_solution = manufactured_solution,
+        Model = Model,
         expected_spatial_order = 2,
         grid_sizes = (8, 16, 32),
         expected_temporal_order = 1,

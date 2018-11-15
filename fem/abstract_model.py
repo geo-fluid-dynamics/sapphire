@@ -7,71 +7,65 @@ import abc
 
 class AbstractModel(metaclass = abc.ABCMeta):
     """ An abstract class on which to base finite element models. """
-    def __init__(self, 
-            mesh, 
-            dirichlet_boundary_conditions = [
-                {"subspace": None, "value": 0., "subdomain": "on_boundary"},],
-            quadrature_degree = 2,
-            residual_parameters = {},
+    def __init__(self):
+        
+        self.quadrature_degree = None
+        
+        self.set_mesh()
+        
+        self.set_element()
+        
+        self.function_space = fe.FunctionSpace(self.mesh, self.element)
+        
+        self.init_solution()
+    
+    @abc.abstractmethod
+    def set_mesh(self):
+        """ Redefine this to return a `fe.Mesh`.
+        """
+    
+    @abc.abstractmethod
+    def set_element(self):
+        """ Redefine this to return a `fe.FiniteElement` or `fe.MixedElement`.
+        """
+        
+    @abc.abstractmethod
+    def weak_form_residual(self):
+        """ Redefine this to return a `fe.NonlinearVariationalForm`.
+        """
+    
+    def init_solution(self):
+    
+        self.solution = fe.Function(self.function_space)
+    
+    def dirichlet_boundary_conditions(self):
+        """ Optionally redefine this to return a tuple of `fe.DirichletBC`.
+        """
+        return None
+        
+    def solve(self,
             solver_parameters = {
                 "ksp_type": "preonly", 
                 "pc_type": "lu", 
                 "mat_type": "aij",
                 "pc_factor_mat_solver_type": "mumps"}):
-        
-        self.residual_parameters = residual_parameters
-        
-        self.mesh = mesh
-        
-        element = self.element()
-        
-        V = fe.FunctionSpace(mesh, element)
-        
-        self.function_space = V
-        
-        self.init_solution()
+    
+        r = self.weak_form_residual()*fe.dx(degree = self.quadrature_degree)
         
         u = self.solution
         
+        bcs = self.dirichlet_boundary_conditions()
         
-        bcs = []
-        
-        for i, bc in enumerate(dirichlet_boundary_conditions):
-        
-            if bc["subspace"] is None:
-            
-                V_i = V
-                
-            else:
-            
-                V_i = V.sub(i)
-                
-            bcs.append(fe.DirichletBC(V_i, bc["value"], bc["subdomain"]))
-        
-        
-        r = self.weak_form_residual()*fe.dx(degree = quadrature_degree)
-        
-        problem = fe.NonlinearVariationalProblem(
-            r, u, bcs, fe.derivative(r, u))
+        problem = fe.NonlinearVariationalProblem(r, u, bcs, fe.derivative(r, u))
         
         solver = fe.NonlinearVariationalSolver(
             problem, solver_parameters = solver_parameters)
         
         self.solver = solver
         
-    def init_solution(self):
-    
-        self.solution = fe.Function(self.function_space)
+    def unit_vectors(self):
         
-    @abc.abstractmethod
-    def element(self):
-        """ Redefine this 
-        to return a `fe.FiniteElement` or `fe.MixedElement`.
-        """
+        dim = self.mesh.ufl_dim()
         
-    @abc.abstractmethod
-    def weak_form_residual(self):
-        """ Redefine this 
-        to return a `fe.NonlinearVariationalForm`.
-        """
+        return tuple([fe.unit_vector(i, dim) for i in range(dim)])
         
