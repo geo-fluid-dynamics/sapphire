@@ -1,15 +1,17 @@
-""" **navier_stokes_model.py** 
-implement a steady incompressible Navier-Stokes model class. 
-"""
+""" A steady incompressible Navier-Stokes model class """
 import firedrake as fe
-import fem.abstract_model
+import fem.model
 
     
-class NavierStokesModel(fem.abstract_model.AbstractModel):
+class Model(fem.model.Model):
     
-    def element(self):
+    def __init__(self):
     
-        return fe.MixedElement(
+        super().__init__()
+        
+    def init_element(self):
+    
+        self.element = fe.MixedElement(
             fe.VectorElement('P', self.mesh.ufl_cell(), 2),
             fe.FiniteElement('P', self.mesh.ufl_cell(), 1))
     

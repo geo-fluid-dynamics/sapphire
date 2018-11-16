@@ -1,132 +1,109 @@
-""" **mms.py**
-facilitates solver verification via the Method of Manufactured Solution (MMS).
-"""
+""" Verify via the Method of Manufactured Solution (MMS) """
 import firedrake as fe
+import fem.table
 import math
 
 
-def augment_weak_form(
-        weak_form_residual, 
-        function_space, 
-        strong_form_residual, 
-        manufactured_solution):
-    
-    r = weak_form_residual()
-    
-    mesh = function_space.mesh()
-    
-    u = manufactured_solution(mesh)
-    
-    try:
-    
-        for psi, s_i in zip(
-                fe.TestFunctions(function_space), 
-                strong_form_residual(u, mesh)):
-
-            r -= fe.inner(psi, s_i)
-            
-    except NotImplementedError as error:
-    
-        psi = fe.TestFunction(function_space)
-        
-        s = strong_form_residual(u, mesh)
-        
-        r -= fe.inner(psi, s)
-        
-    return r
-
-def L2_error(manufactured_solution, computed_solution, quadrature_degree = None):
-    
-    mesh = computed_solution.function_space().mesh()
-    
-    dx = fe.dx(degree = quadrature_degree)
-    
-    try:
-    
-        L2_error = 0.
-    
-        for u_m, u_h in zip(manufactured_solution(mesh), computed_solution.split()):
-        
-            L2_error += fe.assemble(fe.inner(u_m - u_h, u_m - u_h)*dx)
-
-        L2_error = math.sqrt(L2_error)
-        
-    except NotImplementedError as error:
-    
-        u_m, u_h = manufactured_solution(mesh), computed_solution
-        
-        L2_error = math.sqrt(fe.assemble(fe.inner(u_m - u_h, u_m - u_h)*dx))
-        
-    return L2_error
-    
-    
-def verify_convergence_order(
+def verify_order_of_accuracy(
         Model,
-        expected_order,
-        strong_form_residual,
-        manufactured_solution,
+        expected_spatial_order,
         grid_sizes = (8, 16, 32),
         quadrature_degree = None,
-        residual_parameters = {},
         tolerance = 0.1):
     
     class MMSVerificationModel(Model):
-    
+        
         def weak_form_residual(self):
         
-            return augment_weak_form(
-                super().weak_form_residual, 
-                self.solution.function_space(),
-                strong_form_residual, 
-                manufactured_solution)
-            
-    L2_errors = []
-
-    for M in grid_sizes:
-        
-        mesh = fe.UnitSquareMesh(M, M)
-        
-        u = manufactured_solution(mesh)
-        
-        try:
-        
-            iterable = iter(u)
-        
-            bcs = [{"subspace": i, "value": g, "subdomain": "on_boundary"}
-                for i, g in enumerate(u)]
-            
-        except NotImplementedError as error:
-        
-            bcs = [{"subspace": None, "value": u, "subdomain": "on_boundary"},]
-        
-        model = MMSVerificationModel(
-            mesh = mesh, 
-            dirichlet_boundary_conditions = bcs,
-            quadrature_degree = quadrature_degree,
-            residual_parameters = residual_parameters)
-        
-        model.solver.solve()
-        
-        L2_errors.append(
-            L2_error(
-                manufactured_solution, 
-                model.solution, 
-                quadrature_degree = quadrature_degree))
+            r = super().weak_form_residual()
     
-    edge_lengths = [1./float(M) for M in grid_sizes]
+            u = self.manufactured_solution()
+            
+            try:
+            
+                for psi, s_i in zip(
+                        fe.TestFunctions(self.function_space),
+                        self.strong_form_residual()):
 
-    e, h = L2_errors, edge_lengths
+                    r -= fe.inner(psi, s_i)
+                    
+            except NotImplementedError as error:
+            
+                psi = fe.TestFunction(self.function_space)
+                
+                s = self.strong_form_residual()
+                
+                r -= fe.inner(psi, s)
+                
+            return r
+            
+        def dirichlet_boundary_conditions(self):
+            
+            u_m = self.manufactured_solution()
+            
+            V = self.function_space
+            
+            try:
+    
+                iterable = iter(u_m)
+                
+                bcs = [fe.DirichletBC(V.sub(i), g, "on_boundary") \
+                    for i, g in enumerate(u_m)]
+                
+            except NotImplementedError as error:
+                
+                bcs = [fe.DirichletBC(V, u_m, "on_boundary"),]
+                
+            return bcs
+            
+        def L2_error(self):
+            
+            dx = self.integration_measure
+            
+            try:
+            
+                e = 0.
+            
+                for u_m, u_h in zip(
+                        self.manufactured_solution(), self.solution.split()):
+                    
+                    e += fe.assemble(fe.inner(u_m - u_h, u_m - u_h)*dx)
+
+                e = math.sqrt(e)
+                
+            except NotImplementedError as error:
+            
+                u_m, u_h = self.manufactured_solution(), self.solution
+                
+                e = math.sqrt(fe.assemble(fe.inner(u_m - u_h, u_m - u_h)*dx))
+                
+            return e
+    
+    
+    table = fem.table.Table(("h", "Delta_t", "L2_error"))
+    
+    
+    print("Verifying spatial order of accuracy.")
+    
+    for gridsize in grid_sizes:
+        
+        model = MMSVerificationModel(gridsize = gridsize)
+        
+        model.solve()
+        
+        table.append({
+            "h": 1./float(model.gridsize),
+            "L2_error": model.L2_error()})
+        
+    print(str(table))
+        
+    e, h = table.data["L2_error"], table.data["h"]
 
     log = math.log
 
-    orders = [(log(e[i + 1]) - log(e[i]))/(log(h[i + 1]) - log(h[i]))
-              for i in range(len(e) - 1)]
+    spatial_order = log(e[-2]/e[-1])/log(h[-2]/h[-1])
     
-    print("Edge lengths = " + str(edge_lengths))
+    print("Observed spatial order of accuracy is " + str(spatial_order))
     
-    print("L2 norm errors = " + str(L2_errors))
-    
-    print("Convergence orders = " + str(orders))
-    
-    assert(abs(orders[-1] - expected_order) < tolerance)
+    assert(abs(spatial_order - expected_spatial_order) < tolerance)
     
