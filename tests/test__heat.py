@@ -1,11 +1,10 @@
 import firedrake as fe 
 import fem
-import sys
 
 
 def test__verify_convergence_order_via_mms():
     
-    class Model(fem.models.heat_model.HeatModel):
+    class Model(fem.models.heat.Model):
     
         def __init__(self, gridsize = 4):
         
@@ -13,13 +12,17 @@ def test__verify_convergence_order_via_mms():
             
             super().__init__()
             
+            self.integration_measure = fe.dx(degree = 2)
+            
             self.thermal_diffusivity.assign(3.)
             
-        def mesh(self):
+        def init_mesh(self):
         
-            return fe.UnitSquareMesh(self.gridsize, self.gridsize)
+            self.mesh = fe.UnitSquareMesh(self.gridsize, self.gridsize)
         
         def strong_form_residual(self):
+            
+            alpha = self.thermal_diffusivity
             
             u = self.manufactured_solution()
             
@@ -46,5 +49,4 @@ def test__verify_convergence_order_via_mms():
         expected_temporal_order = 1,
         endtime = 1.,
         timestep_sizes = (1., 1./2., 1./4.),
-        quadrature_degree = 2,
         tolerance = 0.1)

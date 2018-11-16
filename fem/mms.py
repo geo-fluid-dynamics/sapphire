@@ -1,6 +1,4 @@
-""" **mms.py**
-facilitates solver verification via the Method of Manufactured Solution (MMS).
-"""
+""" Verify via the Method of Manufactured Solution (MMS) """
 import firedrake as fe
 import fem.table
 import math
@@ -21,6 +19,8 @@ def verify_order_of_accuracy(
     if expected_temporal_order is None:
     
         time_accurate = False
+        
+        timestep_size = None
         
     else:
     
@@ -57,7 +57,9 @@ def verify_order_of_accuracy(
             
             u_m = self.manufactured_solution()
             
-            if self.time is not None:
+            if time_accurate:
+            
+                u_m = fe.Expression(u_m)
             
                 u_m.t = self.time
             
@@ -77,8 +79,8 @@ def verify_order_of_accuracy(
             return bcs
             
         def L2_error(self):
-    
-            dx = fe.dx(degree = self.quadrature_degree)
+            
+            dx = self.integration_measure
             
             try:
             
@@ -86,6 +88,12 @@ def verify_order_of_accuracy(
             
                 for u_m, u_h in zip(
                         self.manufactured_solution(), self.solution.split()):
+                        
+                    if time_accurate:
+                        
+                        u_m = fe.Expression(u_m)
+                        
+                        u_m.t = self.time
                 
                     e += fe.assemble(fe.inner(u_m - u_h, u_m - u_h)*dx)
 
@@ -94,6 +102,12 @@ def verify_order_of_accuracy(
             except NotImplementedError as error:
             
                 u_m, u_h = self.manufactured_solution(), self.solution
+                
+                if time_accurate:
+                    
+                    u_m = fe.Expression(u_m)
+                    
+                    u_m.t = self.time
                 
                 e = math.sqrt(fe.assemble(fe.inner(u_m - u_h, u_m - u_h)*dx))
                 
@@ -105,16 +119,6 @@ def verify_order_of_accuracy(
     
     print("Verifying spatial order of accuracy. ")
     
-    if time_accurate:
-    
-        timestep_size = max(timestep_sizes)
-    
-        time = 0.
-        
-    else:
-    
-        timestep_size = None
-    
     for gridsize in grid_sizes:
         
         model = MMSVerificationModel(gridsize = gridsize)
@@ -125,17 +129,15 @@ def verify_order_of_accuracy(
         
             model.set_initial_values(model.manufactured_solution())
             
-            model.timestep_size.assign(timestep_size)
+            model.timestep_size.assign(max(timestep_sizes))
         
-        model.time = timestep_size
-        
-        model.quadrature_degree = quadrature_degree
+            model.time += model.timestep_size.__float__()
         
         model.solve()
         
         table.append({
-            "h": 1./float(gridsize),
-            "Delta_t": timestep_size, 
+            "h": 1./float(model.gridsize),
+            "Delta_t": timestep_size,
             "L2_error": model.L2_error()})
         
     print(str(table))
@@ -164,8 +166,6 @@ def verify_order_of_accuracy(
         
         model = MMSVerificationModel(gridsize = grid_size)
         
-        model.quadrature_degree = quadrature_degree
-            
         model.timestep_size.assign(Delta_t)
         
         model.time = 0.
@@ -180,13 +180,13 @@ def verify_order_of_accuracy(
             
                 model.set_initial_values(model.solution)
         
-            model.time += timestep_size
+            model.time += model.timestep_size.__float__()
             
             model.solve()
             
         table.append({
-            "h": 1./float(gridsize), 
-            "Delta_t": timestep_size, 
+            "h": 1./float(model.gridsize), 
+            "Delta_t": timestep_size,
             "L2_error": model.L2_error()})
     
     print(str(table))

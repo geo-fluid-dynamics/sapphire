@@ -1,12 +1,11 @@
-""" **abstract_unsteady_model.py**
-provides an abstract class on which to base finite element models
+""" An abstract class on which to base finite element models
 with auxiliary data for unsteady (i.e. time-dependent) simulations.
 """
 import firedrake as fe
-import fem.abstract_model
+import fem.model
 
 
-class AbstractUnsteadyModel(fem.abstract_model.AbstractModel):
+class UnsteadyModel(fem.model.Model):
     """ An abstract class on which to base finite element models
         with auxiliary data for unsteady (i.e. time-dependent) simulations.
     """

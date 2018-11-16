@@ -1,5 +1,5 @@
-from . import abstract_model
-from . import abstract_unsteady_model
+from . import model
+from . import unsteady_model
 from . import models
 from . import mms
 from . import table

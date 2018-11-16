@@ -1,30 +1,44 @@
-""" **navier_stokes_boussinesq_model.py** 
-implements a steady incompressible Navier-Stokes-Boussinesq model class. 
-"""
+""" A steady incompressible Navier-Stokes-Boussinesq model class. """
 import firedrake as fe
-import fem.abstract_model
+import fem.model
 
     
-class NavierStokesBoussinesqModel(fem.abstract_model.AbstractModel):
+class Model(fem.model.Model):
     
-    def element(self):
+    def __init__(self):
     
-        return fe.MixedElement(
+        super().__init__()
+        
+        self.dynamic_viscosity = fe.Constant(1.)
+        
+        self.rayleigh_number = fe.Constant(1.)
+        
+        self.prandtl_number = fe.Constant(1.)
+        
+        ihat, jhat = self.unit_vectors()
+        
+        self.gravity_direction = fe.Constant(-jhat)
+        
+        self.pressure_penalty_factor = fe.Constant(1.e-7)
+    
+    def init_element(self):
+    
+        self.element = fe.MixedElement(
             fe.FiniteElement("P", self.mesh.ufl_cell(), 1),
             fe.VectorElement("P", self.mesh.ufl_cell(), 2),
             fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
     
     def weak_form_residual(self):
 
-        mu = fe.Constant(self.residual_parameters["dynamic_viscosity"])
+        mu = self.dynamic_viscosity
         
-        Ra = fe.Constant(self.residual_parameters["rayleigh_number"])
+        Ra = self.rayleigh_number
         
-        Pr = fe.Constant(self.residual_parameters["prandtl_number"])
+        Pr = self.prandtl_number
         
-        ghat = fe.Constant(self.residual_parameters["gravity_direction"])
+        ghat = self.gravity_direction
         
-        gamma = fe.Constant(self.residual_parameters["pressure_penalty_factor"])
+        gamma = self.pressure_penalty_factor
         
         inner, dot, grad, div, sym = \
             fe.inner, fe.dot, fe.grad, fe.div, fe.sym

@@ -1,21 +1,19 @@
-""" **heat_model.py** 
-implements a heat model class. 
-"""
+""" A heat model class """
 import firedrake as fe
-import fem.abstract_unsteady_model
+import fem.unsteady_model
 
     
-class HeatModel(fem.abstract_unsteady_model.AbstractUnsteadyModel):
+class Model(fem.unsteady_model.UnsteadyModel):
     
     def __init__(self):
-    
-        self.thermal_diffusivity = fe.Constant(1.)
         
         super().__init__()
         
-    def element(self):
+        self.thermal_diffusivity = fe.Constant(1.)
+        
+    def init_element(self):
     
-        return fe.FiniteElement("P", self.mesh.ufl_cell(), 1)
+        self.element = fe.FiniteElement("P", self.mesh.ufl_cell(), 1)
     
     def weak_form_residual(self):
         
