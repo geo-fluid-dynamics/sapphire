@@ -4,9 +4,9 @@ import fem.table
 import math
 
 
-def verify_order_of_accuracy(
+def verify_spatial_order_of_accuracy(
         Model,
-        expected_spatial_order,
+        expected_order,
         grid_sizes = (8, 16, 32),
         quadrature_degree = None,
         tolerance = 0.1):
@@ -16,22 +16,22 @@ def verify_order_of_accuracy(
         def weak_form_residual(self):
         
             r = super().weak_form_residual()
-    
-            u = self.manufactured_solution()
+            
+            s = self.strong_form_residual(self.manufactured_solution())
             
             try:
             
-                for psi, s_i in zip(
-                        fe.TestFunctions(self.function_space),
-                        self.strong_form_residual()):
-
+                for psi, s_i in zip(fe.TestFunctions(self.function_space), s):
+                    
+                    if hasattr(self, "time"):
+                    
+                        s_i.t = self.time
+                    
                     r -= fe.inner(psi, s_i)
                     
             except NotImplementedError as error:
             
                 psi = fe.TestFunction(self.function_space)
-                
-                s = self.strong_form_residual()
                 
                 r -= fe.inner(psi, s)
                 
@@ -40,6 +40,12 @@ def verify_order_of_accuracy(
         def dirichlet_boundary_conditions(self):
             
             u_m = self.manufactured_solution()
+            
+            if hasattr(self, "time"):
+            
+                u_m = fe.Expression(u_m)
+            
+                u_m.t = self.time
             
             V = self.function_space
             
@@ -105,5 +111,5 @@ def verify_order_of_accuracy(
     
     print("Observed spatial order of accuracy is " + str(spatial_order))
     
-    assert(abs(spatial_order - expected_spatial_order) < tolerance)
+    assert(abs(spatial_order - expected_order) < tolerance)
     

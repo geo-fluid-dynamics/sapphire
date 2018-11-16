@@ -2,7 +2,8 @@ import firedrake as fe
 import fem
 
 
-def test__verify_convergence_order_via_mms():
+def test__verify_convergence_order_via_mms(
+        grid_sizes = (16, 32), tolerance = 0.1):
 
     class Model(fem.models.laplace.Model):
     
@@ -18,11 +19,11 @@ def test__verify_convergence_order_via_mms():
             
             self.mesh = fe.UnitSquareMesh(self.gridsize, self.gridsize)
             
-        def strong_form_residual(self):
+        def strong_form_residual(self, solution):
         
             div, grad, = fe.div, fe.grad
             
-            u = self.manufactured_solution()
+            u = solution
             
             return div(grad(u))
         
@@ -34,17 +35,9 @@ def test__verify_convergence_order_via_mms():
             
             return sin(2.*pi*x[0])*sin(pi*x[1])
     
-    fem.mms.verify_order_of_accuracy(
+    fem.mms.verify_spatial_order_of_accuracy(
         Model = Model,
-        expected_spatial_order = 2,
-        grid_sizes = (8, 16, 32),
-        tolerance = 0.1)
+        expected_order = 2,
+        grid_sizes = grid_sizes,
+        tolerance = tolerance)
     
-    
-if __name__ == "__main__":
-
-    print("Using Python " + sys.version)
-
-    print("Using " + fe.__name__ + "-" + fe.__version__)
-    
-    test__verify_convergence_order_via_mms()

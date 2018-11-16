@@ -2,7 +2,8 @@ import firedrake as fe
 import fem
 
 
-def test__verify_convergence_order_via_MMS():
+def test__verify_convergence_order_via_MMS(
+        grid_sizes = (16, 32), tolerance = 0.1):
 
     class Model(fem.models.navier_stokes.Model):
     
@@ -18,11 +19,11 @@ def test__verify_convergence_order_via_MMS():
             
             self.mesh = fe.UnitSquareMesh(self.gridsize, self.gridsize)
             
-        def strong_form_residual(self):
+        def strong_form_residual(self, solution):
         
             grad, dot, div, sym = fe.grad, fe.dot, fe.div, fe.sym
             
-            u, p = self.manufactured_solution()
+            u, p = solution
             
             r_u = grad(u)*u + grad(p) - 2.*div(sym(grad(u)))
             
@@ -45,9 +46,9 @@ def test__verify_convergence_order_via_MMS():
             
             return u, p
     
-    fem.mms.verify_order_of_accuracy(
+    fem.mms.verify_spatial_order_of_accuracy(
         Model = Model,
-        expected_spatial_order = 2,
-        grid_sizes = (8, 16, 32),
-        tolerance = 0.1)
+        expected_order = 2,
+        grid_sizes = grid_sizes,
+        tolerance = tolerance)
     

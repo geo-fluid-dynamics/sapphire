@@ -2,7 +2,8 @@ import firedrake as fe
 import fem
 
 
-def test__verify_convergence_order_via_mms():
+def test__verify_convergence_order_via_mms(
+        grid_sizes = (16, 32), tolerance = 0.1):
     
     class Model(fem.models.convection_diffusion.Model):
         
@@ -29,11 +30,11 @@ def test__verify_convergence_order_via_mms():
             
             self.mesh = fe.UnitSquareMesh(self.gridsize, self.gridsize)
     
-        def strong_form_residual(self):
+        def strong_form_residual(self, solution):
             
             x = fe.SpatialCoordinate(self.mesh)
             
-            u = self.manufactured_solution()
+            u = solution
             
             a = self.advection_velocity
             
@@ -51,8 +52,8 @@ def test__verify_convergence_order_via_mms():
             
             return sin(2.*pi*x[0])*sin(pi*x[1])
     
-    fem.mms.verify_order_of_accuracy(
+    fem.mms.verify_spatial_order_of_accuracy(
         Model = Model,
-        expected_spatial_order = 2,
-        grid_sizes = (8, 16, 32),
-        tolerance = 0.1)
+        expected_order = 2,
+        grid_sizes = grid_sizes,
+        tolerance = tolerance)
