@@ -19,19 +19,21 @@ def verify_spatial_order_of_accuracy(
             
             s = self.strong_form_residual(self.manufactured_solution())
             
+            V = self.function_space
+            
+            if hasattr(self, "time"):
+                
+                s = fe.interpolate(fe.Expression(s, t = self.time), V)
+            
             try:
             
-                for psi, s_i in zip(fe.TestFunctions(self.function_space), s):
-                    
-                    if hasattr(self, "time"):
-                    
-                        s_i.t = self.time
+                for psi, s_i in zip(fe.TestFunctions(V), s):
                     
                     r -= fe.inner(psi, s_i)
                     
             except NotImplementedError as error:
             
-                psi = fe.TestFunction(self.function_space)
+                psi = fe.TestFunction(V)
                 
                 r -= fe.inner(psi, s)
                 
@@ -41,13 +43,11 @@ def verify_spatial_order_of_accuracy(
             
             u_m = self.manufactured_solution()
             
+            V = self.function_space
+            
             if hasattr(self, "time"):
             
-                u_m = fe.Expression(u_m)
-            
-                u_m.t = self.time
-            
-            V = self.function_space
+                u_m = fe.interpolate(fe.Expression(u_m, t = self.time), V)
             
             try:
     

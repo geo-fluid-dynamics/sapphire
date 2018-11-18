@@ -51,11 +51,9 @@ def test__verify_convergence_order_via_mms(
         
             super().init_solution()        
         
-            u = fe.Expression(self.manufactured_solution())
+            u = fe.Expression(self.manufactured_solution(), t = self.time)
             
-            u.t = self.time
-            
-            self.set_initial_values(u)
+            self.set_initial_values(fe.interpolate(u, self.function_space))
         
     fem.mms.verify_spatial_order_of_accuracy(
         Model = Model,
