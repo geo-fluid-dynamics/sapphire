@@ -11,9 +11,7 @@ class UnsteadyModel(fem.model.Model):
     """
     def __init__(self):
         
-        self.time = None
-        
-        self.ufl_time = fe.variable(0.)
+        self.time = fe.Constant(0.)
         
         self.timestep_size = fe.Constant(1.)
         
@@ -24,15 +22,3 @@ class UnsteadyModel(fem.model.Model):
         super().init_solution()
         
         self.initial_values = fe.Function(self.function_space)
-        
-    def set_initial_values(self, initial_values):
-    
-        if type(initial_values) is type(self.initial_values):
-        
-            self.initial_values.assign(initial_values)
-            
-        else:
-            
-            self.initial_values.assign(fe.interpolate(
-                initial_values, self.function_space))
-           

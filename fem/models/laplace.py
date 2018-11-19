@@ -10,7 +10,7 @@ class Model(fem.model.Model):
     
         self.element = fe.FiniteElement("P", self.mesh.ufl_cell(), 1)
     
-    def weak_form_residual(self):
+    def init_weak_form_residual(self):
         
         u = self.solution
         
@@ -18,5 +18,4 @@ class Model(fem.model.Model):
         
         dot, grad = fe.dot, fe.grad
         
-        return - dot(grad(v), grad(u))
-    
+        self.weak_form_residual = - dot(grad(v), grad(u))

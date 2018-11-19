@@ -13,25 +13,15 @@ def test__verify_convergence_order_via_MMS(
             
             super().__init__()
             
-            self.integration_measure = fe.dx(degree = 4)
-            
         def init_mesh(self):
             
             self.mesh = fe.UnitSquareMesh(self.gridsize, self.gridsize)
-            
-        def strong_form_residual(self, solution):
         
-            grad, dot, div, sym = fe.grad, fe.dot, fe.div, fe.sym
+        def init_integration_measure(self):
+
+            self.integration_measure = fe.dx(degree = 4)
             
-            u, p = solution
-            
-            r_u = grad(u)*u + grad(p) - 2.*div(sym(grad(u)))
-            
-            r_p = div(u)
-            
-            return r_u, r_p
-        
-        def manufactured_solution(self):
+        def init_manufactured_solution(self):
             
             sin, pi = fe.sin, fe.pi
             
@@ -44,11 +34,24 @@ def test__verify_convergence_order_via_MMS(
             
             p = -0.5*(u[0]**2 + u[1]**2)
             
-            return u, p
-    
+            self.manufactured_solution = u, p
+        
+        def strong_form_residual(self, solution):
+        
+            grad, dot, div, sym = fe.grad, fe.dot, fe.div, fe.sym
+            
+            u, p = solution
+            
+            r_u = grad(u)*u + grad(p) - 2.*div(sym(grad(u)))
+            
+            r_p = div(u)
+            
+            return r_u, r_p
+        
     fem.mms.verify_spatial_order_of_accuracy(
         Model = Model,
         expected_order = 2,
         grid_sizes = grid_sizes,
-        tolerance = tolerance)
+        tolerance = tolerance,
+        quadrature_degree = 4)
     

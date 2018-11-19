@@ -19,6 +19,14 @@ def test__verify_convergence_order_via_mms(
             
             self.mesh = fe.UnitSquareMesh(self.gridsize, self.gridsize)
             
+        def init_manufactured_solution(self):
+            
+            sin, pi = fe.sin, fe.pi
+            
+            x = fe.SpatialCoordinate(self.mesh)
+            
+            self.manufactured_solution = sin(2.*pi*x[0])*sin(pi*x[1])
+            
         def strong_form_residual(self, solution):
         
             div, grad, = fe.div, fe.grad
@@ -26,14 +34,6 @@ def test__verify_convergence_order_via_mms(
             u = solution
             
             return div(grad(u))
-        
-        def manufactured_solution(self):
-            
-            sin, pi = fe.sin, fe.pi
-            
-            x = fe.SpatialCoordinate(self.mesh)
-            
-            return sin(2.*pi*x[0])*sin(pi*x[1])
     
     fem.mms.verify_spatial_order_of_accuracy(
         Model = Model,

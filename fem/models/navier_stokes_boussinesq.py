@@ -7,20 +7,16 @@ class Model(fem.model.Model):
     
     def __init__(self):
     
-        super().__init__()
-        
         self.dynamic_viscosity = fe.Constant(1.)
         
         self.rayleigh_number = fe.Constant(1.)
         
         self.prandtl_number = fe.Constant(1.)
         
-        ihat, jhat = self.unit_vectors()
-        
-        self.gravity_direction = fe.Constant(-jhat)
-        
         self.pressure_penalty_factor = fe.Constant(1.e-7)
-    
+        
+        super().__init__()
+        
     def init_element(self):
     
         self.element = fe.MixedElement(
@@ -28,13 +24,17 @@ class Model(fem.model.Model):
             fe.VectorElement("P", self.mesh.ufl_cell(), 2),
             fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
     
-    def weak_form_residual(self):
+    def init_weak_form_residual(self):
 
         mu = self.dynamic_viscosity
         
         Ra = self.rayleigh_number
         
         Pr = self.prandtl_number
+        
+        ihat, jhat = self.unit_vectors()
+        
+        self.gravity_direction = fe.Constant(-jhat)
         
         ghat = self.gravity_direction
         
@@ -56,4 +56,4 @@ class Model(fem.model.Model):
         
         stabilization = psi_p*gamma*p
         
-        return mass + momentum + energy + stabilization
+        self.weak_form_residual = mass + momentum + energy + stabilization

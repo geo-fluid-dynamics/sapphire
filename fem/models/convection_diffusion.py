@@ -7,15 +7,15 @@ class Model(fem.model.Model):
     
     def __init__(self):
     
-        super().__init__()
-        
         self.kinematic_viscosity = fe.Constant(1.)
+    
+        super().__init__()
         
     def init_element(self):
     
         self.element = fe.FiniteElement("P", self.mesh.ufl_cell(), 1)
     
-    def weak_form_residual(self):
+    def init_weak_form_residual(self):
         
         u, v = self.solution, fe.TestFunction(self.solution.function_space())
         
@@ -27,5 +27,5 @@ class Model(fem.model.Model):
         
         dot, grad = fe.dot, fe.grad
         
-        return v*dot(a, grad(u)) + dot(grad(v), nu*grad(u))
+        self.weak_form_residual = v*dot(a, grad(u)) + dot(grad(v), nu*grad(u))
         

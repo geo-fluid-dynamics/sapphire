@@ -7,15 +7,15 @@ class Model(fem.unsteady_model.UnsteadyModel):
     
     def __init__(self):
         
-        super().__init__()
-        
         self.thermal_diffusivity = fe.Constant(1.)
+        
+        super().__init__()
         
     def init_element(self):
     
         self.element = fe.FiniteElement("P", self.mesh.ufl_cell(), 1)
     
-    def weak_form_residual(self):
+    def init_weak_form_residual(self):
         
         alpha = self.thermal_diffusivity
         
@@ -31,5 +31,5 @@ class Model(fem.unsteady_model.UnsteadyModel):
         
         dot, grad = fe.dot, fe.grad
         
-        return v*u_t + alpha*dot(grad(v), grad(u))
+        self.weak_form_residual = v*u_t + alpha*dot(grad(v), grad(u))
     
