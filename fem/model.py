@@ -60,10 +60,8 @@ class Model(metaclass = abc.ABCMeta):
         
         u = self.solution
         
-        bcs = self.dirichlet_boundary_conditions
-        
         self.problem = fe.NonlinearVariationalProblem(
-            r, u, bcs, fe.derivative(r, u))
+            r, u, self.dirichlet_boundary_conditions, fe.derivative(r, u))
         
     def init_solver(self, solver_parameters = {
                 "ksp_type": "preonly", 
