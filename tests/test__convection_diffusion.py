@@ -54,5 +54,4 @@ def test__verify_convergence_order_via_mms(
         Model = Model,
         expected_order = 2,
         grid_sizes = grid_sizes,
-        tolerance = tolerance,
-        quadrature_degree = quadrature_degree)
+        tolerance = tolerance)
