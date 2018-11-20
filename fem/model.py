@@ -47,7 +47,9 @@ class Model(metaclass = abc.ABCMeta):
         self.solution = fe.Function(self.function_space)
     
     def init_dirichlet_boundary_conditions(self):
-        """ Either set to None or a tuple of `fe.DirichletBC """
+        """ Optionallay redefine this 
+        to set `self.dirichlet_boundary_conditions`
+        to a tuple of `fe.DirichletBC` """
         self.dirichlet_boundary_conditions = None
         
     def init_integration_measure(self):
