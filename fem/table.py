@@ -57,4 +57,8 @@ class Table:
             string += format_row(self.row(i))
             
         return string
+        
+    def max(self, key):
+    
+        return max(list(filter(None.__ne__, self.data[key])))
    

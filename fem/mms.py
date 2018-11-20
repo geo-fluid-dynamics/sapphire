@@ -86,48 +86,48 @@ def verify_spatial_order_of_accuracy(
         expected_order,
         grid_sizes,
         tolerance,
-        timestep_size = None,
-        quadrature_degree = None):
+        timestep_size = None):
     
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
-    table = fem.table.Table(("h", "L2_error"))
-    
-    print("Verifying spatial order of accuracy.")
+    table = fem.table.Table(("h", "L2_error", "spatial_order"))
     
     for gridsize in grid_sizes:
         
         model = MMSVerificationModel(gridsize = gridsize)
         
         if hasattr(model, "time"):
-        
+            
+            model.initial_values.assign(fe.interpolate(
+                model.manufactured_solution, model.function_space))
+            
             model.timestep_size.assign(timestep_size)
             
-            model.time.assign(
-                model.time.__float__() + model.timestep_size.__float__())
-                
-            initial_values = fe.interpolate(
-                model.manufactured_solution, model.function_space)
-                
-            model.initial_values.assign(initial_values)
+            model.time.assign(model.time + model.timestep_size)
         
         model.solver.solve()
         
         table.append({
             "h": 1./float(model.gridsize),
             "L2_error": model.L2_error()})
+            
+        if len(table) > 1:
+        
+            h, e = table.data["h"], table.data["L2_error"]
+
+            log = math.log
+
+            order = log(e[-2]/e[-1])/log(h[-2]/h[-1])
+            
+            table.data["spatial_order"][-1] = order
         
     print(str(table))
-        
-    h, e = table.data["h"], table.data["L2_error"]
-
-    log = math.log
-
-    order = log(e[-2]/e[-1])/log(h[-2]/h[-1])
     
-    print("Observed spatial order of accuracy is " + str(order))
+    max_order = table.max("spatial_order")
     
-    assert(abs(order - expected_order) < tolerance)
+    print("Maximum observed spatial order of accuracy is " + str(max_order))
+    
+    assert(abs(max_order - expected_order) < tolerance)
     
     
 def verify_temporal_order_of_accuracy(
@@ -136,14 +136,11 @@ def verify_temporal_order_of_accuracy(
         gridsize,
         timestep_sizes,
         endtime,
-        tolerance,
-        quadrature_degree = None):
+        tolerance):
     
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
-    table = fem.table.Table(("Delta_t", "L2_error"))
-    
-    print("Verifying spatial order of accuracy.")
+    table = fem.table.Table(("Delta_t", "L2_error", "temporal_order"))
     
     model = MMSVerificationModel(gridsize = gridsize)
     
@@ -175,16 +172,22 @@ def verify_temporal_order_of_accuracy(
         table.append({
             "Delta_t": timestep_size,
             "L2_error": model.L2_error()})
+            
+        if len(table) > 1:
+        
+            Delta_t, e = table.data["Delta_t"], table.data["L2_error"]
+
+            log = math.log
+
+            order = log(e[-2]/e[-1])/log(Delta_t[-2]/Delta_t[-1])
+    
+            table.data["temporal_order"][-1] = order
         
     print(str(table))
-        
-    Delta_t, e = table.data["Delta_t"], table.data["L2_error"]
-
-    log = math.log
-
-    order = log(e[-2]/e[-1])/log(Delta_t[-2]/Delta_t[-1])
     
-    print("Observed temporal order of accuracy is " + str(order))
+    max_order = table.max("temporal_order")
     
-    assert(abs(order - expected_order) < tolerance)
+    print("Maximum observed temporal order of accuracy is " + str(max_order))
+    
+    assert(abs(max_order - expected_order) < tolerance)
     
