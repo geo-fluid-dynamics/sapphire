@@ -14,11 +14,11 @@ class Model(fem.models.heat.Model):
         
     def init_mesh(self):
     
-        self.mesh = fe.UnitSquareMesh(self.gridsize, self.gridsize)
+        self.mesh = fe.UnitIntervalMesh(self.gridsize)
         
     def init_integration_measure(self):
 
-            self.integration_measure = fe.dx(degree = 2)
+            self.integration_measure = fe.dx
         
     def strong_form_residual(self, solution):
         
@@ -34,19 +34,18 @@ class Model(fem.models.heat.Model):
     
     def init_manufactured_solution(self):
         
-        x = fe.SpatialCoordinate(self.mesh)
+        x = fe.SpatialCoordinate(self.mesh)[0]
         
         t = self.time
         
         sin, pi, exp = fe.sin, fe.pi, fe.exp
         
-        self.manufactured_solution = \
-            sin(2.*pi*x[0])*sin(pi*x[1])*exp(-pow(t, 2))
+        self.manufactured_solution = sin(2.*pi*x)*exp(-pow(t, 2))
 
             
 def test__verify_spatial_convergence_order_via_mms(
-        grid_sizes = (16, 32), 
-        timestep_size = 1./32.,
+        grid_sizes = (8, 16),
+        timestep_size = 1./16.,
         tolerance = 0.1,
         quadrature_degree = 2):
     
@@ -60,8 +59,8 @@ def test__verify_spatial_convergence_order_via_mms(
         
         
 def test__verify_temporal_convergence_order_via_mms(
-        gridsize = 32, 
-        timestep_sizes = (1./16., 1./32.),
+        gridsize = 16, 
+        timestep_sizes = (1./8., 1./16.),
         tolerance = 0.1,
         quadrature_degree = 2):
     

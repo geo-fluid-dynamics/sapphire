@@ -17,15 +17,15 @@ def test__verify_convergence_order_via_mms(
             
         def init_mesh(self):
             
-            self.mesh = fe.UnitSquareMesh(self.gridsize, self.gridsize)
+            self.mesh = fe.UnitIntervalMesh(self.gridsize)
             
         def init_manufactured_solution(self):
             
             sin, pi = fe.sin, fe.pi
             
-            x = fe.SpatialCoordinate(self.mesh)
+            x = fe.SpatialCoordinate(self.mesh)[0]
             
-            self.manufactured_solution = sin(2.*pi*x[0])*sin(pi*x[1])
+            self.manufactured_solution = sin(2.*pi*x)
             
         def strong_form_residual(self, solution):
         
