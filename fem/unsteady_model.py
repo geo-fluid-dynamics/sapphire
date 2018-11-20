@@ -21,4 +21,5 @@ class UnsteadyModel(fem.model.Model):
     
         super().init_solution()
         
-        self.initial_values = fe.Function(self.function_space)
+        self.initial_values = [fe.Function(self.function_space),]
+        

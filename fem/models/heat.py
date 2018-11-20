@@ -13,15 +13,23 @@ class Model(fem.unsteady_model.UnsteadyModel):
     
         self.element = fe.FiniteElement("P", self.mesh.ufl_cell(), 1)
     
+    def init_time_derivative(self):
+        """ Implicit Euler finite difference scheme """
+        u = self.solution
+        
+        un = self.initial_values[0]
+        
+        Delta_t = self.timestep_size
+        
+        self.time_derivative = (u - un)/Delta_t
+    
     def init_weak_form_residual(self):
         
         u = self.solution
         
-        un = self.initial_values
+        self.init_time_derivative()
         
-        Delta_t = self.timestep_size
-        
-        u_t = (u - un)/Delta_t
+        u_t = self.time_derivative
         
         v = fe.TestFunction(self.function_space)
         

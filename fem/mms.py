@@ -98,8 +98,12 @@ def verify_spatial_order_of_accuracy(
         
         if hasattr(model, "time"):
             
-            model.initial_values.assign(fe.interpolate(
-                model.manufactured_solution, model.function_space))
+            initial_values = fe.interpolate(
+                model.manufactured_solution, model.function_space)
+                
+            for iv in model.initial_values:
+            
+                iv.assign(initial_values)
             
             model.timestep_size.assign(timestep_size)
             
@@ -116,8 +120,10 @@ def verify_spatial_order_of_accuracy(
             h, e = table.data["h"], table.data["L2_error"]
 
             log = math.log
-
-            order = log(e[-2]/e[-1])/log(h[-2]/h[-1])
+            
+            r = h[-2]/h[-1]
+            
+            order = log(e[-2]/e[-1])/log(r)
             
             table.data["spatial_order"][-1] = order
         
@@ -136,13 +142,16 @@ def verify_temporal_order_of_accuracy(
         gridsize,
         timestep_sizes,
         endtime,
-        tolerance):
+        tolerance,
+        starttime = 0.):
     
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
     table = fem.table.Table(("Delta_t", "L2_error", "temporal_order"))
     
     model = MMSVerificationModel(gridsize = gridsize)
+    
+    model.time.assign(starttime)
     
     initial_values = fe.interpolate(
         model.manufactured_solution, model.function_space)
@@ -153,11 +162,13 @@ def verify_temporal_order_of_accuracy(
         
         model.timestep_size.assign(timestep_size)
         
-        time = initial_time
+        time = starttime
         
         model.time.assign(time)
         
-        model.initial_values.assign(initial_values)
+        for iv in model.initial_values:
+        
+            iv.assign(initial_values)
         
         while time < (endtime - TIME_EPSILON):
             
@@ -167,7 +178,12 @@ def verify_temporal_order_of_accuracy(
             
             model.solver.solve()
             
-            model.initial_values.assign(model.solution)
+            for i in range(len(model.initial_values) - 1):
+        
+                model.initial_values[-i - 1].assign(
+                    model.initial_values[-i - 2])
+                    
+            model.initial_values[0].assign(model.solution)
             
         table.append({
             "Delta_t": timestep_size,
@@ -178,8 +194,10 @@ def verify_temporal_order_of_accuracy(
             Delta_t, e = table.data["Delta_t"], table.data["L2_error"]
 
             log = math.log
+            
+            r = Delta_t[-2]/Delta_t[-1]
 
-            order = log(e[-2]/e[-1])/log(Delta_t[-2]/Delta_t[-1])
+            order = log(e[-2]/e[-1])/log(r)
     
             table.data["temporal_order"][-1] = order
         
