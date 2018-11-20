@@ -15,7 +15,7 @@ class Model(fem.model.Model):
             fe.VectorElement('P', self.mesh.ufl_cell(), 2),
             fe.FiniteElement('P', self.mesh.ufl_cell(), 1))
     
-    def weak_form_residual(self):
+    def init_weak_form_residual(self):
 
         inner, dot, grad, div, sym = \
             fe.inner, fe.dot, fe.grad, fe.div, fe.sym
@@ -29,5 +29,5 @@ class Model(fem.model.Model):
         momentum = dot(psi_u, dot(grad(u), u)) - div(psi_u)*p + \
             2.*inner(sym(grad(psi_u)), sym(grad(u)))
         
-        return mass + momentum
+        self.weak_form_residual = mass + momentum
     

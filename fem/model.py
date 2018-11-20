@@ -15,51 +15,64 @@ class Model(metaclass = abc.ABCMeta):
         
         self.init_solution()
         
-        self.integration_measure = fe.dx
+        self.init_integration_measure()
+        
+        self.init_weak_form_residual()
+        
+        self.init_dirichlet_boundary_conditions()
+        
+        self.init_problem()
+        
+        self.init_solver()
     
     @abc.abstractmethod
     def init_mesh(self):
-        """ Redefine this to return a `fe.Mesh`.
+        """ Redefine this to set `self.mesh` to a `fe.Mesh`.
         """
     
     @abc.abstractmethod
     def init_element(self):
-        """ Redefine this to return a `fe.FiniteElement` or `fe.MixedElement`.
+        """ Redefine this to set `self.element` 
+        to a  `fe.FiniteElement` or `fe.MixedElement`.
         """
         
     @abc.abstractmethod
-    def weak_form_residual(self):
-        """ Redefine this to return a `fe.NonlinearVariationalForm`.
+    def init_weak_form_residual(self):
+        """ Redefine this to set `self.weak_form_residual` 
+        to a `fe.NonlinearVariationalForm`.
         """
-    
+        
     def init_solution(self):
     
         self.solution = fe.Function(self.function_space)
     
-    def dirichlet_boundary_conditions(self):
-        """ Optionally redefine this to return a tuple of `fe.DirichletBC`.
-        """
-        return None
+    def init_dirichlet_boundary_conditions(self):
+        """ Optionallay redefine this 
+        to set `self.dirichlet_boundary_conditions`
+        to a tuple of `fe.DirichletBC` """
+        self.dirichlet_boundary_conditions = None
         
-    def solve(self,
-            solver_parameters = {
+    def init_integration_measure(self):
+
+        self.integration_measure = fe.dx
+        
+    def init_problem(self):
+    
+        r = self.weak_form_residual*self.integration_measure
+        
+        u = self.solution
+        
+        self.problem = fe.NonlinearVariationalProblem(
+            r, u, self.dirichlet_boundary_conditions, fe.derivative(r, u))
+        
+    def init_solver(self, solver_parameters = {
                 "ksp_type": "preonly", 
                 "pc_type": "lu", 
                 "mat_type": "aij",
                 "pc_factor_mat_solver_type": "mumps"}):
-    
-        r = self.weak_form_residual()*self.integration_measure
         
-        u = self.solution
-        
-        bcs = self.dirichlet_boundary_conditions()
-        
-        problem = fe.NonlinearVariationalProblem(r, u, bcs, fe.derivative(r, u))
-        
-        solver = fe.NonlinearVariationalSolver(
-            problem, solver_parameters = solver_parameters)
-        
-        solver.solve()
+        self.solver = fe.NonlinearVariationalSolver(
+            self.problem, solver_parameters = solver_parameters)
     
     def unit_vectors(self):
         
