@@ -92,6 +92,8 @@ def verify_spatial_order_of_accuracy(
     
     table = fem.table.Table(("h", "L2_error", "spatial_order"))
     
+    print("")
+    
     for gridsize in grid_sizes:
         
         model = MMSVerificationModel(gridsize = gridsize)
@@ -127,7 +129,7 @@ def verify_spatial_order_of_accuracy(
             
             table.data["spatial_order"][-1] = order
         
-    print(str(table))
+        print(str(table))
     
     max_order = table.max("spatial_order")
     
@@ -143,8 +145,15 @@ def verify_temporal_order_of_accuracy(
         timestep_sizes,
         endtime,
         tolerance,
-        starttime = 0.):
+        starttime = 0.,
+        plot_solutions = False):
     
+    if plot_solutions:
+    
+        import matplotlib
+        
+        import matplotlib.pyplot as pp
+        
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
     table = fem.table.Table(("Delta_t", "L2_error", "temporal_order"))
@@ -157,6 +166,8 @@ def verify_temporal_order_of_accuracy(
         model.manufactured_solution, model.function_space)
     
     initial_time = model.time.__float__()
+    
+    print("")
     
     for timestep_size in timestep_sizes:
         
@@ -201,7 +212,32 @@ def verify_temporal_order_of_accuracy(
     
             table.data["temporal_order"][-1] = order
         
-    print(str(table))
+        print(str(table))
+        
+        if plot_solutions:
+        
+            assert(model.mesh.geometric_dimension() == 1)
+        
+            figure = pp.figure()
+            
+            axes = pp.axes()
+            
+            fe.plot(model.solution, axes = axes, color = "red")
+            
+            u_m = fe.interpolate(
+                model.manufactured_solution, model.function_space)
+            
+            line = fe.plot(u_m, axes = axes, color = "blue")
+            
+            pp.axis("square")
+            
+            pp.legend((r"$u_h$", r"$u_m$"))
+            
+            pp.xlabel(r"$x$")
+            
+            pp.ylabel(r"$u$")
+            
+            pp.savefig("uh_vs_um__Delta_t_" + str(timestep_size) + ".png")
     
     max_order = table.max("temporal_order")
     
