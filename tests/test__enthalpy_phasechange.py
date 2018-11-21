@@ -56,8 +56,10 @@ def test__verify_spatial_convergence_order_via_mms(
         Model = Model,
         expected_order = 2,
         grid_sizes = grid_sizes,
+        timestep_size = timestep_size,
+        endtime = 1.,
         tolerance = tolerance,
-        timestep_size = timestep_size)
+        plot_solutions = True)
         
         
 def test__verify_temporal_convergence_order_via_mms(

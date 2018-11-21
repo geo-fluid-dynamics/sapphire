@@ -81,7 +81,8 @@ def test__verify_spatial_convergence_order_via_mms(
         expected_order = 2,
         grid_sizes = grid_sizes,
         tolerance = tolerance,
-        timestep_size = timestep_size)
+        timestep_size = timestep_size,
+        endtime = 1.)
         
         
 def test__verify_temporal_convergence_order_via_mms(

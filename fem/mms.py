@@ -86,8 +86,16 @@ def verify_spatial_order_of_accuracy(
         expected_order,
         grid_sizes,
         tolerance,
-        timestep_size = None):
+        timestep_size = None,
+        endtime = None,
+        plot_solutions = False):
     
+    if plot_solutions:
+    
+        import matplotlib
+        
+        import matplotlib.pyplot as pp
+        
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
     table = fem.table.Table(("h", "L2_error", "spatial_order"))
@@ -113,6 +121,25 @@ def verify_spatial_order_of_accuracy(
         
         model.solver.solve()
         
+        if hasattr(model, "time"):
+            
+            time = model.time.__float__()
+            
+            while time < (endtime - TIME_EPSILON):
+                
+                time += timestep_size
+                
+                model.time.assign(time)
+                
+                model.solver.solve()
+                
+                for i in range(len(model.initial_values) - 1):
+                
+                    model.initial_values[-i - 1].assign(
+                        model.initial_values[-i - 2])
+                    
+                model.initial_values[0].assign(model.solution)
+        
         table.append({
             "h": 1./float(model.gridsize),
             "L2_error": model.L2_error()})
@@ -130,6 +157,31 @@ def verify_spatial_order_of_accuracy(
             table.data["spatial_order"][-1] = order
         
         print(str(table))
+        
+        if plot_solutions:
+        
+            assert(model.mesh.geometric_dimension() == 1)
+        
+            figure = pp.figure()
+            
+            axes = pp.axes()
+            
+            fe.plot(model.solution, axes = axes, color = "red")
+            
+            u_m = fe.interpolate(
+                model.manufactured_solution, model.function_space)
+            
+            line = fe.plot(u_m, axes = axes, color = "blue")
+            
+            pp.axis("square")
+            
+            pp.legend((r"$u_h$", r"$u_m$"))
+            
+            pp.xlabel(r"$x$")
+            
+            pp.ylabel(r"$u$")
+            
+            pp.savefig("uh_vs_um__h_" + str(table.data["h"][-1]) + ".png")
     
     max_order = table.max("spatial_order")
     
