@@ -2,6 +2,8 @@
 import firedrake as fe
 import fem.table
 import math
+import matplotlib
+import matplotlib.pyplot as plt
 
 
 TIME_EPSILON = 1.e-8
@@ -81,16 +83,57 @@ def make_mms_verification_model_class(Model):
     return MMSVerificationModel
     
     
+def plot_unit_interval(u_h, u_m, sample_size = 100):
+
+    mesh = u_h.function_space().mesh()
+    
+    assert(type(mesh) == type(fe.UnitIntervalMesh(1)))
+    
+    sample_points = [x/float(sample_size) for x in range(sample_size + 1)]
+    
+    fig = plt.figure()
+    
+    axes = plt.axes()
+    
+    plt.plot(
+        sample_points, 
+        [u_h((p,)) for p in sample_points],
+        axes = axes,
+        color = "red")
+    
+    _u_m = fe.interpolate(u_m, u_h.function_space())
+    
+    axes = plt.plot(
+        sample_points, 
+        [_u_m((p,)) for p in sample_points],
+        axes = axes,
+        color = "blue")
+    
+    plt.axis("square")
+    
+    plt.xlim((-0.1, 1.1))
+    
+    plt.legend((r"$u_h$", r"$u_m$"))
+    
+    plt.xlabel(r"$x$")
+    
+    plt.ylabel(r"$u$")
+    
+    
 def verify_spatial_order_of_accuracy(
         Model,
         expected_order,
         grid_sizes,
         tolerance,
-        timestep_size = None):
+        timestep_size = None,
+        endtime = None,
+        plot_solutions = False):
     
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
     table = fem.table.Table(("h", "L2_error", "spatial_order"))
+    
+    print("")
     
     for gridsize in grid_sizes:
         
@@ -111,6 +154,40 @@ def verify_spatial_order_of_accuracy(
         
         model.solver.solve()
         
+        if hasattr(model, "time"):
+            
+            time = model.time.__float__()
+            
+            timestep = 0
+            
+            while time < (endtime - TIME_EPSILON):
+                
+                time += timestep_size
+                
+                timestep +=1
+                
+                model.time.assign(time)
+                
+                model.solver.solve()
+                
+                for i in range(len(model.initial_values) - 1):
+                
+                    model.initial_values[-i - 1].assign(
+                        model.initial_values[-i - 2])
+                    
+                model.initial_values[0].assign(model.solution)
+                
+                if plot_solutions:
+        
+                    plot_unit_interval(model.solution, model.manufactured_solution)
+                    
+                    h = 1./float(model.gridsize)
+                    
+                    plt.title(r"$h = " + str(h) + "$, $t = " + str(time) + "$")
+                    
+                    plt.savefig("uh_vs_um__h_" + str(h) 
+                        + "_step" + str(timestep) + ".png")
+        
         table.append({
             "h": 1./float(model.gridsize),
             "L2_error": model.L2_error()})
@@ -127,8 +204,8 @@ def verify_spatial_order_of_accuracy(
             
             table.data["spatial_order"][-1] = order
         
-    print(str(table))
-    
+        print(str(table))
+        
     max_order = table.max("spatial_order")
     
     print("Maximum observed spatial order of accuracy is " + str(max_order))
@@ -143,7 +220,8 @@ def verify_temporal_order_of_accuracy(
         timestep_sizes,
         endtime,
         tolerance,
-        starttime = 0.):
+        starttime = 0.,
+        plot_solutions = False):
     
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
@@ -158,6 +236,8 @@ def verify_temporal_order_of_accuracy(
     
     initial_time = model.time.__float__()
     
+    print("")
+    
     for timestep_size in timestep_sizes:
         
         model.timestep_size.assign(timestep_size)
@@ -170,9 +250,13 @@ def verify_temporal_order_of_accuracy(
         
             iv.assign(initial_values)
         
+        timestep = 0
+        
         while time < (endtime - TIME_EPSILON):
             
             time += timestep_size
+            
+            timestep += 1
             
             model.time.assign(time)
             
@@ -184,6 +268,18 @@ def verify_temporal_order_of_accuracy(
                     model.initial_values[-i - 2])
                     
             model.initial_values[0].assign(model.solution)
+            
+            if plot_solutions:
+        
+                plot_unit_interval(
+                    model.solution, model.manufactured_solution)
+                
+                plt.title(r"$\Delta t = " + str(timestep_size) 
+                    + "$, $t = " + str(time) + "$")
+                
+                plt.savefig(
+                    "uh_vs_um__Delta_t_" + str(timestep_size) 
+                    + "__step" + str(timestep) + ".png")
             
         table.append({
             "Delta_t": timestep_size,
@@ -201,8 +297,8 @@ def verify_temporal_order_of_accuracy(
     
             table.data["temporal_order"][-1] = order
         
-    print(str(table))
-    
+        print(str(table))
+        
     max_order = table.max("temporal_order")
     
     print("Maximum observed temporal order of accuracy is " + str(max_order))
