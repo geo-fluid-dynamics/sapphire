@@ -2,6 +2,8 @@
 import firedrake as fe
 import fem.table
 import math
+import matplotlib
+import matplotlib.pyplot as plt
 
 
 TIME_EPSILON = 1.e-8
@@ -81,6 +83,41 @@ def make_mms_verification_model_class(Model):
     return MMSVerificationModel
     
     
+def plot_unit_interval(u_h, u_m, sample_size = 100):
+
+    mesh = u_h.function_space().mesh()
+    
+    assert(type(mesh) == type(fe.UnitIntervalMesh(1)))
+    
+    sample_points = [x/float(sample_size) for x in range(sample_size + 1)]
+    
+    fig = plt.figure()
+    
+    axes = plt.axes()
+    
+    plt.plot(
+        sample_points, 
+        [u_h((p,)) for p in sample_points],
+        axes = axes,
+        color = "red")
+    
+    _u_m = fe.interpolate(u_m, u_h.function_space())
+    
+    axes = plt.plot(
+        sample_points, 
+        [_u_m((p,)) for p in sample_points],
+        axes = axes,
+        color = "blue")
+    
+    plt.axis("square")
+    
+    plt.legend((r"$u_h$", r"$u_m$"))
+    
+    plt.xlabel(r"$x$")
+    
+    plt.ylabel(r"$u$")
+    
+    
 def verify_spatial_order_of_accuracy(
         Model,
         expected_order,
@@ -90,12 +127,6 @@ def verify_spatial_order_of_accuracy(
         endtime = None,
         plot_solutions = False):
     
-    if plot_solutions:
-    
-        import matplotlib
-        
-        import matplotlib.pyplot as pp
-        
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
     table = fem.table.Table(("h", "L2_error", "spatial_order"))
@@ -160,28 +191,13 @@ def verify_spatial_order_of_accuracy(
         
         if plot_solutions:
         
-            assert(model.mesh.geometric_dimension() == 1)
-        
-            figure = pp.figure()
+            plot_unit_interval(model.solution, model.manufactured_solution)
             
-            axes = pp.axes()
+            h = table.data["h"][-1]
             
-            fe.plot(model.solution, axes = axes, color = "red")
+            plt.title(r"$h = " + str(h) + "$")
             
-            u_m = fe.interpolate(
-                model.manufactured_solution, model.function_space)
-            
-            line = fe.plot(u_m, axes = axes, color = "blue")
-            
-            pp.axis("square")
-            
-            pp.legend((r"$u_h$", r"$u_m$"))
-            
-            pp.xlabel(r"$x$")
-            
-            pp.ylabel(r"$u$")
-            
-            pp.savefig("uh_vs_um__h_" + str(table.data["h"][-1]) + ".png")
+            plt.savefig("uh_vs_um__h_" + str(h) + ".png")
     
     max_order = table.max("spatial_order")
     
@@ -200,12 +216,6 @@ def verify_temporal_order_of_accuracy(
         starttime = 0.,
         plot_solutions = False):
     
-    if plot_solutions:
-    
-        import matplotlib
-        
-        import matplotlib.pyplot as pp
-        
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
     table = fem.table.Table(("Delta_t", "L2_error", "temporal_order"))
@@ -268,28 +278,11 @@ def verify_temporal_order_of_accuracy(
         
         if plot_solutions:
         
-            assert(model.mesh.geometric_dimension() == 1)
-        
-            figure = pp.figure()
+            plot_unit_interval(model.solution, model.manufactured_solution)
             
-            axes = pp.axes()
+            plt.title(r"$\Delta t = " + str(timestep_size) + "$")
             
-            fe.plot(model.solution, axes = axes, color = "red")
-            
-            u_m = fe.interpolate(
-                model.manufactured_solution, model.function_space)
-            
-            line = fe.plot(u_m, axes = axes, color = "blue")
-            
-            pp.axis("square")
-            
-            pp.legend((r"$u_h$", r"$u_m$"))
-            
-            pp.xlabel(r"$x$")
-            
-            pp.ylabel(r"$u$")
-            
-            pp.savefig("uh_vs_um__Delta_t_" + str(timestep_size) + ".png")
+            plt.savefig("uh_vs_um__Delta_t_" + str(timestep_size) + ".png")
     
     max_order = table.max("temporal_order")
     
