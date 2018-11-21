@@ -111,6 +111,8 @@ def plot_unit_interval(u_h, u_m, sample_size = 100):
     
     plt.axis("square")
     
+    plt.xlim((-0.1, 1.1))
+    
     plt.legend((r"$u_h$", r"$u_m$"))
     
     plt.xlabel(r"$x$")

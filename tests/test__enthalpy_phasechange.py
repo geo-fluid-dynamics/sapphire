@@ -44,7 +44,7 @@ class Model(fem.models.enthalpy_phasechange.Model):
         
         sin, pi = fe.sin, fe.pi
         
-        self.manufactured_solution = sin(2.*pi*x - pow(t, 2) - pi/4.)
+        self.manufactured_solution = 0.5*sin(2.*pi*x - pow(t, 2) - pi/4.)
 
         
 def test__verify_spatial_convergence_order_via_mms(
