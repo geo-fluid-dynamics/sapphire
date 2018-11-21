@@ -158,9 +158,13 @@ def verify_spatial_order_of_accuracy(
             
             time = model.time.__float__()
             
+            timestep = 0
+            
             while time < (endtime - TIME_EPSILON):
                 
                 time += timestep_size
+                
+                timestep +=1
                 
                 model.time.assign(time)
                 
@@ -172,6 +176,17 @@ def verify_spatial_order_of_accuracy(
                         model.initial_values[-i - 2])
                     
                 model.initial_values[0].assign(model.solution)
+                
+                if plot_solutions:
+        
+                    plot_unit_interval(model.solution, model.manufactured_solution)
+                    
+                    h = 1./float(model.gridsize)
+                    
+                    plt.title(r"$h = " + str(h) + "$, $t = " + str(time) + "$")
+                    
+                    plt.savefig("uh_vs_um__h_" + str(h) 
+                        + "_step" + str(timestep) + ".png")
         
         table.append({
             "h": 1./float(model.gridsize),
@@ -191,16 +206,6 @@ def verify_spatial_order_of_accuracy(
         
         print(str(table))
         
-        if plot_solutions:
-        
-            plot_unit_interval(model.solution, model.manufactured_solution)
-            
-            h = table.data["h"][-1]
-            
-            plt.title(r"$h = " + str(h) + "$")
-            
-            plt.savefig("uh_vs_um__h_" + str(h) + ".png")
-    
     max_order = table.max("spatial_order")
     
     print("Maximum observed spatial order of accuracy is " + str(max_order))
@@ -245,9 +250,13 @@ def verify_temporal_order_of_accuracy(
         
             iv.assign(initial_values)
         
+        timestep = 0
+        
         while time < (endtime - TIME_EPSILON):
             
             time += timestep_size
+            
+            timestep += 1
             
             model.time.assign(time)
             
@@ -259,6 +268,18 @@ def verify_temporal_order_of_accuracy(
                     model.initial_values[-i - 2])
                     
             model.initial_values[0].assign(model.solution)
+            
+            if plot_solutions:
+        
+                plot_unit_interval(
+                    model.solution, model.manufactured_solution)
+                
+                plt.title(r"$\Delta t = " + str(timestep_size) 
+                    + "$, $t = " + str(time) + "$")
+                
+                plt.savefig(
+                    "uh_vs_um__Delta_t_" + str(timestep_size) 
+                    + "__step" + str(timestep) + ".png")
             
         table.append({
             "Delta_t": timestep_size,
@@ -278,14 +299,6 @@ def verify_temporal_order_of_accuracy(
         
         print(str(table))
         
-        if plot_solutions:
-        
-            plot_unit_interval(model.solution, model.manufactured_solution)
-            
-            plt.title(r"$\Delta t = " + str(timestep_size) + "$")
-            
-            plt.savefig("uh_vs_um__Delta_t_" + str(timestep_size) + ".png")
-    
     max_order = table.max("temporal_order")
     
     print("Maximum observed temporal order of accuracy is " + str(max_order))
