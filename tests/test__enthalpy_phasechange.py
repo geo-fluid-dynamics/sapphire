@@ -83,3 +83,67 @@ def test__verify_temporal_convergence_order_via_mms(
         endtime = 1.,
         timestep_sizes = timestep_sizes,
         tolerance = tolerance)
+        
+        
+class SecondOrderModel(Model):
+
+    def init_solution(self):
+    
+        super().init_solution()
+        
+        self.initial_values.append(fe.Function(self.function_space))
+        
+    def init_time_discrete_terms(self):
+        """ Gear/BDF2 finite difference scheme 
+        with constant time step size. """
+        thetanp1 = self.solution
+        
+        thetan = self.initial_values[0]
+        
+        thetanm1 = self.initial_values[1]
+        
+        Delta_t = self.timestep_size
+        
+        theta_t = 1./Delta_t*(3./2.*thetanp1 - 2.*thetan + 0.5*thetanm1)
+        
+        phi = self.semi_phasefield
+        
+        phi_t = 1./Delta_t*\
+            (3./2.*phi(thetanp1) - 2.*phi(thetan) + 0.5*phi(thetanm1))
+        
+        self.time_discrete_terms = theta_t, phi_t
+        
+    def init_manufactured_solution(self):
+        
+        x = fe.SpatialCoordinate(self.mesh)[0]
+        
+        t = self.time
+        
+        exp = fe.exp
+        
+        def gaussian(x, a, b, c):
+    
+            return a*exp(-pow(x - b, 2)/(2.*pow(c, 2)))
+    
+        a = 1.
+        
+        c = 1./16.
+        
+        self.manufactured_solution = \
+            - 0.5 + exp(-t)*gaussian(x, a, 0.25, c) \
+            + (1. - exp(-t))*gaussian(x, a, 0.75, c)
+    
+    
+def test__failing__verify_temporal_convergence_order_via_mms__bdf2(
+        gridsize = 256,
+        timestep_sizes = (1./32., 1./64., 1./128.),
+        tolerance = 0.1):
+    
+    fem.mms.verify_temporal_order_of_accuracy(
+        Model = SecondOrderModel,
+        expected_order = 2,
+        gridsize = gridsize,
+        endtime = 1.,
+        timestep_sizes = timestep_sizes,
+        tolerance = tolerance)
+    
