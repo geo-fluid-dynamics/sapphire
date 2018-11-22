@@ -205,12 +205,10 @@ def verify_spatial_order_of_accuracy(
             table.data["spatial_order"][-1] = order
         
         print(str(table))
-        
-    max_order = table.max("spatial_order")
     
-    print("Maximum observed spatial order of accuracy is " + str(max_order))
+    print("Last observed spatial order of accuracy is " + str(order))
     
-    assert(abs(max_order - expected_order) < tolerance)
+    assert(abs(order - expected_order) < tolerance)
     
     
 def verify_temporal_order_of_accuracy(
@@ -299,9 +297,7 @@ def verify_temporal_order_of_accuracy(
         
         print(str(table))
         
-    max_order = table.max("temporal_order")
+    print("Last observed temporal order of accuracy is " + str(order))
     
-    print("Maximum observed temporal order of accuracy is " + str(max_order))
-    
-    assert(abs(max_order - expected_order) < tolerance)
+    assert(abs(order - expected_order) < tolerance)
     

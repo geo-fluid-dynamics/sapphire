@@ -58,8 +58,8 @@ class Model(fem.models.enthalpy_phasechange.Model):
 
 
 def test__verify_spatial_convergence_order_via_mms(
-        grid_sizes = (32, 64, 128),
-        timestep_size = 1./pow(2., 13),
+        grid_sizes = (16, 32, 64),
+        timestep_size = 1./1024.,
         tolerance = 0.1):
     
     fem.mms.verify_spatial_order_of_accuracy(
