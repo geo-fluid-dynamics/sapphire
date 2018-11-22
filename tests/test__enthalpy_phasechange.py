@@ -83,7 +83,7 @@ def test__verify_temporal_convergence_order_via_mms(
         endtime = 1.,
         timestep_sizes = timestep_sizes,
         tolerance = tolerance)
-        
+
         
 class SecondOrderModel(Model):
 
