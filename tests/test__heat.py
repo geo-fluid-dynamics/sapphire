@@ -37,6 +37,11 @@ class Model(fem.models.heat.Model):
         sin, pi, exp = fe.sin, fe.pi, fe.exp
         
         self.manufactured_solution = sin(2.*pi*x)*exp(-pow(t, 2))
+        
+    def init_solver(self, solver_parameters = {"ksp_type": "cg"}):
+        
+        self.solver = fe.NonlinearVariationalSolver(
+            self.problem, solver_parameters = solver_parameters)
 
         
 class SecondOrderModel(Model):
