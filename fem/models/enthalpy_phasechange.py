@@ -60,4 +60,9 @@ class Model(fem.unsteady_model.UnsteadyModel):
         dot, grad = fe.dot, fe.grad
         
         self.weak_form_residual = v*(theta_t - 1./Ste*phi_t) + dot(grad(v), grad(theta))
+        
+    def init_solver(self, solver_parameters = {"ksp_type": "cg"}):
+        
+        self.solver = fe.NonlinearVariationalSolver(
+            self.problem, solver_parameters = solver_parameters)
     
