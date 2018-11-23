@@ -42,24 +42,14 @@ class Model(fem.models.enthalpy_phasechange.Model):
         
         t = self.time
         
-        exp = fe.exp
+        sin, pi, exp = fe.sin, fe.pi, fe.exp
         
-        def gaussian(x, a, b, c):
-    
-            return a*exp(-pow(x - b, 2)/(2.*pow(c, 2)))
-    
-        a = 1.
-        
-        c = 1./16.
-        
-        self.manufactured_solution = \
-            - 0.5 + exp(-pow(t, 2))*gaussian(x, a, 0.25, c) \
-            + (1. - exp(-pow(t, 2)))*gaussian(x, a, 0.75, c)
+        self.manufactured_solution = 0.5*sin(2.*pi*x)*(1. - 2*exp(-3.*pow(t, 2)))
 
 
 def test__verify_spatial_convergence_order_via_mms(
-        grid_sizes = (16, 32, 64),
-        timestep_size = 1./1024.,
+        grid_sizes = (4, 8, 16, 32),
+        timestep_size = 1./256.,
         tolerance = 0.1):
     
     fem.mms.verify_spatial_order_of_accuracy(
@@ -73,7 +63,7 @@ def test__verify_spatial_convergence_order_via_mms(
         
 def test__verify_temporal_convergence_order_via_mms(
         gridsize = 256,
-        timestep_sizes = (1./16., 1./32., 1./64.),
+        timestep_sizes = (1./16., 1./32., 1./64., 1./128.),
         tolerance = 0.1):
     
     fem.mms.verify_temporal_order_of_accuracy(
@@ -112,31 +102,11 @@ class SecondOrderModel(Model):
             (3./2.*phi(thetanp1) - 2.*phi(thetan) + 0.5*phi(thetanm1))
         
         self.time_discrete_terms = theta_t, phi_t
-        
-    def init_manufactured_solution(self):
-        
-        x = fe.SpatialCoordinate(self.mesh)[0]
-        
-        t = self.time
-        
-        exp = fe.exp
-        
-        def gaussian(x, a, b, c):
-    
-            return a*exp(-pow(x - b, 2)/(2.*pow(c, 2)))
-    
-        a = 1.
-        
-        c = 1./16.
-        
-        self.manufactured_solution = \
-            - 0.5 + exp(-t)*gaussian(x, a, 0.25, c) \
-            + (1. - exp(-t))*gaussian(x, a, 0.75, c)
     
     
-def test__failing__verify_temporal_convergence_order_via_mms__bdf2(
-        gridsize = 256,
-        timestep_sizes = (1./32., 1./64., 1./128.),
+def test__verify_temporal_convergence_order_via_mms__bdf2(
+        gridsize = pow(2, 13),
+        timestep_sizes = (1./16., 1./32., 1./64., 1./128., 1./256.),
         tolerance = 0.1):
     
     fem.mms.verify_temporal_order_of_accuracy(
