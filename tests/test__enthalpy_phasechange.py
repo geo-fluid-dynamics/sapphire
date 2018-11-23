@@ -49,21 +49,16 @@ class Model(fem.models.enthalpy_phasechange.Model):
             return a*exp(-pow(x - b, 2)/(2.*pow(c, 2)))
     
         a = 1.
-        
+    
         c = 1./16.
         
-        r = 1./64.
-        
-        q = 6.
-    
         self.manufactured_solution = \
-            -0.5 + 0.5*(1. + tanh((x - 0.5)/r)) \
-            + (1. - exp(-q*pow(t, 3)))*gaussian(x, a, 0.25, c) \
-            - (1. - exp(-q*pow(t, 3)))*gaussian(x, a, 0.75, c)
+            - 0.5 + exp(-0.5*pow(t, 2))*gaussian(x, a, 0.25, c) \
+            + (1. - exp(-2.*pow(t, 2)))*gaussian(x, a, 0.75, c)
 
 
 def test__verify_spatial_convergence_order_via_mms(
-        grid_sizes = (8, 16, 32, 64),
+        grid_sizes = (16, 32, 64, 128),
         timestep_size = 1./1024.,
         tolerance = 0.1):
     
@@ -77,12 +72,35 @@ def test__verify_spatial_convergence_order_via_mms(
         
         
 def test__verify_temporal_convergence_order_via_mms(
-        gridsize = pow(2, 11),
+        gridsize = 2048,
         timestep_sizes = (1., 1./2., 1./4., 1./8., 1./16., 1./32., 1./64., 1./128., 1./256., 1./512.),
         tolerance = 0.1):
     
     fem.mms.verify_temporal_order_of_accuracy(
         Model = Model,
+        expected_order = 1,
+        gridsize = gridsize,
+        endtime = 1.,
+        timestep_sizes = timestep_sizes,
+        tolerance = tolerance)
+        
+
+class ModelWithoutPhaseChange(Model):
+    
+    def __init__(self, **kwargs):
+        
+        super().__init__(**kwargs)
+        
+        self.stefan_number.assign(1.e32)
+
+    
+def test__verify_temporal_convergence_order_via_mms_without_phasechange(
+        gridsize = 4096,
+        timestep_sizes = (1., 1./2., 1./4., 1./8., 1./16., 1./32., 1./64., 1./128., 1./256., 1./512.),
+        tolerance = 0.1):
+    
+    fem.mms.verify_temporal_order_of_accuracy(
+        Model = ModelWithoutPhaseChange,
         expected_order = 1,
         gridsize = gridsize,
         endtime = 1.,
@@ -120,8 +138,8 @@ class SecondOrderModel(Model):
     
     
 def test__failing__verify_temporal_convergence_order_via_mms__bdf2(
-        gridsize = pow(2, 20),
-        timestep_sizes = (1., 1./2., 1./4., 1./8., 1./16., 1./32., 1./64., 1./128., 1./256.),
+        gridsize = 256,
+        timestep_sizes = (1./32., 1./64., 1./128.),
         tolerance = 0.1):
     
     fem.mms.verify_temporal_order_of_accuracy(
