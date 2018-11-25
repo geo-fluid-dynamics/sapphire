@@ -26,7 +26,7 @@ class Model(fem.model.Model):
         
         mass = psi_p*div(u)
         
-        momentum = dot(psi_u, dot(grad(u), u)) - div(psi_u)*p + \
+        momentum = dot(psi_u, grad(u)*u) - div(psi_u)*p + \
             2.*inner(sym(grad(psi_u)), sym(grad(u)))
         
         self.weak_form_residual = mass + momentum
