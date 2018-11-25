@@ -79,3 +79,171 @@ def test__verify_convergence_order_via_MMS(
         grid_sizes = grid_sizes,
         tolerance = tolerance)
     
+    
+def verify_scalar_solution_component(
+            model, 
+            component, 
+            coordinates, 
+            verified_values, 
+            relative_tolerance, 
+            absolute_tolerance,
+            subcomponent = None):
+        """ Verify the scalar values of a specified solution component.
+        
+        Parameters
+        ----------
+        model : fem.Model
+        
+        component : integer
+        
+            The solution is often vector-valued and based on a mixed formulation.
+            By having the user specify a component to verify with this function,
+            we can write the rest of the function quite generally.
+            
+        coordinates : list of tuples, where each tuple contains a float for each spatial dimension.
+        
+            Each tuple will be converted to a `Point`.
+            
+        verified_values : tuple of floats
+        
+           Point-wise verified values from a benchmark publication.
+           
+        relative_tolerance : float   
+           
+           This will be used for asserting that the relative error is not too large.
+           
+        absolute_tolerance : float
+        
+            For small values, the absolute error will be checked against this tolerance,
+            instead of considering the relative error.
+        """
+        assert(len(verified_values) == len(coordinates))
+        
+        for i, verified_value in enumerate(verified_values):
+            
+            values = model.solution(coordinates[i])
+            
+            value = values[component]
+            
+            if not(subcomponent == None):
+            
+                value = value[subcomponent]
+            
+            absolute_error = abs(value - verified_value)
+            
+            if abs(verified_value) > absolute_tolerance:
+            
+                relative_error = absolute_error/verified_value
+           
+                assert(relative_error < relative_tolerance)
+                
+            else:
+            
+                assert(absolute_error < absolute_tolerance)
+    
+    
+class HeatDrivenCavityModel(fem.models.navier_stokes_boussinesq.Model):
+    
+    def __init__(self, meshsize):
+        
+        self.meshsize = meshsize
+        
+        self.hot_wall_temperature = fe.Constant(0.5)
+    
+        self.cold_wall_temperature = fe.Constant(-0.5)
+        
+        super().__init__()
+        
+        self.rayleigh_number.assign(1.e6)
+        
+        self.prandtl_number.assign(0.71)
+        
+    def init_mesh(self):
+    
+        self.mesh = fe.UnitSquareMesh(self.meshsize, self.meshsize)
+        
+    """
+    def init_solution(self):
+    
+        super().init_solution()
+        
+        self.assign_initial_values()
+        
+    def assign_initial_values(self):
+        
+        initial_values = fe.interpolate(
+            fe.Expression(
+                ("0.", "0.", "0.", "T_h + x[0]*(T_c - T_h)"),
+                element = self.element,
+                T_h = self.hot_wall_temperature,
+                T_c = self.cold_wall_temperature), 
+            self.function_space)
+        
+        self.initial_values[0].assign(initial_values)
+    """
+    
+    def init_dirichlet_boundary_conditions(self):
+    
+        W = self.function_space
+        
+        self.dirichlet_boundary_conditions = [
+            fe.DirichletBC(W.sub(1), (0., 0.), "on_boundary"),
+            fe.DirichletBC(W.sub(2), self.hot_wall_temperature, 1),
+            fe.DirichletBC(W.sub(2), self.cold_wall_temperature, 2)]
+    
+
+def unsteadiness(model):
+    
+    return fe.norm(model.solution - model.initial_values[0], "L2")/ \
+        fe.norm(model.initial_values[0], "L2")
+            
+            
+def test__verify_against_heat_driven_cavity_benchmark():
+
+    model = HeatDrivenCavityModel(meshsize = 40)
+    
+    """
+    timestep_size = 1.e-3
+    
+    max_timesteps = 32
+    
+    time = 0.
+    
+    model.time.assign(time)
+    
+    for timestep in range(max_timesteps):
+    
+        model.timestep_size.assign(timestep_size)
+        
+        time += timestep_size
+        
+        model.time.assign(time)
+        
+        model.solver.solve()
+        
+        if unsteadiness(model) < 1.e-4:
+        
+            break
+            
+        model.initial_values.assign(model.solution)
+    """
+    
+    model.solver.solve()
+    
+    """ Verify against the result published in @cite{wang2010comprehensive}. """
+    Ra = model.rayleigh_number.__float__()
+    
+    Pr = model.prandtl_number.__float__()
+    
+    verify_scalar_solution_component(
+        model,
+        component = 1,
+        subcomponent = 0,
+        coordinates = [(0.5, y) 
+            for y in (0., 0.15, 0.35, 0.5, 0.65, 0.85, 1.)],
+        verified_values = [val*Ra**0.5/Pr
+            for val in (0.0000, -0.0649, -0.0194, 0.0000, 
+                        0.0194, 0.0649, 0.0000)],
+        relative_tolerance = 1.e-2,
+        absolute_tolerance = 1.e-2*0.0649*Ra**0.5/Pr)
+    
