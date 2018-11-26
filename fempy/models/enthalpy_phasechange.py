@@ -1,9 +1,9 @@
 """ An enthalpy formulated phase-change model class """
 import firedrake as fe
-import fem.unsteady_model
+import fempy.unsteady_model
 
     
-class Model(fem.unsteady_model.UnsteadyModel):
+class Model(fempy.unsteady_model.UnsteadyModel):
     
     def __init__(self):
         

@@ -2,10 +2,10 @@
 with auxiliary data for unsteady (i.e. time-dependent) simulations.
 """
 import firedrake as fe
-import fem.model
+import fempy.model
 
 
-class UnsteadyModel(fem.model.Model):
+class UnsteadyModel(fempy.model.Model):
     """ An abstract class on which to base finite element models
         with auxiliary data for unsteady (i.e. time-dependent) simulations.
     """

@@ -1,9 +1,9 @@
-import fem.table
+import fempy.table
 
 
 def test__table():
 
-    table = fem.table.Table(("foo", "bar"))
+    table = fempy.table.Table(("foo", "bar"))
 
     print(str(table))
     

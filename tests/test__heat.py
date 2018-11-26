@@ -1,8 +1,8 @@
 import firedrake as fe 
-import fem
+import fempy
 
 
-class Model(fem.models.heat.Model):
+class Model(fempy.models.heat.Model):
     
     def __init__(self, gridsize):
     
@@ -49,7 +49,7 @@ def test__verify_spatial_convergence_order_via_mms(
         timestep_size = 1./64.,
         tolerance = 0.1):
     
-    fem.mms.verify_spatial_order_of_accuracy(
+    fempy.mms.verify_spatial_order_of_accuracy(
         Model = Model,
         expected_order = 2,
         grid_sizes = grid_sizes,
@@ -63,7 +63,7 @@ def test__verify_temporal_convergence_order_via_mms(
         timestep_sizes = (1./4., 1./8., 1./16., 1./32.),
         tolerance = 0.1):
     
-    fem.mms.verify_temporal_order_of_accuracy(
+    fempy.mms.verify_temporal_order_of_accuracy(
         Model = Model,
         expected_order = 1,
         gridsize = gridsize,
@@ -109,7 +109,7 @@ def test__verify_temporal_convergence_order_via_mms__bdf2(
         timestep_sizes = (1./2., 1./4., 1./8., 1./16.),
         tolerance = 0.1):
     
-    fem.mms.verify_temporal_order_of_accuracy(
+    fempy.mms.verify_temporal_order_of_accuracy(
         Model = SecondOrderModel,
         expected_order = 2,
         gridsize = gridsize,
@@ -136,7 +136,7 @@ def test__fails__verify_spatial_convergence_order_via_mms_with_wave_solution(
         timestep_size = 1./64.,
         tolerance = 0.1):
     
-    fem.mms.verify_spatial_order_of_accuracy(
+    fempy.mms.verify_spatial_order_of_accuracy(
         Model = ModelWithWave,
         expected_order = 2,
         grid_sizes = grid_sizes,

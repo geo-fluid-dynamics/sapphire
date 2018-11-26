@@ -1,11 +1,11 @@
 import firedrake as fe 
-import fem
+import fempy
 
 
 def test__verify_convergence_order_via_MMS(
         grid_sizes = (16, 32), tolerance = 0.1, quadrature_degree = 4):
     
-    class Model(fem.models.navier_stokes_boussinesq.Model):
+    class Model(fempy.models.navier_stokes_boussinesq.Model):
     
         def __init__(self, gridsize = 4):
         
@@ -73,7 +73,7 @@ def test__verify_convergence_order_via_MMS(
             
             return r_p, r_u, r_T
             
-    fem.mms.verify_spatial_order_of_accuracy(
+    fempy.mms.verify_spatial_order_of_accuracy(
         Model = Model,
         expected_order = 2,
         grid_sizes = grid_sizes,
@@ -92,7 +92,7 @@ def verify_scalar_solution_component(
         
         Parameters
         ----------
-        model : fem.Model
+        model : fempy.Model
         
         component : integer
         
@@ -121,7 +121,7 @@ def verify_scalar_solution_component(
         
         for i, verified_value in enumerate(verified_values):
             
-            values = model.solution(coordinates[i])
+            values = model.solution.at(coordinates[i])
             
             value = values[component]
             
@@ -140,58 +140,8 @@ def verify_scalar_solution_component(
             else:
             
                 assert(absolute_error < absolute_tolerance)
-    
-    
-class HeatDrivenCavityModel(fem.models.navier_stokes_boussinesq.Model):
-    
-    def __init__(self, meshsize):
-        
-        self.meshsize = meshsize
-        
-        self.hot_wall_temperature = fe.Constant(0.5)
-    
-        self.cold_wall_temperature = fe.Constant(-0.5)
-        
-        super().__init__()
-        
-        self.rayleigh_number.assign(1.e6)
-        
-        self.prandtl_number.assign(0.71)
-        
-    def init_mesh(self):
-    
-        self.mesh = fe.UnitSquareMesh(self.meshsize, self.meshsize)
-        
-    """
-    def init_solution(self):
-    
-        super().init_solution()
-        
-        self.assign_initial_values()
-        
-    def assign_initial_values(self):
-        
-        initial_values = fe.interpolate(
-            fe.Expression(
-                ("0.", "0.", "0.", "T_h + x[0]*(T_c - T_h)"),
-                element = self.element,
-                T_h = self.hot_wall_temperature,
-                T_c = self.cold_wall_temperature), 
-            self.function_space)
-        
-        self.initial_values[0].assign(initial_values)
-    """
-    
-    def init_dirichlet_boundary_conditions(self):
-    
-        W = self.function_space
-        
-        self.dirichlet_boundary_conditions = [
-            fe.DirichletBC(W.sub(1), (0., 0.), "on_boundary"),
-            fe.DirichletBC(W.sub(2), self.hot_wall_temperature, 1),
-            fe.DirichletBC(W.sub(2), self.cold_wall_temperature, 2)]
-    
 
+                
 def unsteadiness(model):
     
     return fe.norm(model.solution - model.initial_values[0], "L2")/ \
@@ -200,33 +150,7 @@ def unsteadiness(model):
             
 def test__verify_against_heat_driven_cavity_benchmark():
 
-    model = HeatDrivenCavityModel(meshsize = 40)
-    
-    """
-    timestep_size = 1.e-3
-    
-    max_timesteps = 32
-    
-    time = 0.
-    
-    model.time.assign(time)
-    
-    for timestep in range(max_timesteps):
-    
-        model.timestep_size.assign(timestep_size)
-        
-        time += timestep_size
-        
-        model.time.assign(time)
-        
-        model.solver.solve()
-        
-        if unsteadiness(model) < 1.e-4:
-        
-            break
-            
-        model.initial_values.assign(model.solution)
-    """
+    model = fempy.benchmarks.heat_driven_cavity.Model(meshsize = 40)
     
     model.solver.solve()
     
@@ -235,12 +159,15 @@ def test__verify_against_heat_driven_cavity_benchmark():
     
     Pr = model.prandtl_number.__float__()
     
+    """ Verify coordinates (0.3499, 0.8499, 0.9999) instead of (0.35, 0.85, 1)
+    because the Function evaluation fails arbitrarily at these points.
+    See https://github.com/firedrakeproject/firedrake/issues/1340 """
     verify_scalar_solution_component(
         model,
         component = 1,
         subcomponent = 0,
         coordinates = [(0.5, y) 
-            for y in (0., 0.15, 0.35, 0.5, 0.65, 0.85, 1.)],
+            for y in (0., 0.15, 0.34999, 0.5, 0.65, 0.84999, 0.99999)],
         verified_values = [val*Ra**0.5/Pr
             for val in (0.0000, -0.0649, -0.0194, 0.0000, 
                         0.0194, 0.0649, 0.0000)],
