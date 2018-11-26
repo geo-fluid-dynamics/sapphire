@@ -1,5 +1,5 @@
 import firedrake as fe 
-import fempy
+import fempy.models.convection_diffusion
 
 
 def test__verify_convergence_order_via_mms(

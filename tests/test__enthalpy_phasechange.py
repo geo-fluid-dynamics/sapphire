@@ -1,5 +1,6 @@
 import firedrake as fe 
-import fempy
+import fempy.mms
+import fempy.models.enthalpy_phasechange
 
 
 class Model(fempy.models.enthalpy_phasechange.Model):

@@ -1,5 +1,5 @@
 import firedrake as fe 
-import fempy
+import fempy.models.navier_stokes
 
 
 def test__verify_convergence_order_via_MMS(

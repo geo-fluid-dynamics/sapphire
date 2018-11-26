@@ -1,5 +1,7 @@
 import firedrake as fe 
-import fempy
+import fempy.mms
+import fempy.models.navier_stokes_boussinesq
+import fempy.benchmarks.heat_driven_cavity
 
 
 def test__verify_convergence_order_via_MMS(

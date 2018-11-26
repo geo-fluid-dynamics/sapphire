@@ -1,5 +1,5 @@
 import firedrake as fe 
-import fempy
+import fempy.models.heat
 
 
 class Model(fempy.models.heat.Model):
