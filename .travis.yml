@@ -1,0 +1,15 @@
+services:
+  - docker
+
+branches:
+    only:
+        - master
+  
+notifications:
+  email: false
+
+before_install:
+- docker pull firedrakeproject/firedrake
+
+script:
+- docker run --rm -P -v `pwd`:/home/firedrake/ -w /home/firedrake/ firedrakeproject/firedrake "python3 -m pytest -v -k 'not fail'" 
