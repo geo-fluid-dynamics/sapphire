@@ -1,5 +1,5 @@
 import firedrake as fe
-import fempy
+import fempy.models.navier_stokes_boussinesq
 
 
 class Model(fempy.models.navier_stokes_boussinesq.Model):
