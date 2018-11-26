@@ -1,9 +1,9 @@
 """ A steady incompressible Navier-Stokes-Boussinesq model class. """
 import firedrake as fe
-import fem.model
+import fempy.model
 
     
-class Model(fem.model.Model):
+class Model(fempy.model.Model):
     
     def __init__(self):
     
@@ -49,7 +49,7 @@ class Model(fem.model.Model):
         
         mass = psi_p*div(u)
         
-        momentum = dot(psi_u, dot(grad(u), u) + Ra/Pr*T*ghat) \
+        momentum = dot(psi_u, grad(u)*u + Ra/Pr*T*ghat) \
             - div(psi_u)*p + 2.*mu*inner(sym(grad(psi_u)), sym(grad(u)))
         
         energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))

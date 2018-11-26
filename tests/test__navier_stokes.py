@@ -1,11 +1,11 @@
 import firedrake as fe 
-import fem
+import fempy
 
 
 def test__verify_convergence_order_via_MMS(
         grid_sizes = (16, 32), tolerance = 0.1):
 
-    class Model(fem.models.navier_stokes.Model):
+    class Model(fempy.models.navier_stokes.Model):
     
         def __init__(self, gridsize):
             
@@ -48,7 +48,7 @@ def test__verify_convergence_order_via_MMS(
             
             return r_u, r_p
         
-    fem.mms.verify_spatial_order_of_accuracy(
+    fempy.mms.verify_spatial_order_of_accuracy(
         Model = Model,
         expected_order = 2,
         grid_sizes = grid_sizes,

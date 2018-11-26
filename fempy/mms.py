@@ -1,6 +1,6 @@
 """ Verify via the Method of Manufactured Solution (MMS) """
 import firedrake as fe
-import fem.table
+import fempy.table
 import math
 import matplotlib
 import matplotlib.pyplot as plt
@@ -131,7 +131,7 @@ def verify_spatial_order_of_accuracy(
     
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
-    table = fem.table.Table(("h", "L2_error", "spatial_order"))
+    table = fempy.table.Table(("h", "L2_error", "spatial_order"))
     
     print("")
     
@@ -223,7 +223,7 @@ def verify_temporal_order_of_accuracy(
     
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
-    table = fem.table.Table(("Delta_t", "L2_error", "temporal_order"))
+    table = fempy.table.Table(("Delta_t", "L2_error", "temporal_order"))
     
     model = MMSVerificationModel(gridsize = gridsize)
     

@@ -1,11 +1,11 @@
 import firedrake as fe 
-import fem
+import fempy
 
 
 def test__verify_convergence_order_via_MMS(
         grid_sizes = (16, 32), tolerance = 0.1, quadrature_degree = 4):
     
-    class Model(fem.models.navier_stokes_boussinesq.Model):
+    class Model(fempy.models.navier_stokes_boussinesq.Model):
     
         def __init__(self, gridsize = 4):
         
@@ -73,9 +73,104 @@ def test__verify_convergence_order_via_MMS(
             
             return r_p, r_u, r_T
             
-    fem.mms.verify_spatial_order_of_accuracy(
+    fempy.mms.verify_spatial_order_of_accuracy(
         Model = Model,
         expected_order = 2,
         grid_sizes = grid_sizes,
         tolerance = tolerance)
+    
+    
+def verify_scalar_solution_component(
+            model, 
+            component, 
+            coordinates, 
+            verified_values, 
+            relative_tolerance, 
+            absolute_tolerance,
+            subcomponent = None):
+        """ Verify the scalar values of a specified solution component.
+        
+        Parameters
+        ----------
+        model : fempy.Model
+        
+        component : integer
+        
+            The solution is often vector-valued and based on a mixed formulation.
+            By having the user specify a component to verify with this function,
+            we can write the rest of the function quite generally.
+            
+        coordinates : list of tuples, where each tuple contains a float for each spatial dimension.
+        
+            Each tuple will be converted to a `Point`.
+            
+        verified_values : tuple of floats
+        
+           Point-wise verified values from a benchmark publication.
+           
+        relative_tolerance : float   
+           
+           This will be used for asserting that the relative error is not too large.
+           
+        absolute_tolerance : float
+        
+            For small values, the absolute error will be checked against this tolerance,
+            instead of considering the relative error.
+        """
+        assert(len(verified_values) == len(coordinates))
+        
+        for i, verified_value in enumerate(verified_values):
+            
+            values = model.solution.at(coordinates[i])
+            
+            value = values[component]
+            
+            if not(subcomponent == None):
+            
+                value = value[subcomponent]
+            
+            absolute_error = abs(value - verified_value)
+            
+            if abs(verified_value) > absolute_tolerance:
+            
+                relative_error = absolute_error/verified_value
+           
+                assert(relative_error < relative_tolerance)
+                
+            else:
+            
+                assert(absolute_error < absolute_tolerance)
+
+                
+def unsteadiness(model):
+    
+    return fe.norm(model.solution - model.initial_values[0], "L2")/ \
+        fe.norm(model.initial_values[0], "L2")
+            
+            
+def test__verify_against_heat_driven_cavity_benchmark():
+
+    model = fempy.benchmarks.heat_driven_cavity.Model(meshsize = 40)
+    
+    model.solver.solve()
+    
+    """ Verify against the result published in @cite{wang2010comprehensive}. """
+    Ra = model.rayleigh_number.__float__()
+    
+    Pr = model.prandtl_number.__float__()
+    
+    """ Verify coordinates (0.3499, 0.8499, 0.9999) instead of (0.35, 0.85, 1)
+    because the Function evaluation fails arbitrarily at these points.
+    See https://github.com/firedrakeproject/firedrake/issues/1340 """
+    verify_scalar_solution_component(
+        model,
+        component = 1,
+        subcomponent = 0,
+        coordinates = [(0.5, y) 
+            for y in (0., 0.15, 0.34999, 0.5, 0.65, 0.84999, 0.99999)],
+        verified_values = [val*Ra**0.5/Pr
+            for val in (0.0000, -0.0649, -0.0194, 0.0000, 
+                        0.0194, 0.0649, 0.0000)],
+        relative_tolerance = 1.e-2,
+        absolute_tolerance = 1.e-2*0.0649*Ra**0.5/Pr)
     

@@ -1,10 +1,10 @@
 """ A Laplace model class "
 """
 import firedrake as fe
-import fem.model
+import fempy.model
 
     
-class Model(fem.model.Model):
+class Model(fempy.model.Model):
     
     def init_element(self):
     
