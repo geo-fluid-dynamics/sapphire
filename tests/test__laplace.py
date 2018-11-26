@@ -1,5 +1,5 @@
 import firedrake as fe 
-import fempy
+import fempy.models.laplace
 
 
 def test__verify_convergence_order_via_mms(
