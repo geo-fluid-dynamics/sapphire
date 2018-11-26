@@ -19,7 +19,7 @@ setuptools.setup(
     author_email = "zimmerman@aices.rwth-aachen.de",
     url = "https://github.com/alexanderzimmerman/fempy",
     license = license,
-    packages = ["fempy"],
+    packages = setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3.6",
     ],
