@@ -1,2 +1,2 @@
 # fempy
-Flexible, extensible, and maintainable finite element models using Firedrake
+A Python package for finite element models using Firedrake
