@@ -27,8 +27,6 @@ class Model(fempy.model.Model):
         
     def run(self, endtime):
         
-        print("Starting at time t = " + str(self.time.__float__()))
-        
         while self.time.__float__() < (endtime - TIME_EPSILON):
             
             self.run_timestep()

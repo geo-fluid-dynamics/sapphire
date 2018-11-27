@@ -22,7 +22,7 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         self.stefan_number.assign(0.045)
         
-        self.liquidus_temperature.assign(0.01)
+        self.liquidus_temperature.assign(0.)
         
         self.phase_interface_smoothing.assign(1./32.)
         
@@ -36,7 +36,7 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         initial_values = fe.interpolate(
             fe.Expression(
-                (0., 0., 0., 0.),
+                (0., 0., 0., self.cold_wall_temperature.__float__()),
                 element = self.element),
             self.function_space)
         
