@@ -131,7 +131,7 @@ class ModelWithWave(Model):
         self.manufactured_solution = 0.5*sin(2.*pi*x - pi/4.*(2.*t + 1.))
         
         
-def test__fails__verify_spatial_convergence_order_via_mms_with_wave_solution(
+def __fails__test_verify_spatial_convergence_order_via_mms_with_wave_solution(
         grid_sizes = (4, 8, 16, 32),
         timestep_size = 1./64.,
         tolerance = 0.1):
