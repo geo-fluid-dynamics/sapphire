@@ -11,7 +11,7 @@ with open("LICENSE.txt") as f:
 
 setuptools.setup(
     name = "fempy",
-    version = "0.1.x-alpha",
+    version = "0.1.0a0",
     packages = setuptools.find_packages(),
     url = "https://github.com/alexanderzimmerman/fempy",
     description = "Finite element models using Firedrake",
