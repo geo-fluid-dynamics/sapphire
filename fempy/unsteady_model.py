@@ -5,7 +5,9 @@ import firedrake as fe
 import fempy.model
 
 
-class UnsteadyModel(fempy.model.Model):
+TIME_EPSILON = 1.e-8
+
+class Model(fempy.model.Model):
     """ An abstract class on which to base finite element models
         with auxiliary data for unsteady (i.e. time-dependent) simulations.
     """
@@ -23,3 +25,13 @@ class UnsteadyModel(fempy.model.Model):
         
         self.initial_values = [fe.Function(self.function_space),]
         
+    def run(self, endtime):
+        
+        print("Starting at time t = " + str(self.time.__float__()))
+        
+        while self.time.__float__() < (endtime - TIME_EPSILON):
+            
+            self.run_timestep()
+            
+            print("Solved time t = " + str(self.time.__float__()))
+            

@@ -3,7 +3,7 @@ import firedrake as fe
 import fempy.unsteady_model
 
     
-class Model(fempy.unsteady_model.UnsteadyModel):
+class Model(fempy.unsteady_model.Model):
     
     def __init__(self):
         
