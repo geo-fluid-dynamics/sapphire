@@ -5,9 +5,9 @@ import fempy.models.enthalpy_phasechange
 
 class Model(fempy.models.enthalpy_phasechange.Model):
     
-    def __init__(self, gridsize):
+    def __init__(self, meshsize):
     
-        self.gridsize = gridsize
+        self.meshsize = meshsize
         
         super().__init__()
         
@@ -17,7 +17,7 @@ class Model(fempy.models.enthalpy_phasechange.Model):
         
     def init_mesh(self):
     
-        self.mesh = fe.UnitIntervalMesh(self.gridsize)
+        self.mesh = fe.UnitIntervalMesh(self.meshsize)
         
     def init_integration_measure(self):
 
@@ -45,7 +45,7 @@ class Model(fempy.models.enthalpy_phasechange.Model):
         
         sin, pi, exp = fe.sin, fe.pi, fe.exp
         
-        self.manufactured_solution = 0.5*sin(2.*pi*x)*(1. - 2*exp(-3.*pow(t, 2)))
+        self.manufactured_solution = 0.5*sin(2.*pi*x)*(1. - 2*exp(-3.*t**2))
 
 
 def test__verify_spatial_convergence_order_via_mms(
@@ -63,14 +63,14 @@ def test__verify_spatial_convergence_order_via_mms(
         
         
 def test__verify_temporal_convergence_order_via_mms(
-        gridsize = 256,
+        meshsize = 256,
         timestep_sizes = (1./16., 1./32., 1./64., 1./128.),
         tolerance = 0.1):
     
     fempy.mms.verify_temporal_order_of_accuracy(
         Model = Model,
         expected_order = 1,
-        gridsize = gridsize,
+        meshsize = meshsize,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
         tolerance = tolerance)
@@ -106,14 +106,14 @@ class SecondOrderModel(Model):
     
     
 def test__verify_temporal_convergence_order_via_mms__bdf2(
-        gridsize = pow(2, 13),
+        meshsize = pow(2, 13),
         timestep_sizes = (1./16., 1./32., 1./64., 1./128., 1./256.),
         tolerance = 0.1):
     
     fempy.mms.verify_temporal_order_of_accuracy(
         Model = SecondOrderModel,
         expected_order = 2,
-        gridsize = gridsize,
+        meshsize = meshsize,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
         tolerance = tolerance)

@@ -135,15 +135,18 @@ def verify_spatial_order_of_accuracy(
     
     print("")
     
-    for gridsize in grid_sizes:
+    for meshsize in grid_sizes:
         
-        model = MMSVerificationModel(gridsize = gridsize)
+        model = MMSVerificationModel(meshsize = meshsize)
         
         if hasattr(model, "time"):
             
+            # `fe.interpolate` will only work on one `ufl.Expr` at a time
+            # So what do? Apparently we hadn't tested a time dependent system of PDE's_i
+            # but rather just a time dependent scalar PDE.
             initial_values = fe.interpolate(
-                model.manufactured_solution, model.function_space)
-                
+                self.manufactured_solution, model.function_space)
+                    
             for iv in model.initial_values:
             
                 iv.assign(initial_values)
@@ -181,7 +184,7 @@ def verify_spatial_order_of_accuracy(
         
                     plot_unit_interval(model.solution, model.manufactured_solution)
                     
-                    h = 1./float(model.gridsize)
+                    h = 1./float(model.meshsize)
                     
                     plt.title(r"$h = " + str(h) + "$, $t = " + str(time) + "$")
                     
@@ -189,7 +192,7 @@ def verify_spatial_order_of_accuracy(
                         + "_step" + str(timestep) + ".png")
         
         table.append({
-            "h": 1./float(model.gridsize),
+            "h": 1./float(model.meshsize),
             "L2_error": model.L2_error()})
             
         if len(table) > 1:
@@ -214,7 +217,7 @@ def verify_spatial_order_of_accuracy(
 def verify_temporal_order_of_accuracy(
         Model,
         expected_order,
-        gridsize,
+        meshsize,
         timestep_sizes,
         endtime,
         tolerance,
@@ -225,7 +228,7 @@ def verify_temporal_order_of_accuracy(
     
     table = fempy.table.Table(("Delta_t", "L2_error", "temporal_order"))
     
-    model = MMSVerificationModel(gridsize = gridsize)
+    model = MMSVerificationModel(meshsize = meshsize)
     
     model.time.assign(starttime)
     

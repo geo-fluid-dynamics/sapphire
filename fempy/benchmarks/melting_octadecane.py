@@ -14,20 +14,14 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         super().__init__()
         
-        self.timestep_size.assign(10.)
+        model.rayleigh_number.assign(3.27e5)
         
-        self.rayleigh_number.assign(3.27e5)
+        model.prandtl_number.assign(56.2)
         
-        self.prandtl_number.assign(56.2)
+        model.stefan_number.assign(0.045)
         
-        self.stefan_number.assign(0.045)
-        
-        self.liquidus_temperature.assign(0.)
-        
-        self.phase_interface_smoothing.assign(1./32.)
-        
-        self.smoothing_sequence = (1./2., 1./4., 1./8., 1./16., 1./32.)
-        
+        model.liquidus_temperature.assign(0.)
+
     def init_mesh(self):
     
         self.mesh = fe.UnitSquareMesh(self.meshsize, self.meshsize)
@@ -58,21 +52,4 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
             fe.DirichletBC(W.sub(1), (0., 0.), "on_boundary"),
             fe.DirichletBC(W.sub(2), self.hot_wall_temperature, 1),
             fe.DirichletBC(W.sub(2), self.cold_wall_temperature, 2)]
-            
-    def run_timestep(self):
-    
-        assert(self.phase_interface_smoothing.__float__() == \
-            self.smoothing_sequence[-1])
-    
-        self.initial_values[0].assign(self.solution)
-        
-        self.time.assign(self.time + self.timestep_size)
-        
-        for s in self.smoothing_sequence:
-        
-            print("Solving with s = " + str(s))
-            
-            self.phase_interface_smoothing.assign(s)
-            
-            self.solver.solve()
     

@@ -21,6 +21,8 @@ class Model(fempy.unsteady_model.Model):
         
         self.phase_interface_smoothing = fe.Constant(1./32.)
         
+        self.smoothing_sequence = (1./2., 1./4., 1./8., 1./16., 1./32.)
+        
         super().__init__()
         
     def init_element(self):
@@ -48,9 +50,7 @@ class Model(fempy.unsteady_model.Model):
         
         ihat, jhat = self.unit_vectors()
         
-        self.gravity_direction = fe.Constant(-jhat)
-        
-        ghat = self.gravity_direction
+        ghat = fe.Constant(-jhat)
         
         return Ra/Pr*T*ghat
         
@@ -112,3 +112,21 @@ class Model(fempy.unsteady_model.Model):
         stabilization = gamma*psi_p*p
         
         self.weak_form_residual = mass + momentum + enthalpy + stabilization
+
+    def run_timestep(self):
+    
+        assert(self.phase_interface_smoothing.__float__() == \
+            self.smoothing_sequence[-1])
+    
+        self.initial_values[0].assign(self.solution)
+        
+        self.time.assign(self.time + self.timestep_size)
+        
+        for s in self.smoothing_sequence:
+        
+            print("Solving with s = " + str(s))
+            
+            self.phase_interface_smoothing.assign(s)
+            
+            self.solver.solve()
+    
