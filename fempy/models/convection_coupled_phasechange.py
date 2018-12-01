@@ -33,7 +33,7 @@ class Model(fempy.unsteady_model.Model):
             fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
     
     def semi_phasefield(self, T):
-        """ Regularization from \cite{zimmerman2018monolithic} """
+        """ Regularization from @cite{zimmerman2018monolithic} """
         T_L = self.liquidus_temperature
         
         s = self.phase_interface_smoothing
@@ -73,7 +73,7 @@ class Model(fempy.unsteady_model.Model):
         return u_t, T_t, phi_t
         
     def init_weak_form_residual(self):
-        """ Weak form from \cite{zimmerman2018monolithic} """
+        """ Weak form from @cite{zimmerman2018monolithic} """
         mu_S = self.solid_dynamic_viscosity
         
         mu_L = fe.Constant(1.)

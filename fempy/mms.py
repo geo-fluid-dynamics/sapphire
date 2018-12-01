@@ -104,8 +104,6 @@ def verify_spatial_order_of_accuracy(
         
             model.time.assign(starttime)
             
-            model.assign_initial_values(model.manufactured_solution)
-            
             model.timestep_size.assign(timestep_size)
             
             model.run(endtime = endtime)
@@ -152,6 +150,8 @@ def verify_temporal_order_of_accuracy(
     
     model = MMSVerificationModel(meshsize = meshsize)
     
+    initial_values = [fe.Function(iv) for iv in model.initial_values]
+    
     print("")
     
     for timestep_size in timestep_sizes:
@@ -160,7 +160,9 @@ def verify_temporal_order_of_accuracy(
         
         model.time.assign(starttime)
         
-        model.assign_initial_values(model.manufactured_solution)
+        for i, iv in enumerate(model.initial_values):
+        
+            iv.assign(initial_values[i])
         
         model.run(endtime = endtime)
             

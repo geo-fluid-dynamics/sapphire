@@ -3,6 +3,7 @@ with auxiliary data for unsteady (i.e. time-dependent) simulations.
 """
 import firedrake as fe
 import fempy.model
+import abc
 
 
 TIME_EPSILON = 1.e-8
@@ -19,23 +20,17 @@ class Model(fempy.model.Model):
         
         super().__init__()
         
+    @abc.abstractmethod
+    def init_initial_values(self):
+        """ Redefine this to set `self.initial_values` to a `fe.Function`. """
+        
     def init_solution(self):
     
         super().init_solution()
         
-        self.initial_values = [fe.Function(self.function_space),]
+        self.init_initial_values()
         
-    def assign_initial_values(self, expression):
-        
-        # `fe.interpolate` will only work on one `ufl.Expr` at a time
-        # So what do? Apparently we hadn't tested a time dependent system of PDE's_i
-        # but rather just a time dependent scalar PDE.
-        initial_values = fe.interpolate(
-            expression, self.function_space)
-                
-        for iv in self.initial_values:
-        
-            iv.assign(initial_values)
+        self.solution.assign(self.initial_values[0])
         
     def push_back_initial_values(self):
     

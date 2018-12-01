@@ -47,6 +47,11 @@ class Model(fempy.models.enthalpy_phasechange.Model):
         
         self.manufactured_solution = 0.5*sin(2.*pi*x)*(1. - 2*exp(-3.*t**2))
 
+    def init_initial_values(self):
+        
+        self.initial_values = [fe.interpolate(
+            self.manufactured_solution, self.function_space),]
+        
 
 def test__verify_spatial_convergence_order_via_mms(
         grid_sizes = (4, 8, 16, 32),
@@ -78,11 +83,17 @@ def test__verify_temporal_convergence_order_via_mms(
         
 class SecondOrderModel(Model):
 
-    def init_solution(self):
-    
-        super().init_solution()
+    def init_initial_values(self):
         
-        self.initial_values.append(fe.Function(self.function_space))
+        initial_values = fe.interpolate(
+            self.manufactured_solution, self.function_space)
+        
+        self.initial_values = [
+            fe.Function(self.function_space) for i in range(2)]
+        
+        for iv in self.initial_values:
+        
+            iv.assign(initial_values)
         
     def init_time_discrete_terms(self):
         """ Gear/BDF2 finite difference scheme 
@@ -107,7 +118,7 @@ class SecondOrderModel(Model):
     
 def test__verify_temporal_convergence_order_via_mms__bdf2(
         meshsize = pow(2, 13),
-        timestep_sizes = (1./16., 1./32., 1./64., 1./128., 1./256.),
+        timestep_sizes = (1./16., 1./32., 1./64., 1./128.),
         tolerance = 0.1):
     
     fempy.mms.verify_temporal_order_of_accuracy(

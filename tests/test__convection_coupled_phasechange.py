@@ -87,6 +87,32 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         self.manufactured_solution = p, u, T
         
+    def init_initial_values(self):
+        """ For other models in fempy we have been able to automatically 
+        re-use the expressions from `self.init_manufactured_solution`, 
+        but `firedrake.interpolate` does not work for this 
+        in the case of mixed finite element functions. 
+        So unfortunately we have to manually write the string expressions.
+        """
+        T = "cos(pi*(2.*t/t_f - 1.))*(1. - sin(x[0])*sin(2.*x[1]))"
+        
+        phi = "0.5*(1. + tanh((T_L - " + T + ")/s))"
+            
+        u0 = "(1. - " + phi + ")*pow(t/t_f, 2)*sin(2.*x[0])*sin(x[1])"
+            
+        u1 = "(1. - " + phi + ")*pow(t/t_f, 2)*sin(x[0])*sin(2.*x[1])"
+            
+        p = "-0.5*(pow(" + u0 + ", 2) + pow(" + u1 + ", 2))"
+        
+        self.initial_values = [fe.interpolate(
+            fe.Expression(
+                (p, u0, u1, T),
+                t = self.time,
+                t_f = 1.,
+                T_L = self.liquidus_temperature,
+                s = self.phase_interface_smoothing),
+            self.function_space),]
+        
         
 def test__verify_spatial_convergence_order_via_mms(
         grid_sizes = (4, 8, 16, 32),
