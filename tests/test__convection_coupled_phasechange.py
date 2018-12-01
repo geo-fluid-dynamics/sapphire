@@ -101,17 +101,3 @@ def test__verify_spatial_convergence_order_via_mms(
         timestep_size = timestep_size,
         endtime = 1.)
         
-        
-def test__verify_temporal_convergence_order_via_mms(
-        meshsize = 256,
-        timestep_sizes = (1./4., 1./8., 1./16., 1./32.),
-        tolerance = 0.1):
-    
-    fempy.mms.verify_temporal_order_of_accuracy(
-        Model = Model,
-        expected_order = 1,
-        meshsize = meshsize,
-        endtime = 1.,
-        timestep_sizes = timestep_sizes,
-        tolerance = tolerance)
-        
