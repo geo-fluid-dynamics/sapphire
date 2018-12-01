@@ -2,8 +2,6 @@
 import firedrake as fe
 import fempy.table
 import math
-import matplotlib
-import matplotlib.pyplot as plt
 
 
 TIME_EPSILON = 1.e-8
@@ -83,51 +81,13 @@ def make_mms_verification_model_class(Model):
     return MMSVerificationModel
     
     
-def plot_unit_interval(u_h, u_m, sample_size = 100):
-
-    mesh = u_h.function_space().mesh()
-    
-    assert(type(mesh) == type(fe.UnitIntervalMesh(1)))
-    
-    sample_points = [x/float(sample_size) for x in range(sample_size + 1)]
-    
-    fig = plt.figure()
-    
-    axes = plt.axes()
-    
-    plt.plot(
-        sample_points, 
-        [u_h((p,)) for p in sample_points],
-        axes = axes,
-        color = "red")
-    
-    _u_m = fe.interpolate(u_m, u_h.function_space())
-    
-    axes = plt.plot(
-        sample_points, 
-        [_u_m((p,)) for p in sample_points],
-        axes = axes,
-        color = "blue")
-    
-    plt.axis("square")
-    
-    plt.xlim((-0.1, 1.1))
-    
-    plt.legend((r"$u_h$", r"$u_m$"))
-    
-    plt.xlabel(r"$x$")
-    
-    plt.ylabel(r"$u$")
-    
-    
 def verify_spatial_order_of_accuracy(
         Model,
         expected_order,
         grid_sizes,
         tolerance,
         timestep_size = None,
-        endtime = None,
-        plot_solutions = False):
+        endtime = None):
     
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
@@ -166,17 +126,6 @@ def verify_spatial_order_of_accuracy(
                 model.solver.solve()
                 
                 model.push_back_initial_values()
-                
-                if plot_solutions:
-        
-                    plot_unit_interval(model.solution, model.manufactured_solution)
-                    
-                    h = 1./float(model.meshsize)
-                    
-                    plt.title(r"$h = " + str(h) + "$, $t = " + str(time) + "$")
-                    
-                    plt.savefig("uh_vs_um__h_" + str(h) 
-                        + "_step" + str(timestep) + ".png")
         
         table.append({
             "h": 1./float(model.meshsize),
@@ -208,8 +157,7 @@ def verify_temporal_order_of_accuracy(
         timestep_sizes,
         endtime,
         tolerance,
-        starttime = 0.,
-        plot_solutions = False):
+        starttime = 0.):
     
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
@@ -242,18 +190,6 @@ def verify_temporal_order_of_accuracy(
             model.solver.solve()
             
             model.push_back_initial_values()
-            
-            if plot_solutions:
-        
-                plot_unit_interval(
-                    model.solution, model.manufactured_solution)
-                
-                plt.title(r"$\Delta t = " + str(timestep_size) 
-                    + "$, $t = " + str(time) + "$")
-                
-                plt.savefig(
-                    "uh_vs_um__Delta_t_" + str(timestep_size) 
-                    + "__step" + str(timestep) + ".png")
             
         table.append({
             "Delta_t": timestep_size,

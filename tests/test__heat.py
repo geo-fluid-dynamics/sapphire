@@ -142,6 +142,5 @@ def __fails__test_verify_spatial_convergence_order_via_mms_with_wave_solution(
         grid_sizes = grid_sizes,
         tolerance = tolerance,
         timestep_size = timestep_size,
-        endtime = 1.,
-        plot_solutions = True)
+        endtime = 1.)
         
