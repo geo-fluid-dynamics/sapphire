@@ -113,18 +113,12 @@ class Model(fempy.unsteady_model.Model):
         
         self.weak_form_residual = mass + momentum + enthalpy + stabilization
 
-    def run_timestep(self):
+    def solve(self):
     
         assert(self.phase_interface_smoothing.__float__() == \
             self.smoothing_sequence[-1])
-    
-        self.initial_values[0].assign(self.solution)
-        
-        self.time.assign(self.time + self.timestep_size)
-        
+            
         for s in self.smoothing_sequence:
-        
-            print("Solving with s = " + str(s))
             
             self.phase_interface_smoothing.assign(s)
             
