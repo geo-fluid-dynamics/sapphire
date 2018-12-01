@@ -106,10 +106,6 @@ def verify_spatial_order_of_accuracy(
             model.timestep_size.assign(timestep_size)
             
             model.time.assign(model.time + model.timestep_size)
-        
-        model.solver.solve()
-        
-        if hasattr(model, "time"):
             
             time = model.time.__float__()
             
