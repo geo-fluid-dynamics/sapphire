@@ -87,7 +87,8 @@ def verify_spatial_order_of_accuracy(
         grid_sizes,
         tolerance,
         timestep_size = None,
-        endtime = None):
+        endtime = None,
+        starttime = 0.):
     
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
@@ -100,28 +101,14 @@ def verify_spatial_order_of_accuracy(
         model = MMSVerificationModel(meshsize = meshsize)
         
         if hasattr(model, "time"):
+        
+            model.time.assign(starttime)
             
             model.assign_initial_values(model.manufactured_solution)
             
             model.timestep_size.assign(timestep_size)
             
-            model.time.assign(model.time + model.timestep_size)
-            
-            time = model.time.__float__()
-            
-            timestep = 0
-            
-            while time < (endtime - TIME_EPSILON):
-                
-                time += timestep_size
-                
-                timestep +=1
-                
-                model.time.assign(time)
-                
-                model.solver.solve()
-                
-                model.push_back_initial_values()
+            model.run(endtime = endtime)
         
         table.append({
             "h": 1./float(model.meshsize),
@@ -167,25 +154,11 @@ def verify_temporal_order_of_accuracy(
         
         model.timestep_size.assign(timestep_size)
         
-        time = starttime
-        
-        model.time.assign(time)
+        model.time.assign(starttime)
         
         model.assign_initial_values(model.manufactured_solution)
         
-        timestep = 0
-        
-        while time < (endtime - TIME_EPSILON):
-            
-            time += timestep_size
-            
-            timestep += 1
-            
-            model.time.assign(time)
-            
-            model.solver.solve()
-            
-            model.push_back_initial_values()
+        model.run(endtime = endtime)
             
         table.append({
             "Delta_t": timestep_size,

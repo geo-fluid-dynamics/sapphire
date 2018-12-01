@@ -48,9 +48,17 @@ class Model(fempy.model.Model):
         
     def run(self, endtime):
         
+        between_timesteps = False
+        
         while self.time.__float__() < (endtime - TIME_EPSILON):
             
-            self.run_timestep()
+            if between_timesteps:
             
-            print("Solved time t = " + str(self.time.__float__()))
+                self.time.assign(self.time + self.timestep_size)
+                
+                self.push_back_initial_values()
+                
+            self.solver.solve()
+            
+            between_timesteps = True
             
