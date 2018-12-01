@@ -141,15 +141,7 @@ def verify_spatial_order_of_accuracy(
         
         if hasattr(model, "time"):
             
-            # `fe.interpolate` will only work on one `ufl.Expr` at a time
-            # So what do? Apparently we hadn't tested a time dependent system of PDE's_i
-            # but rather just a time dependent scalar PDE.
-            initial_values = fe.interpolate(
-                model.manufactured_solution, model.function_space)
-                    
-            for iv in model.initial_values:
-            
-                iv.assign(initial_values)
+            model.assign_initial_values(model.manufactured_solution)
             
             model.timestep_size.assign(timestep_size)
             
@@ -230,13 +222,6 @@ def verify_temporal_order_of_accuracy(
     
     model = MMSVerificationModel(meshsize = meshsize)
     
-    model.time.assign(starttime)
-    
-    initial_values = fe.interpolate(
-        model.manufactured_solution, model.function_space)
-    
-    initial_time = model.time.__float__()
-    
     print("")
     
     for timestep_size in timestep_sizes:
@@ -247,9 +232,7 @@ def verify_temporal_order_of_accuracy(
         
         model.time.assign(time)
         
-        for iv in model.initial_values:
-        
-            iv.assign(initial_values)
+        model.assign_initial_values(model.manufactured_solution)
         
         timestep = 0
         
