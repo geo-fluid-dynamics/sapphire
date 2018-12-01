@@ -69,8 +69,7 @@ class Model(metaclass = abc.ABCMeta):
                 "ksp_type": "preonly", 
                 "pc_type": "lu", 
                 "mat_type": "aij",
-                "pc_factor_mat_solver_type": "mumps",
-                "snes_monitor": True}):
+                "pc_factor_mat_solver_type": "mumps"}):
         
         self.solver = fe.NonlinearVariationalSolver(
             self.problem, solver_parameters = solver_parameters)

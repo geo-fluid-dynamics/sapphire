@@ -53,7 +53,7 @@ class Model(fempy.model.Model):
                 
                 self.push_back_initial_values()
                 
-            self.solver.solve()
+            self.solve()
             
             between_timesteps = True
             

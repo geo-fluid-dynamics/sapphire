@@ -19,6 +19,9 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         self.phase_interface_smoothing.assign(1./32.)
         
+        self.smoothing_sequence = (1./2., 2./5, 1./3., 1./4., 1./8., 1./12.,
+            1./16., 1./20., 1./24., 1./28., 1./32.)
+        
     def init_mesh(self):
         
         self.mesh = fe.UnitSquareMesh(self.meshsize, self.meshsize)
@@ -88,11 +91,20 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         self.manufactured_solution = p, u, T
         
     def init_initial_values(self):
+        
+        self.initial_values = [fe.Function(self.function_space),]
+        
+        for i, u_m in enumerate(self.manufactured_solution):
+        
+            self.initial_values[0].assign(
+                fe.interpolate(u_m, self.function_space.sub(i)))
+        
         """ For other models in fempy we have been able to automatically 
         re-use the expressions from `self.init_manufactured_solution`, 
         but `firedrake.interpolate` does not work for this 
         in the case of mixed finite element functions. 
         So unfortunately we have to manually write the string expressions.
+        """
         """
         T = "cos(pi*(2.*t/t_f - 1.))*(1. - sin(x[0])*sin(2.*x[1]))"
         
@@ -112,11 +124,28 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
                 T_L = self.liquidus_temperature,
                 s = self.phase_interface_smoothing),
             self.function_space),]
+        """
         
+    def solve(self):
+    
+        assert(self.phase_interface_smoothing.__float__() == \
+            self.smoothing_sequence[-1])
+            
+        self.solver.parameters["snes_monitor"] = False
+            
+        for s in self.smoothing_sequence:
+            
+            self.phase_interface_smoothing.assign(s)
+            
+            self.solver.solve()
+            
+            #print("Solved with s = " + str(s))
+            
+        print("Solved at time t = " + str(self.time.__float__()))
         
 def test__verify_spatial_convergence_order_via_mms(
-        grid_sizes = (4, 8, 16, 32),
-        timestep_size = 1./64.,
+        grid_sizes = (4, 8, 16),
+        timestep_size = 1./1024.,
         tolerance = 0.1):
     
     fempy.mms.verify_spatial_order_of_accuracy(
