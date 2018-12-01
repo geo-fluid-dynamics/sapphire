@@ -7,9 +7,9 @@ def test__verify_convergence_order_via_mms(
 
     class Model(fempy.models.laplace.Model):
     
-        def __init__(self, gridsize):
+        def __init__(self, meshsize):
             
-            self.gridsize = gridsize
+            self.meshsize = meshsize
             
             super().__init__()
             
@@ -17,7 +17,7 @@ def test__verify_convergence_order_via_mms(
             
         def init_mesh(self):
             
-            self.mesh = fe.UnitIntervalMesh(self.gridsize)
+            self.mesh = fe.UnitIntervalMesh(self.meshsize)
             
         def init_manufactured_solution(self):
             

@@ -75,6 +75,10 @@ class Model(metaclass = abc.ABCMeta):
         self.solver = fe.NonlinearVariationalSolver(
             self.problem, solver_parameters = solver_parameters)
     
+    def solve(self):
+    
+        self.solver.solve()
+    
     def unit_vectors(self):
         
         dim = self.mesh.geometric_dimension()

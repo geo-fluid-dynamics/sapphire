@@ -7,15 +7,15 @@ def test__verify_convergence_order_via_MMS(
 
     class Model(fempy.models.navier_stokes.Model):
     
-        def __init__(self, gridsize):
+        def __init__(self, meshsize):
             
-            self.gridsize = gridsize
+            self.meshsize = meshsize
             
             super().__init__()
             
         def init_mesh(self):
             
-            self.mesh = fe.UnitSquareMesh(self.gridsize, self.gridsize)
+            self.mesh = fe.UnitSquareMesh(self.meshsize, self.meshsize)
         
         def init_integration_measure(self):
 

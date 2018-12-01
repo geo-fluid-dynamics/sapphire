@@ -110,6 +110,10 @@ def verify_spatial_order_of_accuracy(
             
             model.run(endtime = endtime)
         
+        else:
+        
+            model.solve()
+        
         table.append({
             "h": 1./float(model.meshsize),
             "L2_error": model.L2_error()})

@@ -7,9 +7,9 @@ def test__verify_convergence_order_via_mms(
     
     class Model(fempy.models.convection_diffusion.Model):
         
-        def __init__(self, gridsize = 4):
+        def __init__(self, meshsize = 4):
             
-            self.gridsize = gridsize
+            self.meshsize = meshsize
             
             super().__init__()
                 
@@ -17,7 +17,7 @@ def test__verify_convergence_order_via_mms(
             
         def init_mesh(self):
             
-            self.mesh = fe.UnitSquareMesh(self.gridsize, self.gridsize)
+            self.mesh = fe.UnitSquareMesh(self.meshsize, self.meshsize)
         
         def init_integration_measure(self):
 
