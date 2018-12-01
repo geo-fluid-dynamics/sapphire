@@ -4,15 +4,15 @@ import fempy.models.heat
 
 class Model(fempy.models.heat.Model):
     
-    def __init__(self, gridsize):
+    def __init__(self, meshsize):
     
-        self.gridsize = gridsize
+        self.meshsize = meshsize
         
         super().__init__()
         
     def init_mesh(self):
     
-        self.mesh = fe.UnitIntervalMesh(self.gridsize)
+        self.mesh = fe.UnitIntervalMesh(self.meshsize)
         
     def init_integration_measure(self):
 
@@ -59,14 +59,14 @@ def test__verify_spatial_convergence_order_via_mms(
         
         
 def test__verify_temporal_convergence_order_via_mms(
-        gridsize = 256,
+        meshsize = 256,
         timestep_sizes = (1./4., 1./8., 1./16., 1./32.),
         tolerance = 0.1):
     
     fempy.mms.verify_temporal_order_of_accuracy(
         Model = Model,
         expected_order = 1,
-        gridsize = gridsize,
+        meshsize = meshsize,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
         tolerance = tolerance)
@@ -105,14 +105,14 @@ class SecondOrderModel(Model):
     
     
 def test__verify_temporal_convergence_order_via_mms__bdf2(
-        gridsize = 256,
+        meshsize = 256,
         timestep_sizes = (1./2., 1./4., 1./8., 1./16.),
         tolerance = 0.1):
     
     fempy.mms.verify_temporal_order_of_accuracy(
         Model = SecondOrderModel,
         expected_order = 2,
-        gridsize = gridsize,
+        meshsize = meshsize,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
         tolerance = tolerance)
