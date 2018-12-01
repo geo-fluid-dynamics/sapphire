@@ -145,7 +145,7 @@ def verify_spatial_order_of_accuracy(
             # So what do? Apparently we hadn't tested a time dependent system of PDE's_i
             # but rather just a time dependent scalar PDE.
             initial_values = fe.interpolate(
-                self.manufactured_solution, model.function_space)
+                model.manufactured_solution, model.function_space)
                     
             for iv in model.initial_values:
             
