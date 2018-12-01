@@ -165,12 +165,7 @@ def verify_spatial_order_of_accuracy(
                 
                 model.solver.solve()
                 
-                for i in range(len(model.initial_values) - 1):
-                
-                    model.initial_values[-i - 1].assign(
-                        model.initial_values[-i - 2])
-                    
-                model.initial_values[0].assign(model.solution)
+                model.push_back_initial_values()
                 
                 if plot_solutions:
         
@@ -246,12 +241,7 @@ def verify_temporal_order_of_accuracy(
             
             model.solver.solve()
             
-            for i in range(len(model.initial_values) - 1):
-        
-                model.initial_values[-i - 1].assign(
-                    model.initial_values[-i - 2])
-                    
-            model.initial_values[0].assign(model.solution)
+            model.push_back_initial_values()
             
             if plot_solutions:
         

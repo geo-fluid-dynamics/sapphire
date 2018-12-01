@@ -37,6 +37,15 @@ class Model(fempy.model.Model):
         
             iv.assign(initial_values)
         
+    def push_back_initial_values(self):
+    
+        for i in range(len(self.initial_values) - 1):
+        
+            self.initial_values[-i - 1].assign(
+                self.initial_values[-i - 2])
+                
+        self.initial_values[0].assign(self.solution)
+        
     def run(self, endtime):
         
         while self.time.__float__() < (endtime - TIME_EPSILON):
