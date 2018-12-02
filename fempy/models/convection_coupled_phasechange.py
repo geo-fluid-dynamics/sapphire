@@ -25,6 +25,8 @@ class Model(fempy.unsteady_model.Model):
         
         super().__init__()
         
+        self.backup_solution = fe.Function(self.solution)
+        
     def init_element(self):
     
         self.element = fe.MixedElement(
@@ -54,7 +56,7 @@ class Model(fempy.unsteady_model.Model):
         
         return Ra/Pr*T*ghat
         
-    def time_discrete_terms(self):
+    def init_time_discrete_terms(self):
         """ Implicit Euler finite difference scheme """
         p, u, T = fe.split(self.solution)
         
@@ -70,7 +72,7 @@ class Model(fempy.unsteady_model.Model):
         
         phi_t = (phi(T) - phi(T_n))/Delta_t
         
-        return u_t, T_t, phi_t
+        self.time_discrete_terms = u_t, T_t, phi_t
         
     def init_weak_form_residual(self):
         """ Weak form from @cite{zimmerman2018monolithic} """
@@ -91,7 +93,7 @@ class Model(fempy.unsteady_model.Model):
         
         p, u, T = fe.split(self.solution)
         
-        u_t, T_t, phi_t = self.time_discrete_terms()
+        u_t, T_t, phi_t = self.time_discrete_terms
         
         b = self.buoyancy(T)
         
@@ -113,14 +115,103 @@ class Model(fempy.unsteady_model.Model):
         
         self.weak_form_residual = mass + momentum + enthalpy + stabilization
 
-    def solve(self):
+    def solve(self, *args, **kwargs):
     
-        assert(self.phase_interface_smoothing.__float__() == \
+        if self.smoothing_sequence == None:
+        
+            self.solve_with_auto_smoothing(*args, **kwargs)
+            
+        else:
+        
+            assert(self.phase_interface_smoothing.__float__()
+                == self.smoothing_sequence[-1])
+        
+            for s in self.smoothing_sequence:
+            
+                self.phase_interface_smoothing.assign(s)
+                
+                self.solver.solve()
+        
+    def solve_with_auto_smoothing(self, 
+            max_regularization_threshold = 4., 
+            max_attempts = 16):
+            
+        if self.smoothing_sequence == None:
+        
+            self.smoothing_sequence = (self.phase_interface_smoothing.__float__(),)
+        
+        first_s_to_solve = self.smoothing_sequence[0]
+        
+        attempts = range(max_attempts)
+        
+        solved = False
+        
+        for attempt in attempts:
+
+            s_start_index = self.smoothing_sequence.index(first_s_to_solve)
+            
+            try:
+            
+                for s in self.smoothing_sequence[s_start_index:]:
+                    
+                    self.phase_interface_smoothing.assign(s)
+                    
+                    self.backup_solution.assign(self.solution)
+                    
+                    self.solver.solve()
+                    
+                solved = True
+                
+                break
+                
+            except fe.exceptions.ConvergenceError:  
+                
+                current_s = self.phase_interface_smoothing.__float__()
+                
+                ss = self.smoothing_sequence
+                
+                print("Failed to solve with s = " + str(current_s) + 
+                     " from the sequence " + str(ss))
+                
+                if attempt == attempts[-1]:
+                    
+                    break
+                
+                if current_s >= max_regularization_threshold:
+                
+                    print("Exceeded maximum regularization (s_max = " + 
+                        str(max_regularization_threshold) + ")")
+                    
+                    break
+                
+                index = ss.index(current_s)
+                
+                if index == 0:
+                
+                    s_to_insert = 2.*ss[0]
+                    
+                    new_ss = (s_to_insert,) + ss
+                    
+                    self.solution.assign(self.initial_values[0])
+                
+                else:
+                
+                    s_to_insert = (current_s + ss[index - 1])/2.
+                
+                    new_ss = ss[:index] + (s_to_insert,) + ss[index:]
+                    
+                    self.solution.assign(self.backup_solution)
+                
+                self.smoothing_sequence = new_ss
+                
+                print("Inserted new value of " + str(s_to_insert))
+                
+                first_s_to_solve = s_to_insert
+        
+        assert(solved)
+        
+        assert(self.phase_interface_smoothing.__float__() ==
             self.smoothing_sequence[-1])
-            
-        for s in self.smoothing_sequence:
-            
-            self.phase_interface_smoothing.assign(s)
-            
-            self.solver.solve()
-            
+        
+        self.smoothing_sequence = None
+        

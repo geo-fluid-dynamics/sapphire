@@ -19,8 +19,7 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         self.phase_interface_smoothing.assign(1./32.)
         
-        self.smoothing_sequence = (1./2., 2./5, 1./3., 1./4., 1./8., 1./12.,
-            1./16., 1./20., 1./24., 1./28., 1./32.)
+        self.smoothing_sequence = None
         
     def init_mesh(self):
         
@@ -94,62 +93,33 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         self.initial_values = [fe.Function(self.function_space),]
         
-        for i, u_m in enumerate(self.manufactured_solution):
+        for u_m, V in zip(
+                self.manufactured_solution, self.function_space):
         
-            self.initial_values[0].assign(
-                fe.interpolate(u_m, self.function_space.sub(i)))
-        
-        """ For other models in fempy we have been able to automatically 
-        re-use the expressions from `self.init_manufactured_solution`, 
-        but `firedrake.interpolate` does not work for this 
-        in the case of mixed finite element functions. 
-        So unfortunately we have to manually write the string expressions.
-        """
-        """
-        T = "cos(pi*(2.*t/t_f - 1.))*(1. - sin(x[0])*sin(2.*x[1]))"
-        
-        phi = "0.5*(1. + tanh((T_L - " + T + ")/s))"
-            
-        u0 = "(1. - " + phi + ")*pow(t/t_f, 2)*sin(2.*x[0])*sin(x[1])"
-            
-        u1 = "(1. - " + phi + ")*pow(t/t_f, 2)*sin(x[0])*sin(2.*x[1])"
-            
-        p = "-0.5*(pow(" + u0 + ", 2) + pow(" + u1 + ", 2))"
-        
-        self.initial_values = [fe.interpolate(
-            fe.Expression(
-                (p, u0, u1, T),
-                t = self.time,
-                t_f = 1.,
-                T_L = self.liquidus_temperature,
-                s = self.phase_interface_smoothing),
-            self.function_space),]
-        """
+            self.initial_values[0].assign(fe.interpolate(u_m, V))
         
     def solve(self):
-    
-        assert(self.phase_interface_smoothing.__float__() == \
-            self.smoothing_sequence[-1])
-            
+        
         self.solver.parameters["snes_monitor"] = False
-            
-        for s in self.smoothing_sequence:
-            
-            self.phase_interface_smoothing.assign(s)
-            
-            self.solver.solve()
-            
-            #print("Solved with s = " + str(s))
+        
+        super().solve()
             
         print("Solved at time t = " + str(self.time.__float__()))
         
+        
 def test__verify_spatial_convergence_order_via_mms(
+        parameters = {
+            "rayleigh_number": 1.e3,
+            "prandtl_number": 10.,
+            "stefan_number": 0.1,
+            "phase_interface_smoothing": 1./4.},
         grid_sizes = (4, 8, 16),
-        timestep_size = 1./1024.,
+        timestep_size = 1./64.,
         tolerance = 0.1):
     
     fempy.mms.verify_spatial_order_of_accuracy(
         Model = Model,
+        parameters = parameters,
         expected_order = 2,
         grid_sizes = grid_sizes,
         tolerance = tolerance,
