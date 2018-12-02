@@ -84,8 +84,8 @@ class SecondOrderModel(Model):
         initial_values = fe.interpolate(
             self.manufactured_solution, self.function_space)
         
-        self.initial_values = [
-            fe.Function(self.function_space) for i in range(2)]
+        self.initial_values = [fe.Function(self.function_space)
+            for i in range(2)]
         
         for iv in self.initial_values:
         

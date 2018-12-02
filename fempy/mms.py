@@ -24,37 +24,28 @@ def make_mms_verification_model_class(Model):
             
             V = self.function_space
             
-            try:
+            if len(V) == 1:
             
-                for psi, s_i in zip(fe.TestFunctions(V), s):
-                    
-                    self.weak_form_residual -= fe.inner(psi, s_i)
-                    
-            except NotImplementedError as error:
+                s = (s,)
             
-                psi = fe.TestFunction(V)
+            for psi, s_i in zip(fe.TestFunctions(V), s):
                 
-                self.weak_form_residual -= fe.inner(psi, s)
-            
+                self.weak_form_residual -= fe.inner(psi, s_i)
+                
         def init_dirichlet_boundary_conditions(self):
             
             u_m = self.manufactured_solution
             
-            V = self.function_space
+            W = self.function_space
             
-            try:
-    
-                iterable = iter(u_m)
-                
-                bcs = [fe.DirichletBC(V.sub(i), g, "on_boundary") \
-                    for i, g in enumerate(u_m)]
-                
-            except NotImplementedError as error:
-                
-                bcs = [fe.DirichletBC(V, u_m, "on_boundary"),]
-                
-            self.dirichlet_boundary_conditions = bcs
+            if len(W) == 1:
             
+                u_m = (u_m,)
+            
+            self.dirichlet_boundary_conditions = [
+                fe.DirichletBC(V, g, "on_boundary") 
+                for V, g in zip(W, u_m)]
+                
         def L2_error(self):
             
             dx = self.integration_measure
@@ -86,6 +77,7 @@ def verify_spatial_order_of_accuracy(
         expected_order,
         grid_sizes,
         tolerance,
+        parameters = {},
         timestep_size = None,
         endtime = None,
         starttime = 0.):
@@ -99,6 +91,8 @@ def verify_spatial_order_of_accuracy(
     for meshsize in grid_sizes:
         
         model = MMSVerificationModel(meshsize = meshsize)
+        
+        model.assign_parameters(parameters)
         
         if hasattr(model, "time"):
         
@@ -142,6 +136,7 @@ def verify_temporal_order_of_accuracy(
         timestep_sizes,
         endtime,
         tolerance,
+        parameters = {},
         starttime = 0.):
     
     MMSVerificationModel = make_mms_verification_model_class(Model)
@@ -149,6 +144,8 @@ def verify_temporal_order_of_accuracy(
     table = fempy.table.Table(("Delta_t", "L2_error", "temporal_order"))
     
     model = MMSVerificationModel(meshsize = meshsize)
+    
+    model.assign_parameters(parameters)
     
     initial_values = [fe.Function(iv) for iv in model.initial_values]
     

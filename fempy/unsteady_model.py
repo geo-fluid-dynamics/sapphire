@@ -30,6 +30,8 @@ class Model(fempy.model.Model):
         
         self.init_initial_values()
         
+        self.init_time_discrete_terms()
+        
         self.solution.assign(self.initial_values[0])
         
     def push_back_initial_values(self):

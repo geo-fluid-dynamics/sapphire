@@ -51,8 +51,6 @@ class Model(fempy.unsteady_model.Model):
         
         Ste = self.stefan_number
         
-        self.init_time_discrete_terms()
-        
         theta_t, phi_t = self.time_discrete_terms
         
         v = fe.TestFunction(self.function_space)

@@ -5,7 +5,7 @@ import abc
 
 class Model(metaclass = abc.ABCMeta):
     """ An abstract class on which to base finite element models. """
-    def __init__(self):
+    def __init__(self, parameters = {}):
         
         self.init_mesh()
         
@@ -24,6 +24,8 @@ class Model(metaclass = abc.ABCMeta):
         self.init_problem()
         
         self.init_solver()
+        
+        self.assign_parameters(parameters)
     
     @abc.abstractmethod
     def init_mesh(self):
@@ -73,6 +75,12 @@ class Model(metaclass = abc.ABCMeta):
         
         self.solver = fe.NonlinearVariationalSolver(
             self.problem, solver_parameters = solver_parameters)
+    
+    def assign_parameters(self, parameters):
+    
+        for key, value in parameters.items():
+        
+            getattr(self, key).assign(value)
     
     def solve(self):
     
