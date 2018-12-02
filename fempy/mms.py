@@ -147,7 +147,13 @@ def verify_temporal_order_of_accuracy(
     
     model.assign_parameters(parameters)
     
-    initial_values = [fe.Function(iv) for iv in model.initial_values]
+    u_m = model.initial_values
+    
+    if not ((type(u_m) == type((0,))) or (type(u_m) == type([0,]))):
+    
+        u_m = (u_m),
+    
+    initial_values = [fe.Function(iv) for iv in u_m]
     
     print("")
     
@@ -157,10 +163,16 @@ def verify_temporal_order_of_accuracy(
         
         model.time.assign(starttime)
         
-        for i, iv in enumerate(model.initial_values):
+        if (type(model.initial_values) == type((0,)) or
+                (type(model.initial_values) == type([0,]))):
         
-            iv.assign(initial_values[i])
+            for i, iv in enumerate(model.initial_values):
+            
+                iv.assign(initial_values[i])
+        else:
         
+            model.initial_values.assign(initial_values[0])
+            
         model.run(endtime = endtime)
             
         table.append({

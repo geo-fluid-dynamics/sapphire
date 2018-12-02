@@ -32,16 +32,29 @@ class Model(fempy.model.Model):
         
         self.init_time_discrete_terms()
         
-        self.solution.assign(self.initial_values[0])
+        u0 = self.initial_values
+        
+        if not ((type(u0) == type((0,))) or (type(u0) == type([0,]))):
+        
+            u0 = (u0,)
+        
+        self.solution.assign(u0[0])
         
     def push_back_initial_values(self):
-    
-        for i in range(len(self.initial_values) - 1):
         
-            self.initial_values[-i - 1].assign(
-                self.initial_values[-i - 2])
+        if not((type(self.initial_values) == type((0,))) 
+                or (type(self.initial_values) == type([0,]))):
+        
+            self.initial_values.assign(self.solution)
+
+        else:
+        
+            for i in range(len(self.initial_values) - 1):
+            
+                self.initial_values[-i - 1].assign(
+                    self.initial_values[-i - 2])
                 
-        self.initial_values[0].assign(self.solution)
+            self.initial_values[0].assign(self.solution)
         
     def run(self, endtime):
         

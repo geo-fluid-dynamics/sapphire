@@ -33,7 +33,7 @@ class Model(fempy.unsteady_model.Model):
         """ Implicit Euler finite difference scheme """
         theta = self.solution
         
-        thetan = self.initial_values[0]
+        thetan = self.initial_values
         
         Delta_t = self.timestep_size
         

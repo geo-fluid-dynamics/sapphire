@@ -40,8 +40,8 @@ class Model(fempy.models.heat.Model):
     
     def init_initial_values(self):
         
-        self.initial_values = [fe.interpolate(
-            self.manufactured_solution, self.function_space),]
+        self.initial_values = fe.interpolate(
+            self.manufactured_solution, self.function_space)
     
     def init_solver(self, solver_parameters = {"ksp_type": "cg"}):
         

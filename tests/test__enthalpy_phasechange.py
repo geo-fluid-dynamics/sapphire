@@ -49,8 +49,8 @@ class Model(fempy.models.enthalpy_phasechange.Model):
 
     def init_initial_values(self):
         
-        self.initial_values = [fe.interpolate(
-            self.manufactured_solution, self.function_space),]
+        self.initial_values = fe.interpolate(
+            self.manufactured_solution, self.function_space)
         
 
 def test__verify_spatial_convergence_order_via_mms(
