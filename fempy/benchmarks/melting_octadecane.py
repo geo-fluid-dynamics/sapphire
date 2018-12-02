@@ -87,11 +87,9 @@ def run(meshsize, timestep_size, phase_interface_smoothing, smoothing_sequence, 
     
     model.smoothing_sequence = smoothing_sequence
     
-    for endtime in [float(t) for t in range(1, 73)]:
-        
-        model.run(endtime = endtime)
+    model.run(endtime = endtime)
     
-        model.plot(prefix = "t" + str(model.time.__float__()) + "_")
+    model.plot(prefix = "t" + str(model.time.__float__()) + "_")
     
     
 if __name__ == "__main__":
