@@ -53,11 +53,11 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         phi = self.semi_phasefield(T)
         
-        mu = mu_L + phi*(mu_S - mu_L)
+        mu = mu_L + (mu_S - mu_L)*phi
         
         r_p = div(u) + gamma*p
         
-        r_u = grad(u)*u + grad(p) - 2.*div(mu*sym(grad(u))) + b
+        r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(mu*sym(grad(u))) + b
         
         r_T = diff(T, t) - 1./Ste*diff(phi, t) + div(T*u) - 1./Pr*div(grad(T))
         
@@ -77,26 +77,23 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         phi = self.semi_phasefield(T)
         
-        u0 = (1. - phi)*pow(t/t_f, 2)*sin(2.*x[0])*sin(x[1])
-        
-        u1 = (1. - phi)*pow(t/t_f, 2)*sin(x[0])*sin(2.*x[1])
-        
         ihat, jhat = self.unit_vectors()
         
-        u = u0*ihat + u1*jhat
+        u = (1. - phi)*pow(t/t_f, 2)*sin(2.*x[0])*sin(x[1])*ihat + \
+            (1. - phi)*pow(t/t_f, 2)*sin(x[0])*sin(2.*x[1])*jhat
         
-        p = -0.5*(u0**2 + u1**2)
+        p = -0.5*(u[0]**2 + u[1]**2)
         
         self.manufactured_solution = p, u, T
         
     def init_initial_values(self):
         
-        self.initial_values = [fe.Function(self.function_space),]
+        self.initial_values = fe.Function(self.function_space)
         
         for u_m, V in zip(
                 self.manufactured_solution, self.function_space):
         
-            self.initial_values[0].assign(fe.interpolate(u_m, V))
+            self.initial_values.assign(fe.interpolate(u_m, V))
         
     def solve(self):
         
@@ -125,4 +122,4 @@ def test__verify_spatial_convergence_order_via_mms(
         tolerance = tolerance,
         timestep_size = timestep_size,
         endtime = 1.)
-        
+    

@@ -1,6 +1,7 @@
 """ A convection-coupled phase-change model class """
 import firedrake as fe
 import fempy.unsteady_model
+import matplotlib.pyplot as plt
 
     
 class Model(fempy.unsteady_model.Model):
@@ -21,7 +22,7 @@ class Model(fempy.unsteady_model.Model):
         
         self.phase_interface_smoothing = fe.Constant(1./32.)
         
-        self.smoothing_sequence = (1./2., 1./4., 1./8., 1./16., 1./32.)
+        self.smoothing_sequence = "auto"
         
         super().__init__()
         
@@ -60,7 +61,7 @@ class Model(fempy.unsteady_model.Model):
         """ Implicit Euler finite difference scheme """
         p, u, T = fe.split(self.solution)
         
-        p_n, u_n, T_n = fe.split(self.initial_values[0])
+        p_n, u_n, T_n = fe.split(self.initial_values)
         
         Delta_t = self.timestep_size
         
@@ -101,7 +102,7 @@ class Model(fempy.unsteady_model.Model):
         
         mu = mu_L + (mu_S - mu_L)*phi
         
-        psi_p, psi_u, psi_T = fe.TestFunctions(self.solution.function_space())
+        psi_p, psi_u, psi_T = fe.TestFunctions(self.function_space)
         
         mass = psi_p*div(u)
         
@@ -118,6 +119,10 @@ class Model(fempy.unsteady_model.Model):
     def solve(self, *args, **kwargs):
     
         if self.smoothing_sequence == None:
+        
+            self.solver.solve()
+            
+        elif self.smoothing_sequence == "auto":
         
             self.solve_with_auto_smoothing(*args, **kwargs)
             
@@ -136,11 +141,9 @@ class Model(fempy.unsteady_model.Model):
             max_regularization_threshold = 4., 
             max_attempts = 16):
             
-        if self.smoothing_sequence == None:
+        smoothing_sequence = (self.phase_interface_smoothing.__float__(),)
         
-            self.smoothing_sequence = (self.phase_interface_smoothing.__float__(),)
-        
-        first_s_to_solve = self.smoothing_sequence[0]
+        first_s_to_solve = smoothing_sequence[0]
         
         attempts = range(max_attempts)
         
@@ -148,11 +151,11 @@ class Model(fempy.unsteady_model.Model):
         
         for attempt in attempts:
 
-            s_start_index = self.smoothing_sequence.index(first_s_to_solve)
+            s_start_index = smoothing_sequence.index(first_s_to_solve)
             
             try:
             
-                for s in self.smoothing_sequence[s_start_index:]:
+                for s in smoothing_sequence[s_start_index:]:
                     
                     self.phase_interface_smoothing.assign(s)
                     
@@ -168,7 +171,7 @@ class Model(fempy.unsteady_model.Model):
                 
                 current_s = self.phase_interface_smoothing.__float__()
                 
-                ss = self.smoothing_sequence
+                ss = smoothing_sequence
                 
                 print("Failed to solve with s = " + str(current_s) + 
                      " from the sequence " + str(ss))
@@ -202,7 +205,7 @@ class Model(fempy.unsteady_model.Model):
                     
                     self.solution.assign(self.backup_solution)
                 
-                self.smoothing_sequence = new_ss
+                smoothing_sequence = new_ss
                 
                 print("Inserted new value of " + str(s_to_insert))
                 
@@ -211,7 +214,34 @@ class Model(fempy.unsteady_model.Model):
         assert(solved)
         
         assert(self.phase_interface_smoothing.__float__() ==
-            self.smoothing_sequence[-1])
+            smoothing_sequence[-1])
         
-        self.smoothing_sequence = None
+    def plot(self, prefix = ""):
+    
+        V = fe.FunctionSpace(
+            self.mesh, fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
         
+        p, u, T = self.solution.split()
+        
+        phi = fe.interpolate(self.semi_phasefield(T), V)
+        
+        for f, name in zip(
+                (self.mesh, p, u, T, phi),
+                ("\Omega_h", "p", "\mathbf{u}", "T", "\phi")):
+            
+            fig = plt.figure()
+            
+            fe.plot(f)
+            
+            plt.axis("square")
+        
+            plt.xlabel(r"$x$")
+
+            plt.ylabel(r"$y$")
+
+            plt.title(r"$" + name + "$")
+
+            plt.savefig(prefix + name + ".png")
+
+            plt.close(fig)
+            

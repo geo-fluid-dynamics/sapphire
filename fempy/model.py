@@ -5,7 +5,7 @@ import abc
 
 class Model(metaclass = abc.ABCMeta):
     """ An abstract class on which to base finite element models. """
-    def __init__(self, parameters = {}):
+    def __init__(self):
         
         self.init_mesh()
         
@@ -25,8 +25,6 @@ class Model(metaclass = abc.ABCMeta):
         
         self.init_solver()
         
-        self.assign_parameters(parameters)
-    
     @abc.abstractmethod
     def init_mesh(self):
         """ Redefine this to set `self.mesh` to a `fe.Mesh`.
