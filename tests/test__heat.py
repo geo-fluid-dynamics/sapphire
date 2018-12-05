@@ -14,10 +14,6 @@ class Model(fempy.models.heat.Model):
     
         self.mesh = fe.UnitIntervalMesh(self.meshsize)
         
-    def init_integration_measure(self):
-
-        self.integration_measure = fe.dx
-        
     def strong_form_residual(self, solution):
         
         u = solution
