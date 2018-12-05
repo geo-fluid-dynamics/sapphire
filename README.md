@@ -3,7 +3,9 @@ A Python package for finite element models using Firedrake
 
 ## Setup
 
-Download with 
+[Install Firedrake](https://www.firedrakeproject.org/download.html).
+
+Download FemPy with 
 
     git clone git@github.com:alexanderzimmerman/fempy.git
 
