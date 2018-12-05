@@ -7,7 +7,7 @@ A Python package for finite element models using Firedrake
 
 Download FemPy with 
 
-    git clone git@github.com:alexanderzimmerman/fempy.git
+    git clone git@github.com:geo-fluid-dynamics/fempy.git
 
 Test with
 
