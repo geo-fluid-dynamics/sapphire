@@ -21,8 +21,6 @@ def test__verify_convergence_order_via_MMS(
             
             self.prandtl_number(0.7)
             
-            self.pressure_penalty_factor.assign(1.e-7)
-            
         def init_mesh(self):
         
             self.mesh = fe.UnitSquareMesh(self.meshsize, self.meshsize)
@@ -53,8 +51,6 @@ def test__verify_convergence_order_via_MMS(
             
         def strong_form_residual(self, solution):
             
-            gamma = self.pressure_penalty_factor
-            
             mu = self.dynamic_viscosity
             
             Ra = self.rayleigh_number
@@ -67,7 +63,7 @@ def test__verify_convergence_order_via_MMS(
             
             p, u, T = solution
             
-            r_p = div(u) + gamma*p
+            r_p = div(u)
             
             r_u = grad(u)*u + grad(p) - 2.*div(mu*sym(grad(u))) + Ra/Pr*T*ghat
             
