@@ -3,7 +3,7 @@ import firedrake as fe
 import fempy.unsteady_model
 
     
-class Model(fempy.unsteady_model.UnsteadyModel):
+class Model(fempy.unsteady_model.Model):
     
     def __init__(self):
         
@@ -33,7 +33,7 @@ class Model(fempy.unsteady_model.UnsteadyModel):
         """ Implicit Euler finite difference scheme """
         theta = self.solution
         
-        thetan = self.initial_values[0]
+        thetan = self.initial_values
         
         Delta_t = self.timestep_size
         
@@ -50,8 +50,6 @@ class Model(fempy.unsteady_model.UnsteadyModel):
         theta = self.solution
         
         Ste = self.stefan_number
-        
-        self.init_time_discrete_terms()
         
         theta_t, phi_t = self.time_discrete_terms
         

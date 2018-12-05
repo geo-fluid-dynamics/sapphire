@@ -3,12 +3,8 @@ import firedrake as fe
 import fempy.unsteady_model
 
     
-class Model(fempy.unsteady_model.UnsteadyModel):
+class Model(fempy.unsteady_model.Model):
     
-    def __init__(self):
-        
-        super().__init__()
-        
     def init_element(self):
     
         self.element = fe.FiniteElement("P", self.mesh.ufl_cell(), 1)
@@ -17,7 +13,7 @@ class Model(fempy.unsteady_model.UnsteadyModel):
         """ Implicit Euler finite difference scheme """
         u = self.solution
         
-        un = self.initial_values[0]
+        un = self.initial_values
         
         Delta_t = self.timestep_size
         
@@ -26,8 +22,6 @@ class Model(fempy.unsteady_model.UnsteadyModel):
     def init_weak_form_residual(self):
         
         u = self.solution
-        
-        self.init_time_discrete_terms()
         
         u_t = self.time_discrete_terms
         

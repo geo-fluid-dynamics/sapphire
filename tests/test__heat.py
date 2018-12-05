@@ -4,19 +4,15 @@ import fempy.models.heat
 
 class Model(fempy.models.heat.Model):
     
-    def __init__(self, gridsize):
+    def __init__(self, meshsize):
     
-        self.gridsize = gridsize
+        self.meshsize = meshsize
         
         super().__init__()
         
     def init_mesh(self):
     
-        self.mesh = fe.UnitIntervalMesh(self.gridsize)
-        
-    def init_integration_measure(self):
-
-        self.integration_measure = fe.dx
+        self.mesh = fe.UnitIntervalMesh(self.meshsize)
         
     def strong_form_residual(self, solution):
         
@@ -37,7 +33,12 @@ class Model(fempy.models.heat.Model):
         sin, pi, exp = fe.sin, fe.pi, fe.exp
         
         self.manufactured_solution = sin(2.*pi*x)*exp(-pow(t, 2))
+    
+    def init_initial_values(self):
         
+        self.initial_values = fe.interpolate(
+            self.manufactured_solution, self.function_space)
+    
     def init_solver(self, solver_parameters = {"ksp_type": "cg"}):
         
         self.solver = fe.NonlinearVariationalSolver(
@@ -59,14 +60,14 @@ def test__verify_spatial_convergence_order_via_mms(
         
         
 def test__verify_temporal_convergence_order_via_mms(
-        gridsize = 256,
+        meshsize = 256,
         timestep_sizes = (1./4., 1./8., 1./16., 1./32.),
         tolerance = 0.1):
     
     fempy.mms.verify_temporal_order_of_accuracy(
         Model = Model,
         expected_order = 1,
-        gridsize = gridsize,
+        meshsize = meshsize,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
         tolerance = tolerance)
@@ -74,11 +75,17 @@ def test__verify_temporal_convergence_order_via_mms(
     
 class SecondOrderModel(Model):
 
-    def init_solution(self):
-    
-        super().init_solution()
+    def init_initial_values(self):
         
-        self.initial_values.append(fe.Function(self.function_space))
+        initial_values = fe.interpolate(
+            self.manufactured_solution, self.function_space)
+        
+        self.initial_values = [fe.Function(self.function_space)
+            for i in range(2)]
+        
+        for iv in self.initial_values:
+        
+            iv.assign(initial_values)
         
     def init_time_discrete_terms(self):
         """ Gear/BDF2 finite difference scheme 
@@ -105,14 +112,14 @@ class SecondOrderModel(Model):
     
     
 def test__verify_temporal_convergence_order_via_mms__bdf2(
-        gridsize = 256,
+        meshsize = 256,
         timestep_sizes = (1./2., 1./4., 1./8., 1./16.),
         tolerance = 0.1):
     
     fempy.mms.verify_temporal_order_of_accuracy(
         Model = SecondOrderModel,
         expected_order = 2,
-        gridsize = gridsize,
+        meshsize = meshsize,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
         tolerance = tolerance)
@@ -142,6 +149,5 @@ def __fails__test_verify_spatial_convergence_order_via_mms_with_wave_solution(
         grid_sizes = grid_sizes,
         tolerance = tolerance,
         timestep_size = timestep_size,
-        endtime = 1.,
-        plot_solutions = True)
+        endtime = 1.)
         
