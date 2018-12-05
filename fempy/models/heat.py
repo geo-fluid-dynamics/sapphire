@@ -5,10 +5,6 @@ import fempy.unsteady_model
     
 class Model(fempy.unsteady_model.Model):
     
-    def __init__(self):
-        
-        super().__init__()
-        
     def init_element(self):
     
         self.element = fe.FiniteElement("P", self.mesh.ufl_cell(), 1)
