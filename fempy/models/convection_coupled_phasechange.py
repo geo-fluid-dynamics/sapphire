@@ -229,8 +229,6 @@ class Model(fempy.unsteady_model.Model):
                 (self.mesh, p, u, T, phi),
                 ("\Omega_h", "p", "\mathbf{u}", "T", "\phi")):
             
-            fig = plt.figure()
-            
             fe.plot(f)
             
             plt.axis("square")
@@ -243,5 +241,5 @@ class Model(fempy.unsteady_model.Model):
 
             plt.savefig(prefix + name + ".png")
 
-            plt.close(fig)
+            plt.close()
             
