@@ -13,8 +13,6 @@ class Model(fempy.model.Model):
         
         self.prandtl_number = fe.Constant(1.)
         
-        self.pressure_penalty_factor = fe.Constant(1.e-7)
-        
         super().__init__()
         
     def init_element(self):
@@ -38,8 +36,6 @@ class Model(fempy.model.Model):
         
         ghat = self.gravity_direction
         
-        gamma = self.pressure_penalty_factor
-        
         inner, dot, grad, div, sym = \
             fe.inner, fe.dot, fe.grad, fe.div, fe.sym
         
@@ -54,6 +50,4 @@ class Model(fempy.model.Model):
         
         energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))
         
-        stabilization = psi_p*gamma*p
-        
-        self.weak_form_residual = mass + momentum + energy + stabilization
+        self.weak_form_residual = mass + momentum + energy
