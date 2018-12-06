@@ -22,9 +22,9 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         self.liquidus_temperature.assign(0.)
         
-        self.phase_interface_smoothing.assign(1./32.)
+        self.phase_interface_smoothing.assign(1./64.)
         
-        self.smoothing_sequence = (1./4., 1./8., 1./16., 1./32.)
+        self.smoothing_sequence = (1./4., 1./8., 1./16., 1./32., 1./64.)
 
     def init_mesh(self):
     
@@ -48,7 +48,11 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
             fe.DirichletBC(W.sub(2), self.cold_wall_temperature, 2)]
     
     
-def run(meshsize, timestep_size, phase_interface_smoothing, smoothing_sequence, endtime):
+def run(meshsize, 
+        timestep_size, 
+        phase_interface_smoothing, 
+        smoothing_sequence, 
+        endtime):
 
     class LoudModel(Model):
         
@@ -91,13 +95,14 @@ def run(meshsize, timestep_size, phase_interface_smoothing, smoothing_sequence, 
     
     model.plot(prefix = "t" + str(model.time.__float__()) + "_")
     
+    return model
     
 if __name__ == "__main__":
     
     run(
         meshsize = 32, 
         timestep_size = 10., 
-        phase_interface_smoothing = 1./32., 
-        smoothing_sequence = (1./4., 1./8., 1./16., 1./32.),
+        phase_interface_smoothing = 1./40., 
+        smoothing_sequence = (1./4., 1./8., 1./16., 1./32., 1./40.),
         endtime = 70.)
     

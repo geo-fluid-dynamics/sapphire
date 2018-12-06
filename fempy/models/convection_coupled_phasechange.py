@@ -117,7 +117,7 @@ class Model(fempy.unsteady_model.Model):
         self.weak_form_residual = mass + momentum + enthalpy + stabilization
 
     def solve(self, *args, **kwargs):
-    
+        
         if self.smoothing_sequence == None:
         
             self.solver.solve()
@@ -216,7 +216,7 @@ class Model(fempy.unsteady_model.Model):
         assert(self.phase_interface_smoothing.__float__() ==
             smoothing_sequence[-1])
         
-    def plot(self, prefix = ""):
+    def plot(self, prefix = "", savefigs = False, show = True):
     
         V = fe.FunctionSpace(
             self.mesh, fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
@@ -238,8 +238,14 @@ class Model(fempy.unsteady_model.Model):
             plt.ylabel(r"$y$")
 
             plt.title(r"$" + name + "$")
+            
+            if savefigs:
+            
+                plt.savefig(prefix + name + ".png")
 
-            plt.savefig(prefix + name + ".png")
-
+            if show:
+            
+                plt.show()
+                
             plt.close()
             
