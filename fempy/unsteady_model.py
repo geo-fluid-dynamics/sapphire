@@ -6,8 +6,6 @@ import fempy.model
 import abc
 
 
-TIME_EPSILON = 1.e-8
-
 class Model(fempy.model.Model):
     """ An abstract class on which to base finite element models
         with auxiliary data for unsteady (i.e. time-dependent) simulations.
@@ -17,6 +15,8 @@ class Model(fempy.model.Model):
         self.time = fe.Constant(0.)
         
         self.timestep_size = fe.Constant(1.)
+        
+        self.time_tolerance = 1.e-8
         
         super().__init__()
         
@@ -58,11 +58,15 @@ class Model(fempy.model.Model):
         
     def run(self, endtime):
         
-        while self.time.__float__() < (endtime - TIME_EPSILON):
+        while self.time.__float__() < (endtime - self.time_tolerance):
             
             self.time.assign(self.time + self.timestep_size)
                 
             self.solve()
             
             self.push_back_initial_values()
+            
+            if not self.quiet:
+            
+                print("Solve at time t = " + str(self.time.__float__()))
             
