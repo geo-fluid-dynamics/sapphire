@@ -1,4 +1,4 @@
-""" A steady incompressible Navier-Stokes model class """
+""" An unsteady incompressible Navier-Stokes model class """
 import firedrake as fe
 import fempy.unsteady_model
 
