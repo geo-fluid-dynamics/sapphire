@@ -2,52 +2,13 @@ import firedrake as fe
 import fempy.mms
 import fempy.models.convection_coupled_phasechange
 import fempy.benchmarks.melting_octadecane
-import matplotlib.pyplot
 
 
 def test__melting_octadecane_benchmark__regression():
     
-    endtime, expected_solid_area, tolerance = 30., 1., 1.e-3
+    endtime, expected_solid_area, tolerance = 30., 0.74, 0.01
     
-    class LoudModel(fempy.benchmarks.melting_octadecane.Model):
-        
-        def init_solver(self):
-            """ Unfortunately we can't simply set 
-                
-                model.solver.parameters["snes_monitor"] = True
-                
-            after instantiating this Model, since it seems that
-            the option is not updated on the PETSc side in this case.
-            
-            This means we have to repeat some options that we copy/paste
-            from a parent.
-            
-            There's probably some way to do this with only changing the one parameter.
-            """
-            super().init_solver(solver_parameters = {
-                "snes_type": "newtontr",
-                "ksp_type": "preonly", 
-                "pc_type": "lu", 
-                "mat_type": "aij",
-                "pc_factor_mat_solver_type": "mumps",
-                "snes_monitor": True})
-            
-        def solve(self):
-            
-            assert(self.phase_interface_smoothing.__float__()
-                == self.smoothing_sequence[-1])
-                
-            for s in self.smoothing_sequence:
-            
-                model.phase_interface_smoothing.assign(s)
-                
-                model.solver.solve()
-                
-                print("Solved with s = " + str(s))
-            
-            print("Solved at time t = " + str(model.time.__float__()))
-    
-    model = LoudModel(meshsize = 32)
+    model = fempy.benchmarks.melting_octadecane.Model(meshsize = 32)
     
     model.timestep_size.assign(10.)
     
@@ -61,9 +22,15 @@ def test__melting_octadecane_benchmark__regression():
     
     print("Solid area = " + str(solid_area))
     
-    model.plot()
-    
     assert(abs(solid_area - expected_solid_area) < tolerance)
+    
+    phi_h = fe.interpolate(phi, model.function_space.sub(2))
+    
+    maxphi = phi_h.vector().max()
+    
+    print("Maximum phi = " + str(maxphi))
+    
+    assert(abs(maxphi - 1.) < tolerance)
 
 
 class VerifiableModel(fempy.models.convection_coupled_phasechange.Model):

@@ -116,6 +116,16 @@ class Model(fempy.unsteady_model.Model):
         
         self.weak_form_residual = mass + momentum + enthalpy + stabilization
 
+    def init_solver(self, solver_parameters = {
+            "snes_type": "newtontr",
+            "snes_monitor": True,
+            "ksp_type": "preonly", 
+            "pc_type": "lu", 
+            "mat_type": "aij",
+            "pc_factor_mat_solver_type": "mumps"}):
+        
+        super().init_solver(solver_parameters = solver_parameters)
+        
     def solve(self, *args, **kwargs):
         
         if self.smoothing_sequence == None:
@@ -136,6 +146,10 @@ class Model(fempy.unsteady_model.Model):
                 self.phase_interface_smoothing.assign(s)
                 
                 self.solver.solve()
+                
+                if not self.quiet:
+                    
+                    print("Solve with s = " + str(s))
         
     def solve_with_auto_smoothing(self, 
             max_regularization_threshold = 4., 
@@ -163,6 +177,10 @@ class Model(fempy.unsteady_model.Model):
                     
                     self.solver.solve()
                     
+                    if not self.quiet:
+                    
+                        print("Solve with s = " + str(s))
+                    
                 solved = True
                 
                 break
@@ -173,8 +191,10 @@ class Model(fempy.unsteady_model.Model):
                 
                 ss = smoothing_sequence
                 
-                print("Failed to solve with s = " + str(current_s) + 
-                     " from the sequence " + str(ss))
+                if not self.quiet:
+                
+                    print("Failed to solve with s = " + str(current_s) +
+                        " from the sequence " + str(ss))
                 
                 if attempt == attempts[-1]:
                     
@@ -207,7 +227,9 @@ class Model(fempy.unsteady_model.Model):
                 
                 smoothing_sequence = new_ss
                 
-                print("Inserted new value of " + str(s_to_insert))
+                if not self.quiet:
+                
+                    print("Inserted new value of " + str(s_to_insert))
                 
                 first_s_to_solve = s_to_insert
         
@@ -216,7 +238,7 @@ class Model(fempy.unsteady_model.Model):
         assert(self.phase_interface_smoothing.__float__() ==
             smoothing_sequence[-1])
         
-    def plot(self, prefix = "", savefigs = False, show = True):
+    def plot(self, prefix = "", save = True, show = False):
     
         V = fe.FunctionSpace(
             self.mesh, fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
@@ -239,7 +261,7 @@ class Model(fempy.unsteady_model.Model):
 
             plt.title(r"$" + name + "$")
             
-            if savefigs:
+            if save:
             
                 plt.savefig(prefix + name + ".png")
 

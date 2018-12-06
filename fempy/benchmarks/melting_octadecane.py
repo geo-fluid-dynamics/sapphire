@@ -22,9 +22,10 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         self.liquidus_temperature.assign(0.)
         
-        self.phase_interface_smoothing.assign(1./64.)
+        self.phase_interface_smoothing.assign(1./256.)
         
-        self.smoothing_sequence = (1./4., 1./8., 1./16., 1./32., 1./64.)
+        self.smoothing_sequence = (1./2., 1./4., 1./8., 1./16., 1./32.,
+            1./64., 1./128., 1./256.)
 
     def init_mesh(self):
     
@@ -51,39 +52,11 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
 def run(meshsize, 
         timestep_size, 
         phase_interface_smoothing, 
-        smoothing_sequence, 
-        endtime):
-
-    class LoudModel(Model):
-        
-        def init_solver(self):
-            """ Unfortunately we can't simply set 
-                
-                model.solver.parameters["snes_monitor"] = True
-                
-            after instantiating this Model, since it seems that
-            the option is not updated on the PETSc side in this case.
-            
-            This means we have to repeat some options that we copy/paste
-            from a parent.
-            
-            There's probably some way to do this with only changing the one parameter.
-            """
-            super().init_solver(solver_parameters = {
-                "ksp_type": "preonly", 
-                "pc_type": "lu", 
-                "mat_type": "aij",
-                "pc_factor_mat_solver_type": "mumps",
-                "snes_monitor": True})
-            
-        def solve(self):
-        
-            super().solve()
-            
-            print("Solved at time t = " + str(model.time.__float__()))
+        smoothing_sequence,
+        endtime,
+        plottimes):
     
-    
-    model = LoudModel(meshsize = meshsize)
+    model = Model(meshsize = meshsize)
     
     model.assign_parameters({
         "timestep_size": timestep_size, 
@@ -91,18 +64,28 @@ def run(meshsize,
     
     model.smoothing_sequence = smoothing_sequence
     
-    model.run(endtime = endtime)
+    for plottime in plottimes:
+        
+        model.run(endtime = plottime)
     
-    model.plot(prefix = "t" + str(model.time.__float__()) + "_")
+        model.plot(prefix = "t" + str(model.time.__float__()) + "_")
+        
+    if plottime < (endtime - model.time_tolerance):
+    
+        model.run(endtime = endtime)
+        
+        model.plot(prefix = "t" + str(model.time.__float__()) + "_")
     
     return model
     
 if __name__ == "__main__":
     
     run(
-        meshsize = 32, 
-        timestep_size = 10., 
-        phase_interface_smoothing = 1./40., 
-        smoothing_sequence = (1./4., 1./8., 1./16., 1./32., 1./40.),
-        endtime = 70.)
+        meshsize = 32,
+        timestep_size = 10.,
+        phase_interface_smoothing = 1./256., 
+        smoothing_sequence = (1./2., 1./4., 1./8., 1./16., 1./32.,
+            1./64., 1./128., 1./256.),
+        endtime = 70.,
+        plottimes = (30., 50., 70.))
     

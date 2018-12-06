@@ -25,6 +25,8 @@ class Model(metaclass = abc.ABCMeta):
         
         self.init_solver()
         
+        self.quiet = False
+        
     @abc.abstractmethod
     def init_mesh(self):
         """ Redefine this to set `self.mesh` to a `fe.Mesh`.
