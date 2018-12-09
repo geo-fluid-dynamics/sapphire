@@ -21,11 +21,6 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         self.stefan_number.assign(0.045)
         
         self.liquidus_temperature.assign(0.)
-        
-        self.phase_interface_smoothing.assign(1./256.)
-        
-        self.smoothing_sequence = (1./2., 1./4., 1./8., 1./16., 1./32.,
-            1./64., 1./128., 1./256.)
 
     def init_mesh(self):
     
@@ -47,45 +42,26 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
             fe.DirichletBC(W.sub(1), (0., 0.), "on_boundary"),
             fe.DirichletBC(W.sub(2), self.hot_wall_temperature, 1),
             fe.DirichletBC(W.sub(2), self.cold_wall_temperature, 2)]
-    
-    
-def run(meshsize, 
-        timestep_size, 
-        phase_interface_smoothing, 
-        smoothing_sequence,
-        endtime,
-        plottimes):
-    
-    model = Model(meshsize = meshsize)
-    
-    model.assign_parameters({
-        "timestep_size": timestep_size, 
-        "phase_interface_smoothing": phase_interface_smoothing})
-    
-    model.smoothing_sequence = smoothing_sequence
-    
-    for plottime in plottimes:
+
+    def run_and_plot(self, endtime):
         
-        model.run(endtime = plottime)
-    
-        model.plot(prefix = "t" + str(model.time.__float__()) + "_")
+        output_prefix = self.output_prefix
         
-    if plottime < (endtime - model.time_tolerance):
-    
-        model.run(endtime = endtime)
+        while self.time.__float__() < (endtime - self.time_tolerance):
         
-        model.plot(prefix = "t" + str(model.time.__float__()) + "_")
-    
-    return model
+            self.run(endtime = self.time.__float__() + self.timestep_size.__float__())
+            
+            self.output_prefix = output_prefix + "t" + str(self.time.__float__()) + "_"
+            
+            self.plot(save = True, show = False)
     
 if __name__ == "__main__":
     
-    run(
-        meshsize = 32,
-        timestep_size = 10.,
-        phase_interface_smoothing = 1./256., 
-        smoothing_sequence = (1./2., 1./4., 1./8., 1./16., 1./32.,
-            1./64., 1./128., 1./256.),
-        endtime = 70.,
-        plottimes = (30., 50., 70.))
+    model = Model(meshsize = 32)
+    
+    model.timestep_size.assign(10.)
+    
+    model.phase_interface_smoothing.assign(1./256.)
+    
+    model.run_and_plot(endtime = 70.)
     

@@ -20,9 +20,15 @@ class Model(fempy.unsteady_model.Model):
         
         self.liquidus_temperature = fe.Constant(0.)
         
-        self.phase_interface_smoothing = fe.Constant(1./32.)
+        self.phase_interface_smoothing = fe.Constant(1./256.)
         
-        self.smoothing_sequence = "auto"
+        self.smoothing_sequence = None
+        
+        self.autosmooth_enable = True
+        
+        self.autosmooth_maxval = 4.
+        
+        self.autosmooth_maxcount = 16
         
         super().__init__()
         
@@ -128,14 +134,14 @@ class Model(fempy.unsteady_model.Model):
         
     def solve(self, *args, **kwargs):
         
-        if self.smoothing_sequence == None:
+        if self.autosmooth_enable:
+            
+            self.solve_with_auto_smoothing()
+            
+        elif self.smoothing_sequence == None:
         
             self.solver.solve()
-            
-        elif self.smoothing_sequence == "auto":
-        
-            self.solve_with_auto_smoothing(*args, **kwargs)
-            
+           
         else:
         
             assert(self.phase_interface_smoothing.__float__()
@@ -149,17 +155,21 @@ class Model(fempy.unsteady_model.Model):
                 
                 if not self.quiet:
                     
-                    print("Solve with s = " + str(s))
+                    print("Solved with s = " + str(s))
         
-    def solve_with_auto_smoothing(self, 
-            max_regularization_threshold = 4., 
-            max_attempts = 16):
+    def solve_with_auto_smoothing(self):
             
-        smoothing_sequence = (self.phase_interface_smoothing.__float__(),)
+        if self.smoothing_sequence is None:
+        
+            smoothing_sequence = (self.phase_interface_smoothing.__float__(),)
+            
+        else:
+        
+            smoothing_sequence = self.smoothing_sequence
         
         first_s_to_solve = smoothing_sequence[0]
         
-        attempts = range(max_attempts)
+        attempts = range(self.autosmooth_maxcount - len(smoothing_sequence))
         
         solved = False
         
@@ -179,7 +189,7 @@ class Model(fempy.unsteady_model.Model):
                     
                     if not self.quiet:
                     
-                        print("Solve with s = " + str(s))
+                        print("Solved with s = " + str(s))
                     
                 solved = True
                 
@@ -200,10 +210,10 @@ class Model(fempy.unsteady_model.Model):
                     
                     break
                 
-                if current_s >= max_regularization_threshold:
+                if current_s >= self.autosmooth_maxval:
                 
                     print("Exceeded maximum regularization (s_max = " + 
-                        str(max_regularization_threshold) + ")")
+                        str(self.autosmooth_maxval) + ")")
                     
                     break
                 
@@ -237,8 +247,10 @@ class Model(fempy.unsteady_model.Model):
         
         assert(self.phase_interface_smoothing.__float__() ==
             smoothing_sequence[-1])
+            
+        self.smoothing_sequence = smoothing_sequence
         
-    def plot(self, prefix = "", save = True, show = False):
+    def plot(self, save = True, show = False):
     
         V = fe.FunctionSpace(
             self.mesh, fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
@@ -263,7 +275,7 @@ class Model(fempy.unsteady_model.Model):
             
             if save:
             
-                plt.savefig(prefix + name + ".png")
+                plt.savefig(self.output_prefix + name + ".png")
 
             if show:
             

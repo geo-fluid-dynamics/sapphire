@@ -12,6 +12,8 @@ def test__melting_octadecane_benchmark__regression():
     
     model.timestep_size.assign(10.)
     
+    model.phase_interface_smoothing.assign(1./256.)
+    
     model.run(endtime = endtime)
     
     p, u, T = model.solution.split()
