@@ -26,7 +26,7 @@ class Model(fempy.unsteady_model.Model):
         
         self.autosmooth_enable = True
         
-        self.autosmooth_maxval = 4.
+        self.autosmooth_maxval = 1./4.
         
         self.autosmooth_maxcount = 16
         
@@ -162,6 +162,11 @@ class Model(fempy.unsteady_model.Model):
         if self.smoothing_sequence is None:
         
             smoothing_sequence = (self.phase_interface_smoothing.__float__(),)
+            
+            while smoothing_sequence[0] < self.autosmooth_maxval:
+
+                smoothing_sequence = (2.*smoothing_sequence[0],) + \
+                    smoothing_sequence
             
         else:
         
