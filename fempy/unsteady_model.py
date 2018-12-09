@@ -68,5 +68,5 @@ class Model(fempy.model.Model):
             
             if not self.quiet:
             
-                print("Solve at time t = " + str(self.time.__float__()))
+                print("Solved at time t = " + str(self.time.__float__()))
             
