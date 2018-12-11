@@ -179,11 +179,11 @@ def test__sea_ice_cavity_freezing():
     
     model = Model(meshsize = meshsize)
     
-    model.hot_wall_temperature.assign(1.)
+    model.hot_wall_temperature.assign(1./3.)
     
-    model.cold_wall_temperature_before_freezing.assign(0.01)
+    model.cold_wall_temperature_before_freezing.assign(0.)
     
-    model.cold_wall_temperature_during_freezing.assign(-1.)
+    model.cold_wall_temperature_during_freezing.assign(-2./3.)
     
     model.temperature_rayleigh_number.assign(1.e6)
     
@@ -238,11 +238,11 @@ def fails__test__binary_alloy_cavity_freezing():
     
     model = Model(meshsize = meshsize)
     
-    model.hot_wall_temperature.assign(1./3.)
+    model.hot_wall_temperature.assign(1.25)
     
-    model.cold_wall_temperature_before_freezing.assign(0.)
+    model.cold_wall_temperature_before_freezing.assign(0.25)
     
-    model.cold_wall_temperature_during_freezing.assign(-2./3.)
+    model.cold_wall_temperature_during_freezing.assign(-1.25)
     
     model.temperature_rayleigh_number.assign(3.e5)
     
