@@ -1,5 +1,4 @@
-""" A Laplace model class "
-"""
+""" A Laplace model class """
 import firedrake as fe
 import fempy.model
 
