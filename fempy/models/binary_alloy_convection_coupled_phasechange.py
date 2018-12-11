@@ -32,7 +32,7 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         self.element = fe.MixedElement(P1, P2, P1, P1)
     
-    def liquidus_temperature(self, C):
+    def concentration_dependent_liquidus_temperature(self, C):
     
         T_m = self.pure_liquidus_temperature
         
@@ -42,7 +42,7 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
     
     def semi_phasefield(self, T, C):
         """ Regularization from @cite{zimmerman2018monolithic} """
-        T_L = self.liquidus_temperature
+        T_L = self.concentration_dependent_liquidus_temperature
         
         s = self.phase_interface_smoothing
         
@@ -126,7 +126,18 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
             
         stabilization = gamma*psi_p*p
         
-        self.weak_form_residual = mass + momentum + enthalpy + stabilization
+        self.weak_form_residual = mass + momentum + enthalpy + concentration \
+            + stabilization
+    
+    def init_solver(self, solver_parameters = {
+            "snes_type": "newtontr",
+            "snes_monitor": True,
+            "ksp_type": "preonly", 
+            "pc_type": "lu", 
+            "mat_type": "aij",
+            "pc_factor_mat_solver_type": "mumps"}):
+        
+        super().init_solver(solver_parameters = solver_parameters)
     
     def plot(self, save = True, show = False):
     
@@ -161,3 +172,32 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
                 
             plt.close()
             
+            
+class ModelWithBDF2(Model):
+    
+    def init_time_discrete_terms(self):
+        
+        Delta_t = self.timestep_size
+        
+        def bdf2(u_np1, u_n, u_nm1):
+        
+            return (3.*u_np1 - 4.*u_n + u_nm1)/(2.*Delta_t)
+            
+        p_np1, u_np1, T_np1, C_np1 = fe.split(self.solution)
+        
+        p_n, u_n, T_n, C_n = fe.split(self.initial_values[0])
+        
+        p_nm1, u_nm1, T_nm1, C_nm1 = fe.split(self.initial_values[1])
+        
+        u_t = bdf2(u_np1, u_n, u_nm1)
+        
+        T_t = bdf2(T_np1, T_n, T_nm1)
+        
+        C_t = bdf2(C_np1, C_n, C_nm1)
+        
+        phi = self.semi_phasefield
+        
+        phi_t = bdf2(phi(T_np1, C_np1), phi(T_n, C_n), phi(T_nm1, C_nm1))
+        
+        self.time_discrete_terms = u_t, T_t, C_t, phi_t
+        
