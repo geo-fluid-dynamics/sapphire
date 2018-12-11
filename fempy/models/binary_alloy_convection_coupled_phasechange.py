@@ -130,7 +130,7 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
             + stabilization
     
     def init_solver(self, solver_parameters = {
-            "snes_type": "newtontr",
+            "snes_type": "newtonls",
             "snes_monitor": True,
             "ksp_type": "preonly", 
             "pc_type": "lu", 
