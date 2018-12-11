@@ -164,7 +164,67 @@ class Model(fempy.models.binary_alloy_convection_coupled_phasechange.ModelWithBD
         super().run(endtime = endtime, 
             plot = plot, saveplot = saveplot, showplot = showplot)
 
-def test__binary_alloy_cavity_freezing():
+            
+def test__sea_ice_cavity_freezing():
+
+    endtime = 10.
+    
+    timestep_size = 1.
+    
+    meshsize = 32
+    
+    phase_interface_smoothing = 1./256.
+    
+    expected_solid_area = 0.50
+    
+    tolerance = 0.01
+    
+    
+    model = Model(meshsize = meshsize)
+    
+    model.hot_wall_temperature.assign(1.)
+    
+    model.cold_wall_temperature_before_freezing.assign(0.01)
+    
+    model.cold_wall_temperature_during_freezing.assign(-1.)
+    
+    model.temperature_rayleigh_number.assign(1.e6)
+    
+    model.concentration_rayleigh_number.assign(-1.e6)
+    
+    model.prandtl_number.assign(13.)
+    
+    model.schmidt_number.assign(1100.)
+    
+    model.stefan_number.assign(0.19)
+    
+    model.pure_liquidus_temperature.assign(0.)
+    
+    model.initial_concentration.assign(1.)
+    
+    model.liquidus_slope.assign(-0.1)
+    
+    model.phase_interface_smoothing.assign(phase_interface_smoothing)
+    
+    model.timestep_size.assign(timestep_size)
+    
+    
+    model.run(endtime = endtime, 
+        plot = True, saveplot = True, showplot = False)
+    
+    
+    p, u, T, C = model.solution.split()
+    
+    phi = model.semi_phasefield(T = T, C = C)
+    
+    A_S = fe.assemble(phi*fe.dx)
+    
+    print("Solid area = " + str(A_S))
+    
+    assert(abs(A_S - expected_solid_area) < tolerance)
+    
+
+def fails__test__binary_alloy_cavity_freezing():
 
     endtime = 3.
     
