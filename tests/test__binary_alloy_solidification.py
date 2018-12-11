@@ -164,15 +164,15 @@ class Model(fempy.models.binary_alloy_convection_coupled_phasechange.Model):
             
 def test__sea_ice_cavity_freezing():
 
-    endtime = 10.
+    endtime = 1.
     
-    timestep_size = 1.
+    timestep_size = 1./32.
     
     meshsize = 32
     
-    phase_interface_smoothing = 1./256.
+    phase_interface_smoothing = 1./64.
     
-    expected_solid_area = 0.50
+    expected_solid_area = 0.10
     
     tolerance = 0.01
     
@@ -238,11 +238,11 @@ def fails__test__binary_alloy_cavity_freezing():
     
     model = Model(meshsize = meshsize)
     
-    model.hot_wall_temperature.assign(1.25)
+    model.hot_wall_temperature.assign(1./3.)
     
-    model.cold_wall_temperature_before_freezing.assign(0.25)
+    model.cold_wall_temperature_before_freezing.assign(0.)
     
-    model.cold_wall_temperature_during_freezing.assign(-1.25)
+    model.cold_wall_temperature_during_freezing.assign(-2./3.)
     
     model.temperature_rayleigh_number.assign(3.e5)
     
@@ -258,7 +258,7 @@ def fails__test__binary_alloy_cavity_freezing():
     
     model.initial_concentration.assign(1.)
     
-    model.liquidus_slope.assign(-0.1)
+    model.liquidus_slope.assign(-0.11)
     
     model.phase_interface_smoothing.assign(phase_interface_smoothing)
     
