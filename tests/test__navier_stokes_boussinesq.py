@@ -5,7 +5,7 @@ import fempy.benchmarks.heat_driven_cavity
 
 
 def test__verify_convergence_order_via_MMS(
-        grid_sizes = (16, 32), tolerance = 0.1, quadrature_degree = 4):
+        grid_sizes = (16, 32), tolerance = 0.1):
     
     class Model(fempy.models.navier_stokes_boussinesq.Model):
     

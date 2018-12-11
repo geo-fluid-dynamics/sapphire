@@ -8,6 +8,8 @@ class Model(fempy.unsteady_model.Model):
     
     def __init__(self):
     
+        self.liquid_dynamic_viscosity = fe.Constant(1.)
+        
         self.solid_dynamic_viscosity = fe.Constant(1.e8)
         
         self.rayleigh_number = fe.Constant(1.)
@@ -87,9 +89,7 @@ class Model(fempy.unsteady_model.Model):
         """ Weak form from @cite{zimmerman2018monolithic} """
         mu_S = self.solid_dynamic_viscosity
         
-        mu_L = fe.Constant(1.)
-        
-        Ra = self.rayleigh_number
+        mu_L = self.liquid_dynamic_viscosity
         
         Pr = self.prandtl_number
         
@@ -124,6 +124,10 @@ class Model(fempy.unsteady_model.Model):
         
         self.weak_form_residual = mass + momentum + enthalpy + stabilization
 
+    def init_integration_measure(self):
+
+        self.integration_measure = fe.dx(degree = 4)
+        
     def init_solver(self, solver_parameters = {
             "snes_type": "newtontr",
             "snes_monitor": True,
@@ -268,7 +272,7 @@ class Model(fempy.unsteady_model.Model):
         
         for f, name in zip(
                 (self.mesh, p, u, T, phi),
-                ("\Omega_h", "p", "\mathbf{u}", "T", "\phi")):
+                ("\\Omega_h", "p", "\\mathbf{u}", "T", "\\phi")):
             
             fe.plot(f)
             

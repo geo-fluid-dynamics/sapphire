@@ -11,7 +11,7 @@ class Model(metaclass = abc.ABCMeta):
         
         self.init_element()
         
-        self.function_space = fe.FunctionSpace(self.mesh, self.element)
+        self.init_function_space()
         
         self.init_solution()
         
@@ -45,7 +45,11 @@ class Model(metaclass = abc.ABCMeta):
         """ Redefine this to set `self.weak_form_residual` 
         to a `fe.NonlinearVariationalForm`.
         """
-        
+    
+    def init_function_space(self):
+    
+        self.function_space = fe.FunctionSpace(self.mesh, self.element)
+    
     def init_solution(self):
     
         self.solution = fe.Function(self.function_space)
