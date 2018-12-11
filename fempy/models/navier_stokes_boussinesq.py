@@ -1,4 +1,4 @@
-""" A steady incompressible Navier-Stokes-Boussinesq model class. """
+""" A steady incompressible Navier-Stokes-Boussinesq model class """
 import firedrake as fe
 import fempy.model
 
