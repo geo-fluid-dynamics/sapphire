@@ -2,7 +2,7 @@ import firedrake as fe
 import fempy.models.binary_alloy_convection_coupled_phasechange
 
 
-class Model(fempy.models.binary_alloy_convection_coupled_phasechange.ModelWithBDF2):
+class Model(fempy.models.binary_alloy_convection_coupled_phasechange.Model):
 
     def __init__(self, meshsize):
         
@@ -51,8 +51,7 @@ class Model(fempy.models.binary_alloy_convection_coupled_phasechange.ModelWithBD
         
     def init_initial_values(self):
         
-        self.initial_values = [
-            fe.Function(self.function_space) for i in range(2)]
+        self.initial_values = fe.Function(self.function_space)
         
     def init_dirichlet_boundary_conditions(self):
     
@@ -153,9 +152,7 @@ class Model(fempy.models.binary_alloy_convection_coupled_phasechange.ModelWithBD
         self.cold_wall_temperature.assign(
             self.cold_wall_temperature_during_freezing)
         
-        for iv in self.initial_values:
-        
-            iv.assign(self.solution)
+        self.initial_values.assign(self.solution)
         
         print("Dropped cold wall temperature")
         
