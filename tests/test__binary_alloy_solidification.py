@@ -2,7 +2,7 @@ import firedrake as fe
 import fempy.models.binary_alloy_convection_coupled_phasechange
 
 
-class Model(fempy.models.binary_alloy_convection_coupled_phasechange.Model):
+class Model(fempy.models.binary_alloy_convection_coupled_phasechange.ModelWithBDF2):
 
     def __init__(self, meshsize):
         
@@ -22,6 +22,8 @@ class Model(fempy.models.binary_alloy_convection_coupled_phasechange.Model):
             self.cold_wall_temperature_before_freezing)
         
         super().__init__()
+        
+        delattr(self, "element")
         
         self.init_heat_driven_cavity_weak_form_residual()
         
@@ -49,7 +51,8 @@ class Model(fempy.models.binary_alloy_convection_coupled_phasechange.Model):
         
     def init_initial_values(self):
         
-        self.initial_values = fe.Function(self.function_space)
+        self.initial_values = [
+            fe.Function(self.function_space) for i in range(2)]
         
     def init_dirichlet_boundary_conditions(self):
     
@@ -88,11 +91,14 @@ class Model(fempy.models.binary_alloy_convection_coupled_phasechange.Model):
         momentum = dot(psi_u, grad(u)*u + b) \
             - div(psi_u)*p + 2.*mu*inner(sym(grad(psi_u)), sym(grad(u)))
         
-        energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))
+        energy = dot(grad(psi_T), 1./Pr*grad(T) - T*u)
         
         gamma = self.pressure_penalty_factor
         
-        self.heat_driven_cavity_weak_form_residual = mass + momentum + energy
+        stabilization = gamma*psi_p*p
+        
+        self.heat_driven_cavity_weak_form_residual = mass + momentum + energy \
+            + stabilization
             
     def init_heat_driven_cavity_problem(self):
     
@@ -147,7 +153,9 @@ class Model(fempy.models.binary_alloy_convection_coupled_phasechange.Model):
         self.cold_wall_temperature.assign(
             self.cold_wall_temperature_during_freezing)
         
-        self.initial_values.assign(self.solution)
+        for iv in self.initial_values:
+        
+            iv.assign(self.solution)
         
         print("Dropped cold wall temperature")
         
@@ -156,40 +164,48 @@ class Model(fempy.models.binary_alloy_convection_coupled_phasechange.Model):
         super().run(endtime = endtime, 
             plot = plot, saveplot = saveplot, showplot = showplot)
 
-def test__sea_ice_cavity_freezing():
+def test__binary_alloy_cavity_freezing():
 
     endtime = 3.
     
     timestep_size = 1.
     
-    meshsize = 32
+    meshsize = 16
     
-    expected_solid_area = 0.5
+    phase_interface_smoothing = 1./16.
+    
+    expected_solid_area = 0.18
     
     tolerance = 0.01
     
     
     model = Model(meshsize = meshsize)
     
-    model.cold_wall_temperature_before_freezing.assign(0.01)
+    model.hot_wall_temperature.assign(1.25)
     
-    model.cold_wall_temperature_during_freezing.assign(-1.)
+    model.cold_wall_temperature_before_freezing.assign(0.25)
     
-    model.temperature_rayleigh_number.assign(5.3e6)
+    model.cold_wall_temperature_during_freezing.assign(-1.25)
     
-    model.concentration_rayleigh_number.assign(-5.9e7)
+    model.temperature_rayleigh_number.assign(3.e5)
     
-    model.prandtl_number.assign(13.)
+    model.concentration_rayleigh_number.assign(-3.e4)
     
-    model.schmidt_number.assign(1.1e3)
+    model.prandtl_number.assign(1.)
     
-    model.stefan_number.assign(0.19)
+    model.schmidt_number.assign(1.)
+    
+    model.stefan_number.assign(1.)
     
     model.pure_liquidus_temperature.assign(0.)
     
-    model.liquidus_slope.assign(-0.10)
+    model.initial_concentration.assign(1.)
     
-    model.phase_interface_smoothing.assign(1./256.)
+    model.liquidus_slope.assign(-0.1)
+    
+    model.phase_interface_smoothing.assign(phase_interface_smoothing)
+    
+    model.autosmooth_firstval = phase_interface_smoothing
     
     model.timestep_size.assign(timestep_size)
     
