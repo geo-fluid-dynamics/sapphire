@@ -300,3 +300,30 @@ class Model(fempy.unsteady_model.Model):
             
             plt.close()
             
+            
+class ModelWithBDF2(Model):
+
+    def init_time_discrete_terms(self):
+    
+        Delta_t = self.timestep_size
+        
+        def bdf2(u_np1, u_n, u_nm1):
+        
+            return (3.*u_np1 - 4.*u_n + u_nm1)/(2.*Delta_t)
+            
+        p_np1, u_np1, T_np1 = fe.split(self.solution)
+        
+        p_n, u_n, T_n = fe.split(self.initial_values[0])
+        
+        p_nm1, u_nm1, T_nm1 = fe.split(self.initial_values[1])
+        
+        u_t = bdf2(u_np1, u_n, u_nm1)
+        
+        T_t = bdf2(T_np1, T_n, T_nm1)
+        
+        phi = self.semi_phasefield
+        
+        phi_t = bdf2(phi(T_np1), phi(T_n), phi(T_nm1))
+        
+        self.time_discrete_terms = u_t, T_t, phi_t
+        
