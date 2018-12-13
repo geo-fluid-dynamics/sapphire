@@ -6,7 +6,7 @@ import fempy.benchmarks.melting_octadecane
 
 def test__melting_octadecane_benchmark__regression():
     
-    endtime, expected_solid_area, tolerance = 30., 0.74, 0.01
+    endtime, expected_solid_area, tolerance = 30., 0.76, 0.01
     
     model = fempy.benchmarks.melting_octadecane.Model(meshsize = 32)
     

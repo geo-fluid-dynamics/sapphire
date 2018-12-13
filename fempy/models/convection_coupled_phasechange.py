@@ -123,9 +123,13 @@ class Model(fempy.unsteady_model.Model):
         stabilization = gamma*psi_p*p
         
         self.weak_form_residual = mass + momentum + enthalpy + stabilization
-    
+
+    def init_integration_measure(self):
+
+        self.integration_measure = fe.dx(degree = 4)
+        
     def init_solver(self, solver_parameters = {
-            "snes_type": "newtontr",
+            "snes_type": "newtonls",
             "snes_monitor": True,
             "ksp_type": "preonly", 
             "pc_type": "lu", 
