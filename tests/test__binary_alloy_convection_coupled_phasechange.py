@@ -203,7 +203,7 @@ def test__convection_coupled_sea_ice_cavity_freezing__regression():
     model.timestep_size.assign(timestep_size)
     
     
-    model.run(endtime = endtime, plot = True)
+    model.run(endtime = endtime, plot = False)
     
     
     p, u, T, C = model.solution.split()
