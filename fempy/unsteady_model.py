@@ -56,7 +56,7 @@ class Model(fempy.model.Model):
                 
             self.initial_values[0].assign(self.solution)
         
-    def run(self, endtime, plot = False, saveplot = True, showplot = False):
+    def run(self, endtime, plot = False):
         
         while self.time.__float__() < (endtime - self.time_tolerance):
             
@@ -65,15 +65,9 @@ class Model(fempy.model.Model):
             self.solve()
             
             if plot:
-            
-                output_prefix = self.output_prefix
                 
-                self.output_prefix += "t" + str(self.time.__float__()) + "_"
-            
-                self.plot(save = saveplot, show = showplot)
+                self.plot()
                 
-                self.output_prefix = output_prefix
-            
             self.push_back_initial_values()
             
             if not self.quiet:

@@ -1,6 +1,7 @@
 """ An abstract class on which to base finite element models """
 import firedrake as fe
 import abc
+import pathlib
 
 
 class Model(metaclass = abc.ABCMeta):
@@ -27,7 +28,7 @@ class Model(metaclass = abc.ABCMeta):
         
         self.quiet = False
         
-        self.output_prefix = ""
+        self.output_directory_path = pathlib.Path("output/")
         
     @abc.abstractmethod
     def init_mesh(self):

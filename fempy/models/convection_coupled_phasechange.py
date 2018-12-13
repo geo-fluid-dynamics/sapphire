@@ -129,7 +129,7 @@ class Model(fempy.unsteady_model.Model):
         self.integration_measure = fe.dx(degree = 4)
         
     def init_solver(self, solver_parameters = {
-            "snes_type": "newtontr",
+            "snes_type": "newtonls",
             "snes_monitor": True,
             "ksp_type": "preonly", 
             "pc_type": "lu", 
@@ -261,7 +261,7 @@ class Model(fempy.unsteady_model.Model):
             
         self.smoothing_sequence = smoothing_sequence
         
-    def plot(self, save = True, show = False):
+    def plot(self):
     
         V = fe.FunctionSpace(
             self.mesh, fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
@@ -270,9 +270,12 @@ class Model(fempy.unsteady_model.Model):
         
         phi = fe.interpolate(self.semi_phasefield(T), V)
         
-        for f, name in zip(
+        timestr = str(self.time.__float__())
+        
+        for f, label, filename in zip(
                 (self.mesh, p, u, T, phi),
-                ("\\Omega_h", "p", "\\mathbf{u}", "T", "\\phi")):
+                ("\\Omega_h", "p", "\\mathbf{u}", "T", "\\phi"),
+                ("mesh", "p", "u", "T", "phi")):
             
             fe.plot(f)
             
@@ -282,15 +285,18 @@ class Model(fempy.unsteady_model.Model):
 
             plt.ylabel(r"$y$")
 
-            plt.title(r"$" + name + "$")
+            plt.title(r"$" + label + 
+                ", t = " + timestr + "$")
             
-            if save:
+            self.output_directory_path.mkdir(
+                parents = True, exist_ok = True)
+        
+            filepath = self.output_directory_path.joinpath(filename + 
+                "_t" + timestr.replace(".", "p")).with_suffix(".png")
             
-                plt.savefig(self.output_prefix + name + ".png")
-
-            if show:
+            print("Writing plot to " + str(filepath))
             
-                plt.show()
-                
+            plt.savefig(str(filepath))
+            
             plt.close()
             

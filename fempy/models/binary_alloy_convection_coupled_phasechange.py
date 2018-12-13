@@ -2,6 +2,7 @@
 import firedrake as fe
 import fempy.models.convection_coupled_phasechange
 import matplotlib.pyplot as plt
+import pathlib
 
     
 class Model(fempy.models.convection_coupled_phasechange.Model):
@@ -139,7 +140,7 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         super().init_solver(solver_parameters = solver_parameters)
     
-    def plot(self, save = True, show = False):
+    def plot(self):
     
         V = fe.FunctionSpace(
             self.mesh, fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
@@ -148,9 +149,12 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         phi = fe.interpolate(self.semi_phasefield(T, C), V)
         
-        for f, name in zip(
+        timestr = str(self.time.__float__())
+        
+        for f, label, filename in zip(
                 (self.mesh, p, u, T, C, phi),
-                ("\\Omega_h", "p", "\\mathbf{u}", "T", "C", "\\phi")):
+                ("\\Omega_h", "p", "\\mathbf{u}", "T", "C", "\\phi"),
+                ("mesh", "p", "u", "T", "C", "phi")):
             
             fe.plot(f)
             
@@ -160,16 +164,19 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
 
             plt.ylabel(r"$y$")
 
-            plt.title(r"$" + name + "$")
+            plt.title(r"$" + label + 
+                ", t = " + timestr + "$")
             
-            if save:
+            self.output_directory_path.mkdir(
+                parents = True, exist_ok = True)
+        
+            filepath = self.output_directory_path.joinpath(filename + 
+                "_t" + timestr.replace(".", "p")).with_suffix(".png")
             
-                plt.savefig(self.output_prefix + name + ".png")
-
-            if show:
+            print("Writing plot to " + str(filepath))
             
-                plt.show()
-                
+            plt.savefig(str(filepath))
+            
             plt.close()
             
             

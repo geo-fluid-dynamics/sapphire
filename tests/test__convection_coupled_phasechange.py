@@ -14,7 +14,10 @@ def test__melting_octadecane_benchmark__regression():
     
     model.phase_interface_smoothing.assign(1./256.)
     
-    model.run(endtime = endtime)
+    model.output_directory_path = model.output_directory_path.joinpath(
+        "melting_octadecane/")
+        
+    model.run(endtime = endtime, plot = True)
     
     p, u, T = model.solution.split()
     
