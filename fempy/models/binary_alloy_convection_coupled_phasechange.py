@@ -130,16 +130,6 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         self.weak_form_residual = mass + momentum + enthalpy + concentration \
             + stabilization
     
-    def init_solver(self, solver_parameters = {
-            "snes_type": "newtonls",
-            "snes_monitor": True,
-            "ksp_type": "preonly", 
-            "pc_type": "lu", 
-            "mat_type": "aij",
-            "pc_factor_mat_solver_type": "mumps"}):
-        
-        super().init_solver(solver_parameters = solver_parameters)
-    
     def plot(self):
     
         V = fe.FunctionSpace(

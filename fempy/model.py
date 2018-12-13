@@ -75,10 +75,12 @@ class Model(metaclass = abc.ABCMeta):
             r, u, self.dirichlet_boundary_conditions, fe.derivative(r, u))
         
     def init_solver(self, solver_parameters = {
-                "ksp_type": "preonly", 
-                "pc_type": "lu", 
-                "mat_type": "aij",
-                "pc_factor_mat_solver_type": "mumps"}):
+            "snes_type": "newtonls",
+            "snes_monitor": True,
+            "ksp_type": "preonly", 
+            "pc_type": "lu", 
+            "mat_type": "aij",
+            "pc_factor_mat_solver_type": "mumps"}):
         
         self.solver = fe.NonlinearVariationalSolver(
             self.problem, solver_parameters = solver_parameters)

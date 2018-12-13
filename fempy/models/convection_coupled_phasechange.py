@@ -128,16 +128,6 @@ class Model(fempy.unsteady_model.Model):
 
         self.integration_measure = fe.dx(degree = 4)
         
-    def init_solver(self, solver_parameters = {
-            "snes_type": "newtonls",
-            "snes_monitor": True,
-            "ksp_type": "preonly", 
-            "pc_type": "lu", 
-            "mat_type": "aij",
-            "pc_factor_mat_solver_type": "mumps"}):
-        
-        super().init_solver(solver_parameters = solver_parameters)
-        
     def solve(self, *args, **kwargs):
         
         if self.autosmooth_enable:
