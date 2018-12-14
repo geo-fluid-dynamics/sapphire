@@ -89,7 +89,15 @@ class Model(metaclass = abc.ABCMeta):
     
         for key, value in parameters.items():
         
-            getattr(self, key).assign(value)
+            attribute = getattr(self, key)
+            
+            if type(attribute) is type(fe.Constant(0.)):
+            
+                attribute.assign(value)
+                
+            else:
+            
+                setattr(self, key, value)
     
     def solve(self):
     
