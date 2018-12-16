@@ -20,6 +20,8 @@ class Model(fempy.model.Model):
         
         super().__init__()
         
+        self.solution_file = None
+        
     @abc.abstractmethod
     def init_initial_values(self):
         """ Redefine this to set `self.initial_values` to a `fe.Function`. """
@@ -68,6 +70,11 @@ class Model(fempy.model.Model):
                 
                 self.plot()
                 
+            if self.solution_file is not None:
+                
+                self.solution_file.write(
+                    *self.solution.split(), time = self.time.__float__())
+            
             self.push_back_initial_values()
             
             if not self.quiet:
