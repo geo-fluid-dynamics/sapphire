@@ -137,14 +137,18 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         p, u, T, C = self.solution.split()
         
-        phi = fe.interpolate(self.semi_phasefield(T, C), V)
+        _phi = self.semi_phasefield(T, C)
+        
+        phi = fe.interpolate(_phi, V)
+        
+        Cbar = fe.interpolate((1. - _phi)*C, V)
         
         timestr = str(self.time.__float__())
         
         for f, label, filename in zip(
-                (self.mesh, p, u, T, C, phi),
-                ("\\Omega_h", "p", "\\mathbf{u}", "T", "C", "\\phi"),
-                ("mesh", "p", "u", "T", "C", "phi")):
+                (self.mesh, p, u, T, Cbar, phi),
+                ("\\Omega_h", "p", "\\mathbf{u}", "T", "\\bar{C}", "\\phi"),
+                ("mesh", "p", "u", "T", "Cbar", "phi")):
             
             fe.plot(f)
             
