@@ -143,6 +143,11 @@ class Model(fempy.models.binary_alloy_convection_coupled_phasechange.Model):
             
             self.plot()
             
+        if self.solution_file is not None:
+            
+            self.solution_file.write(
+                *self.solution.split(), time = self.time.__float__())
+    
         self.cold_wall_temperature.assign(
             self.cold_wall_temperature_during_freezing)
         
