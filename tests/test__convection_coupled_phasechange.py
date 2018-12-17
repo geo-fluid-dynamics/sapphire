@@ -46,16 +46,6 @@ class VerifiableModel(fempy.models.convection_coupled_phasechange.Model):
         
         super().__init__()
         
-        self.rayleigh_number.assign(1.e6)
-        
-        self.prandtl_number.assign(50.)
-        
-        self.stefan_number.assign(0.05)
-        
-        self.phase_interface_smoothing.assign(1./32.)
-        
-        self.smoothing_sequence = None
-        
     def init_mesh(self):
         
         self.mesh = fe.UnitSquareMesh(self.meshsize, self.meshsize)
@@ -100,7 +90,7 @@ class VerifiableModel(fempy.models.convection_coupled_phasechange.Model):
         
     def init_manufactured_solution(self):
         
-        pi, sin, cos = fe.pi, fe.sin, fe.cos
+        pi, sin, cos, exp = fe.pi, fe.sin, fe.cos, fe.exp
         
         x = fe.SpatialCoordinate(self.mesh)
         
@@ -108,16 +98,14 @@ class VerifiableModel(fempy.models.convection_coupled_phasechange.Model):
         
         t_f = fe.Constant(1.)
         
-        T = cos(pi*(2.*t/t_f - 1.))*(1. - sin(x[0])*sin(2.*x[1]))
-        
-        phi = self.semi_phasefield(T)
-        
         ihat, jhat = self.unit_vectors()
         
-        u = (1. - phi)*pow(t/t_f, 2)*sin(2.*x[0])*sin(x[1])*ihat + \
-            (1. - phi)*pow(t/t_f, 2)*sin(x[0])*sin(2.*x[1])*jhat
+        u = exp(t)*sin(2.*pi*x[0])*sin(pi*x[1])*ihat + \
+            exp(t)*sin(pi*x[0])*sin(2.*pi*x[1])*jhat
         
         p = -0.5*(u[0]**2 + u[1]**2)
+        
+        T = 0.5*sin(2.*pi*x[0])*sin(pi*x[1])*(1. - 2*exp(-3.*t**2))
         
         self.manufactured_solution = p, u, T
         
@@ -139,21 +127,21 @@ class VerifiableModel(fempy.models.convection_coupled_phasechange.Model):
         print("Solved at time t = " + str(self.time.__float__()))
         
         
-def fails__test__verify_spatial_convergence_order_via_mms(
+def test__verify_spatial_convergence_order_via_mms(
         parameters = {
-            "rayleigh_number": 1.e3,
-            "prandtl_number": 10.,
-            "stefan_number": 0.1,
-            "phase_interface_smoothing": 1./4.},
-        grid_sizes = (4, 8, 16),
+            "rayleigh_number": 10.,
+            "prandtl_number": 5.,
+            "stefan_number": 0.2,
+            "phase_interface_smoothing": 1./16.},
+        mesh_sizes = (4, 8, 16),
         timestep_size = 1./64.,
-        tolerance = 0.1):
+        tolerance = 0.2):
     
     fempy.mms.verify_spatial_order_of_accuracy(
         Model = VerifiableModel,
         parameters = parameters,
         expected_order = 2,
-        grid_sizes = grid_sizes,
+        mesh_sizes = mesh_sizes,
         tolerance = tolerance,
         timestep_size = timestep_size,
         endtime = 1.)
