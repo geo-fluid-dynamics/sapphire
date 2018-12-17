@@ -2,6 +2,8 @@
 import firedrake as fe
 import fempy.table
 import math
+import matplotlib.pyplot as plt
+import pathlib
 
 
 TIME_EPSILON = 1.e-8
@@ -75,12 +77,14 @@ def make_mms_verification_model_class(Model):
 def verify_spatial_order_of_accuracy(
         Model,
         expected_order,
-        grid_sizes,
+        mesh_sizes,
         tolerance,
         parameters = {},
         timestep_size = None,
         endtime = None,
-        starttime = 0.):
+        starttime = 0.,
+        plot_errors = False,
+        plot_solution = False):
     
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
@@ -88,7 +92,7 @@ def verify_spatial_order_of_accuracy(
     
     print("")
     
-    for meshsize in grid_sizes:
+    for meshsize in mesh_sizes:
         
         model = MMSVerificationModel(meshsize = meshsize)
         
@@ -126,6 +130,37 @@ def verify_spatial_order_of_accuracy(
     
     print("Last observed spatial order of accuracy is " + str(order))
     
+    if plot_errors:
+    
+        h, e = table.data["h"], table.data["L2_error"]
+        
+        plt.loglog(h, e, marker = "o")
+        
+        plt.xlabel(r"$h$")
+        
+        plt.ylabel(r"$\Vert u - u_h \Vert$")
+        
+        plt.axis("equal")
+        
+        plt.grid(True)
+        
+        outdir_path = pathlib.Path("output/mms/")
+        
+        outdir_path.mkdir(parents = True, exist_ok = True)
+        
+        filepath = outdir_path.joinpath("e_vs_h").with_suffix(".png")
+        
+        print("Writing plot to " + str(filepath))
+        
+        plt.savefig(str(filepath))
+        
+        plt.close()
+        
+    
+    if plot_solution:
+    
+        model.plot()
+    
     assert(abs(order - expected_order) < tolerance)
     
     
@@ -137,7 +172,9 @@ def verify_temporal_order_of_accuracy(
         endtime,
         tolerance,
         parameters = {},
-        starttime = 0.):
+        starttime = 0.,
+        plot_errors = False,
+        plot_solution = False):
     
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
@@ -195,5 +232,60 @@ def verify_temporal_order_of_accuracy(
         
     print("Last observed temporal order of accuracy is " + str(order))
     
+    if plot_errors:
+    
+        Delta_t, e = table.data["Delta_t"], table.data["L2_error"]
+        
+        plt.loglog(Delta_t, e, marker = "o")
+        
+        plt.xlabel(r"$\Delta t$")
+        
+        plt.ylabel(r"$\Vert u - u_h \Vert$")
+        
+        plt.axis("equal")
+        
+        plt.grid(True)
+        
+        outdir_path = pathlib.Path("output/mms/")
+        
+        outdir_path.mkdir(parents = True, exist_ok = True)
+        
+        filepath = outdir_path.joinpath("e_vs_Delta_t").with_suffix(".png")
+        
+        print("Writing plot to " + str(filepath))
+        
+        plt.savefig(str(filepath))
+        
+        plt.close()
+    
+    if plot_solution:
+    
+        model.plot()
+    
     assert(abs(order - expected_order) < tolerance)
+    
+    
+def plot_manufactured_solution(
+        Model,
+        meshsize = 128,
+        parameters = {},
+        time = None):
+        
+    MMSVerificationModel = make_mms_verification_model_class(Model)
+    
+    model = MMSVerificationModel(meshsize = meshsize)
+
+    model.init_manufactured_solution()
+    
+    if time is not None:
+    
+        model.time.assign(time)
+    
+    for u_m, V in zip(
+            model.manufactured_solution, model.function_space):
+
+        model.solution.assign(fe.interpolate(u_m, V))
+
+    model.plot()
+
     
