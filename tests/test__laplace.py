@@ -37,11 +37,11 @@ class OneDimMMSModel(VerifiableModel):
 
         
 def test__verify_convergence_order_via_mms(
-        grid_sizes = (16, 32), tolerance = 0.1):
+        mesh_sizes = (16, 32), tolerance = 0.1):
     
     fempy.mms.verify_spatial_order_of_accuracy(
         Model = OneDimMMSModel,
         expected_order = 2,
-        grid_sizes = grid_sizes,
+        mesh_sizes = mesh_sizes,
         tolerance = tolerance)
     

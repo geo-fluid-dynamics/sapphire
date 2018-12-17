@@ -3,7 +3,7 @@ import fempy.mms
 import fempy.models.enthalpy_phasechange
 
 
-class Model(fempy.models.enthalpy_phasechange.Model):
+class VerifiableModel(fempy.models.enthalpy_phasechange.Model):
     
     def __init__(self, meshsize):
     
@@ -54,34 +54,42 @@ class Model(fempy.models.enthalpy_phasechange.Model):
         
 
 def test__verify_spatial_convergence_order_via_mms(
-        grid_sizes = (4, 8, 16, 32),
+        mesh_sizes = (4, 8, 16, 32),
         timestep_size = 1./256.,
-        tolerance = 0.1):
+        tolerance = 0.1,
+        plot_errors = False,
+        plot_solution = False):
     
     fempy.mms.verify_spatial_order_of_accuracy(
-        Model = Model,
+        Model = VerifiableModel,
         expected_order = 2,
-        grid_sizes = grid_sizes,
+        mesh_sizes = mesh_sizes,
         timestep_size = timestep_size,
         endtime = 1.,
-        tolerance = tolerance)
+        tolerance = tolerance,
+        plot_errors = plot_errors,
+        plot_solution = plot_solution)
         
         
 def test__verify_temporal_convergence_order_via_mms(
         meshsize = 256,
         timestep_sizes = (1./16., 1./32., 1./64., 1./128.),
-        tolerance = 0.1):
+        tolerance = 0.1,
+        plot_errors = False,
+        plot_solution = False):
     
     fempy.mms.verify_temporal_order_of_accuracy(
-        Model = Model,
+        Model = VerifiableModel,
         expected_order = 1,
         meshsize = meshsize,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
-        tolerance = tolerance)
+        tolerance = tolerance,
+        plot_errors = plot_errors,
+        plot_solution = plot_solution)
 
         
-class SecondOrderModel(Model):
+class SecondOrderVerifiableModel(VerifiableModel):
 
     def init_initial_values(self):
         
@@ -119,13 +127,17 @@ class SecondOrderModel(Model):
 def test__verify_temporal_convergence_order_via_mms__bdf2(
         meshsize = pow(2, 13),
         timestep_sizes = (1./16., 1./32., 1./64., 1./128.),
-        tolerance = 0.1):
+        tolerance = 0.1,
+        plot_errors = False,
+        plot_solution = False):
     
     fempy.mms.verify_temporal_order_of_accuracy(
-        Model = SecondOrderModel,
+        Model = SecondOrderVerifiableModel,
         expected_order = 2,
         meshsize = meshsize,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
-        tolerance = tolerance)
+        tolerance = tolerance,
+        plot_errors = plot_errors,
+        plot_solution = plot_solution)
     

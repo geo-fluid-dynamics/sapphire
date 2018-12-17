@@ -60,14 +60,14 @@ class Model(fempy.models.unsteady_navier_stokes.Model):
 
         
 def test__verify_spatial_convergence_order_via_mms(
-        grid_sizes = (4, 8, 16, 32),
+        mesh_sizes = (4, 8, 16, 32),
         timestep_size = 1./64.,
         tolerance = 0.2):
     
     fempy.mms.verify_spatial_order_of_accuracy(
         Model = Model,
         expected_order = 2,
-        grid_sizes = grid_sizes,
+        mesh_sizes = mesh_sizes,
         tolerance = tolerance,
         timestep_size = timestep_size,
         endtime = 1.)

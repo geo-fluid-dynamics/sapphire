@@ -4,22 +4,13 @@ import fempy.models.navier_stokes_boussinesq
 import fempy.benchmarks.heat_driven_cavity
 
 
-def test__verify_convergence_order_via_MMS(
-        grid_sizes = (4, 8, 16, 32, 64), tolerance = 0.1):
+class VerifiableModel(fempy.models.navier_stokes_boussinesq.Model):
     
-    class Model(fempy.models.navier_stokes_boussinesq.Model):
-    
-        def __init__(self, meshsize = 4):
+        def __init__(self, meshsize):
         
             self.meshsize = meshsize
             
             super().__init__()
-            
-            self.dynamic_viscosity.assign(0.1)
-        
-            self.rayleigh_number.assign(10.)
-            
-            self.prandtl_number(0.7)
             
         def init_mesh(self):
         
@@ -71,11 +62,24 @@ def test__verify_convergence_order_via_MMS(
             
             return r_p, r_u, r_T
             
+
+def test__verify_convergence_order_via_mms(
+        mesh_sizes = (4, 8, 16, 32, 64), 
+        tolerance = 0.1, 
+        plot_errors = False,
+        plot_solution = False):
+    
     fempy.mms.verify_spatial_order_of_accuracy(
-        Model = Model,
+        Model = VerifiableModel,
+        parameters = {
+            "dynamic_viscosity": 0.1, 
+            "rayleigh_number": 10., 
+            "prandtl_number": 0.7},
         expected_order = 2,
-        grid_sizes = grid_sizes,
-        tolerance = tolerance)
+        mesh_sizes = mesh_sizes,
+        tolerance = tolerance,
+        plot_errors = plot_errors,
+        plot_solution = plot_solution)
     
     
 def verify_scalar_solution_component(
