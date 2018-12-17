@@ -2,6 +2,7 @@
 import firedrake as fe
 import abc
 import pathlib
+import matplotlib.pyplot as plt
 
 
 class Model(metaclass = abc.ABCMeta):
@@ -108,4 +109,26 @@ class Model(metaclass = abc.ABCMeta):
         dim = self.mesh.geometric_dimension()
         
         return tuple([fe.unit_vector(i, dim) for i in range(dim)])
+        
+    def plot(self):
+        
+        for i, f in enumerate(self.solution.split()):
+            
+            fe.plot(f)
+            
+            plt.axis("square")
+            
+            plt.title(r"$w_" + str(i) + "$")
+            
+            self.output_directory_path.mkdir(
+                parents = True, exist_ok = True)
+        
+            filepath = self.output_directory_path.joinpath(
+                "solution_" + str(i)).with_suffix(".png")
+            
+            print("Writing plot to " + str(filepath))
+            
+            plt.savefig(str(filepath))
+            
+            plt.close()
         
