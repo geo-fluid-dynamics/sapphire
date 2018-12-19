@@ -1,8 +1,8 @@
 import firedrake as fe
-import fempy.models.convection_coupled_phasechange
+import fempy.models.enthalpy_porosity
 
 
-class Model(fempy.models.convection_coupled_phasechange.Model):
+class Model(fempy.models.enthalpy_porosity.Model):
     
     def __init__(self, meshsize):
         
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     
     model.timestep_size.assign(10.)
     
-    model.phase_interface_smoothing.assign(1./256.)
+    model.latent_heat_smoothing.assign(1./256.)
     
     model.run_and_plot(endtime = 70.)
     

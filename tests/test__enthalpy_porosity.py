@@ -1,44 +1,44 @@
 import firedrake as fe 
 import fempy.mms
-import fempy.models.convection_coupled_phasechange
+import fempy.models.enthalpy_porosity
 import fempy.benchmarks.melting_octadecane
 
 
 def test__melting_octadecane_benchmark__regression():
     
-    endtime, expected_solid_area, tolerance = 30., 0.76, 0.01
+    endtime, expected_liquid_area, tolerance = 30., 0.24, 0.01
     
     model = fempy.benchmarks.melting_octadecane.Model(meshsize = 32)
     
     model.timestep_size.assign(10.)
     
-    model.phase_interface_smoothing.assign(1./256.)
+    model.latent_heat_smoothing.assign(1./256.)
     
     model.output_directory_path = model.output_directory_path.joinpath(
         "melting_octadecane/")
         
-    model.run(endtime = endtime, plot = True)
+    model.run(endtime = endtime, plot = False)
     
     p, u, T = model.solution.split()
     
-    phi = model.semi_phasefield(T)
+    phil = model.porosity(T)
     
-    solid_area = fe.assemble(phi*fe.dx)
+    liquid_area = fe.assemble(phil*fe.dx)
     
-    print("Solid area = " + str(solid_area))
+    print("Liquid area = " + str(liquid_area))
     
-    assert(abs(solid_area - expected_solid_area) < tolerance)
+    assert(abs(liquid_area - expected_liquid_area) < tolerance)
     
-    phi_h = fe.interpolate(phi, model.function_space.sub(2))
+    phil_h = fe.interpolate(phil, model.function_space.sub(2))
     
-    maxphi = phi_h.vector().max()
+    max_phil = phil_h.vector().max()
     
-    print("Maximum phi = " + str(maxphi))
+    print("Maximum phil = " + str(max_phil))
     
-    assert(abs(maxphi - 1.) < tolerance)
+    assert(abs(max_phil - 1.) < tolerance)
 
 
-class VerifiableModel(fempy.models.convection_coupled_phasechange.Model):
+class VerifiableModel(fempy.models.enthalpy_porosity.Model):
 
     def __init__(self, meshsize):
     
@@ -58,9 +58,9 @@ class VerifiableModel(fempy.models.convection_coupled_phasechange.Model):
         
         gamma = self.pressure_penalty_factor
         
-        mu_S = self.solid_dynamic_viscosity
+        mu_s = self.solid_dynamic_viscosity
         
-        mu_L = fe.Constant(1.)
+        mu_l = self.liquid_dynamic_viscosity
         
         Ra = self.rayleigh_number
         
@@ -76,15 +76,15 @@ class VerifiableModel(fempy.models.convection_coupled_phasechange.Model):
         
         b = self.buoyancy(T)
         
-        phi = self.semi_phasefield(T)
+        phil = self.porosity(T)
         
-        mu = mu_L + (mu_S - mu_L)*phi
+        mu = mu_s + (mu_l - mu_s)*phil
         
         r_p = div(u) + gamma*p
         
         r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(mu*sym(grad(u))) + b
         
-        r_T = diff(T, t) - 1./Ste*diff(phi, t) + div(T*u) - 1./Pr*div(grad(T))
+        r_T = diff(T, t) + 1./Ste*diff(phil, t) + div(T*u) - 1./Pr*div(grad(T))
         
         return r_p, r_u, r_T
         
@@ -132,7 +132,7 @@ def test__verify_spatial_convergence_order_via_mms(
             "rayleigh_number": 10.,
             "prandtl_number": 5.,
             "stefan_number": 0.2,
-            "phase_interface_smoothing": 1./16.},
+            "latent_heat_smoothing": 1./16.},
         mesh_sizes = (4, 8, 16),
         timestep_size = 1./64.,
         tolerance = 0.2):

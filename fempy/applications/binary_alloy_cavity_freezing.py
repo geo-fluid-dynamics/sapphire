@@ -1,8 +1,8 @@
 import firedrake as fe
-import fempy.models.binary_alloy_convection_coupled_phasechange
+import fempy.models.binary_alloy_enthalpy_porosity
 
 
-class Model(fempy.models.binary_alloy_convection_coupled_phasechange.Model):
+class Model(fempy.models.binary_alloy_enthalpy_porosity.Model):
 
     def __init__(self, meshsize):
         
@@ -80,7 +80,7 @@ class Model(fempy.models.binary_alloy_convection_coupled_phasechange.Model):
         
         p, u, T = fe.split(self.heat_driven_cavity_solution)
         
-        b = self.buoyancy(T = T, C = 0.)
+        b = self.buoyancy(T = T, Cl = 0.)
         
         psi_p, psi_u, psi_T = fe.TestFunctions(
             self.navier_stokes_boussinesq_function_space)

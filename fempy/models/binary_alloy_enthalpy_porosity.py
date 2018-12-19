@@ -1,11 +1,13 @@
-""" A binary alloy convection-coupled phase-change model class """
+""" A enthalpy-porosity model class for convection-coupled phase-change
+of binary alloys
+"""
 import firedrake as fe
-import fempy.models.convection_coupled_phasechange
+import fempy.models.enthalpy_porosity
 import matplotlib.pyplot as plt
 import pathlib
 
     
-class Model(fempy.models.convection_coupled_phasechange.Model):
+class Model(fempy.models.enthalpy_porosity.Model):
     
     def __init__(self):
     
@@ -33,25 +35,25 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         self.element = fe.MixedElement(P1, P2, P1, P1)
     
-    def concentration_dependent_liquidus_temperature(self, C):
+    def concentration_dependent_liquidus_temperature(self, Cl):
     
         T_m = self.pure_liquidus_temperature
         
         m_L = self.liquidus_slope
         
-        return T_m + m_L*C
+        return T_m + m_L*Cl
     
-    def semi_phasefield(self, T, C):
+    def porosity(self, T, Cl):
         """ Regularization from @cite{zimmerman2018monolithic} """
         T_L = self.concentration_dependent_liquidus_temperature
         
-        s = self.phase_interface_smoothing
+        s = self.latent_heat_smoothing
         
         tanh = fe.tanh
         
-        return 0.5*(1. + tanh((T_L(C) - T)/s))
+        return 0.5*(1. + tanh((T - T_L(Cl))/s))
         
-    def buoyancy(self, T, C):
+    def buoyancy(self, T, Cl):
         """ Boussinesq buoyancy """
         Ra_T = self.temperature_rayleigh_number
         
@@ -63,7 +65,7 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         ghat = fe.Constant(-jhat)
         
-        return 1./Pr*(Ra_T*T + Ra_C*C)*ghat
+        return 1./Pr*(Ra_T*T + Ra_C*Cl)*ghat
         
     def init_time_discrete_terms(self):
         """ Implicit Euler finite difference scheme """
@@ -79,17 +81,17 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         C_t = (C - C_n)/Delta_t
         
-        phi = self.semi_phasefield
+        phil = self.porosity
         
-        phi_t = (phi(T, C) - phi(T_n, C_n))/Delta_t
+        phil_t = (phil(T, C) - phil(T_n, C_n))/Delta_t
         
-        self.time_discrete_terms = u_t, T_t, C_t, phi_t
+        self.time_discrete_terms = u_t, T_t, C_t, phil_t
         
     def init_weak_form_residual(self):
         """ Weak form from @cite{zimmerman2018monolithic} """
-        mu_S = self.solid_dynamic_viscosity
+        mu_s = self.solid_dynamic_viscosity
         
-        mu_L = self.liquid_dynamic_viscosity
+        mu_l = self.liquid_dynamic_viscosity
         
         Pr = self.prandtl_number
         
@@ -102,15 +104,15 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         inner, dot, grad, div, sym = \
             fe.inner, fe.dot, fe.grad, fe.div, fe.sym
         
-        p, u, T, C = fe.split(self.solution)
+        p, u, T, Cl = fe.split(self.solution)
         
-        u_t, T_t, C_t, phi_t = self.time_discrete_terms
+        u_t, T_t, Cl_t, phil_t = self.time_discrete_terms
         
-        b = self.buoyancy(T, C)
+        b = self.buoyancy(T, Cl)
         
-        phi = self.semi_phasefield(T, C)
+        phil = self.porosity(T, Cl)
         
-        mu = mu_L + (mu_S - mu_L)*phi
+        mu = mu_s + (mu_l - mu_s)*phil
         
         psi_p, psi_u, psi_T, psi_C = fe.TestFunctions(self.function_space)
         
@@ -119,11 +121,11 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         momentum = dot(psi_u, u_t + grad(u)*u + b) \
             - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), mu*sym(grad(u)))
         
-        enthalpy = psi_T*(T_t - 1./Ste*phi_t) \
+        enthalpy = psi_T*(T_t + 1./Ste*phil_t) \
             + dot(grad(psi_T), 1./Pr*grad(T) - T*u)
         
-        concentration = psi_C*((1. - phi)*C_t - C*phi_t) \
-            + dot(grad(psi_C), 1./Sc*(1. - phi)*grad(C) - C*u)
+        concentration = psi_C*(phil*Cl_t + Cl*phil_t) \
+            + dot(grad(psi_C), 1./Sc*phil*grad(Cl) - Cl*u)
             
         stabilization = gamma*psi_p*p
         
@@ -135,20 +137,20 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         V = fe.FunctionSpace(
             self.mesh, fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
         
-        p, u, T, C = self.solution.split()
+        p, u, T, Cl = self.solution.split()
         
-        _phi = self.semi_phasefield(T, C)
+        _phil = self.porosity(T, Cl)
         
-        phi = fe.interpolate(_phi, V)
+        phil = fe.interpolate(_phil, V)
         
-        Cbar = fe.interpolate((1. - _phi)*C, V)
+        C = fe.interpolate(_phil*Cl, V)
         
         timestr = str(self.time.__float__())
         
         for f, label, filename in zip(
-                (self.mesh, p, u, T, Cbar, phi),
-                ("\\Omega_h", "p", "\\mathbf{u}", "T", "\\bar{C}", "\\phi"),
-                ("mesh", "p", "u", "T", "Cbar", "phi")):
+                (self.mesh, p, u, T, C, phil),
+                ("\\Omega_h", "p", "\\mathbf{u}", "T", "C", "\\phi_l"),
+                ("mesh", "p", "u", "T", "Cl", "phil")):
             
             fe.plot(f)
             
@@ -196,9 +198,10 @@ class ModelWithBDF2(Model):
         
         C_t = bdf2(C_np1, C_n, C_nm1)
         
-        phi = self.semi_phasefield
+        phil = self.porosity
         
-        phi_t = bdf2(phi(T_np1, C_np1), phi(T_n, C_n), phi(T_nm1, C_nm1))
+        phil_t = bdf2(
+            phil(T_np1, C_np1), phil(T_n, C_n), phil(T_nm1, C_nm1))
         
-        self.time_discrete_terms = u_t, T_t, C_t, phi_t
+        self.time_discrete_terms = u_t, T_t, C_t, phil_t
         

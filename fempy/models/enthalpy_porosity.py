@@ -1,4 +1,4 @@
-""" A convection-coupled phase-change model class """
+""" A enthalpy-porosity model class for convection-coupled phase-change """
 import firedrake as fe
 import fempy.unsteady_model
 import matplotlib.pyplot as plt
@@ -22,7 +22,7 @@ class Model(fempy.unsteady_model.Model):
         
         self.liquidus_temperature = fe.Constant(0.)
         
-        self.phase_interface_smoothing = fe.Constant(1./256.)
+        self.latent_heat_smoothing = fe.Constant(1./256.)
         
         self.smoothing_sequence = None
         
@@ -45,15 +45,15 @@ class Model(fempy.unsteady_model.Model):
             fe.VectorElement("P", self.mesh.ufl_cell(), 2),
             fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
     
-    def semi_phasefield(self, T):
+    def porosity(self, T):
         """ Regularization from @cite{zimmerman2018monolithic} """
         T_L = self.liquidus_temperature
         
-        s = self.phase_interface_smoothing
+        s = self.latent_heat_smoothing
         
         tanh = fe.tanh
         
-        return 0.5*(1. + tanh((T_L - T)/s))
+        return 0.5*(1. + tanh((T - T_L)/s))
         
     def buoyancy(self, T):
         """ Boussinesq buoyancy """
@@ -79,17 +79,17 @@ class Model(fempy.unsteady_model.Model):
         
         T_t = (T - T_n)/Delta_t
         
-        phi = self.semi_phasefield
+        phil = self.porosity
         
-        phi_t = (phi(T) - phi(T_n))/Delta_t
+        phil_t = (phil(T) - phil(T_n))/Delta_t
         
-        self.time_discrete_terms = u_t, T_t, phi_t
+        self.time_discrete_terms = u_t, T_t, phil_t
         
     def init_weak_form_residual(self):
         """ Weak form from @cite{zimmerman2018monolithic} """
-        mu_S = self.solid_dynamic_viscosity
+        mu_s = self.solid_dynamic_viscosity
         
-        mu_L = self.liquid_dynamic_viscosity
+        mu_l = self.liquid_dynamic_viscosity
         
         Pr = self.prandtl_number
         
@@ -102,13 +102,13 @@ class Model(fempy.unsteady_model.Model):
         
         p, u, T = fe.split(self.solution)
         
-        u_t, T_t, phi_t = self.time_discrete_terms
+        u_t, T_t, phil_t = self.time_discrete_terms
         
         b = self.buoyancy(T)
         
-        phi = self.semi_phasefield(T)
+        phil = self.porosity(T)
         
-        mu = mu_L + (mu_S - mu_L)*phi
+        mu = mu_s + (mu_l - mu_s)*phil
         
         psi_p, psi_u, psi_T = fe.TestFunctions(self.function_space)
         
@@ -117,7 +117,7 @@ class Model(fempy.unsteady_model.Model):
         momentum = dot(psi_u, u_t + grad(u)*u + b) \
             - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), mu*sym(grad(u)))
         
-        enthalpy = psi_T*(T_t - 1./Ste*phi_t) \
+        enthalpy = psi_T*(T_t + 1./Ste*phil_t) \
             + dot(grad(psi_T), 1./Pr*grad(T) - T*u)
         
         stabilization = gamma*psi_p*p
@@ -140,12 +140,12 @@ class Model(fempy.unsteady_model.Model):
            
         else:
         
-            assert(self.phase_interface_smoothing.__float__()
+            assert(self.latent_heat_smoothing.__float__()
                 == self.smoothing_sequence[-1])
         
             for s in self.smoothing_sequence:
             
-                self.phase_interface_smoothing.assign(s)
+                self.latent_heat_smoothing.assign(s)
                 
                 self.solver.solve()
                 
@@ -157,7 +157,7 @@ class Model(fempy.unsteady_model.Model):
             
         if self.smoothing_sequence is None:
         
-            smoothing_sequence = (self.phase_interface_smoothing.__float__(),)
+            smoothing_sequence = (self.latent_heat_smoothing.__float__(),)
             
             while smoothing_sequence[0] < self.autosmooth_firstval:
 
@@ -182,7 +182,7 @@ class Model(fempy.unsteady_model.Model):
             
                 for s in smoothing_sequence[s_start_index:]:
                     
-                    self.phase_interface_smoothing.assign(s)
+                    self.latent_heat_smoothing.assign(s)
                     
                     self.backup_solution.assign(self.solution)
                     
@@ -198,7 +198,7 @@ class Model(fempy.unsteady_model.Model):
                 
             except fe.exceptions.ConvergenceError:  
                 
-                current_s = self.phase_interface_smoothing.__float__()
+                current_s = self.latent_heat_smoothing.__float__()
                 
                 ss = smoothing_sequence
                 
@@ -246,7 +246,7 @@ class Model(fempy.unsteady_model.Model):
         
         assert(solved)
         
-        assert(self.phase_interface_smoothing.__float__() ==
+        assert(self.latent_heat_smoothing.__float__() ==
             smoothing_sequence[-1])
             
         self.smoothing_sequence = smoothing_sequence
@@ -258,14 +258,14 @@ class Model(fempy.unsteady_model.Model):
         
         p, u, T = self.solution.split()
         
-        phi = fe.interpolate(self.semi_phasefield(T), V)
+        phil = fe.interpolate(self.porosity(T), V)
         
         timestr = str(self.time.__float__())
         
         for f, label, filename in zip(
-                (self.mesh, p, u, T, phi),
-                ("\\Omega_h", "p", "\\mathbf{u}", "T", "\\phi"),
-                ("mesh", "p", "u", "T", "phi")):
+                (self.mesh, p, u, T, phil),
+                ("\\Omega_h", "p", "\\mathbf{u}", "T", "\\phi_l"),
+                ("mesh", "p", "u", "T", "phil")):
             
             fe.plot(f)
             
@@ -311,9 +311,9 @@ class ModelWithBDF2(Model):
         
         T_t = bdf2(T_np1, T_n, T_nm1)
         
-        phi = self.semi_phasefield
+        phil = self.porosity
         
-        phi_t = bdf2(phi(T_np1), phi(T_n), phi(T_nm1))
+        phil_t = bdf2(phil(T_np1), phil(T_n), phil(T_nm1))
         
-        self.time_discrete_terms = u_t, T_t, phi_t
+        self.time_discrete_terms = u_t, T_t, phil_t
         

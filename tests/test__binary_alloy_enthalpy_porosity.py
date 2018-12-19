@@ -1,5 +1,5 @@
 import firedrake as fe
-import fempy.models.binary_alloy_convection_coupled_phasechange
+import fempy.models.binary_alloy_enthalpy_porosity
 import fempy.applications.binary_alloy_cavity_freezing
 import pathlib
 
@@ -12,9 +12,9 @@ def test__convection_coupled_sea_ice_cavity_freezing__regression():
     
     meshsize = 32
     
-    phase_interface_smoothing = 1./64.
+    latent_heat_smoothing = 1./64.
     
-    expected_solid_area = 0.080
+    expected_liquid_area = 0.92
     
     tolerance = 0.001
     
@@ -47,7 +47,7 @@ def test__convection_coupled_sea_ice_cavity_freezing__regression():
     
     model.liquidus_slope.assign(-0.1)
     
-    model.phase_interface_smoothing.assign(phase_interface_smoothing)
+    model.latent_heat_smoothing.assign(latent_heat_smoothing)
     
     model.timestep_size.assign(timestep_size)
     
@@ -55,19 +55,19 @@ def test__convection_coupled_sea_ice_cavity_freezing__regression():
     model.run(endtime = endtime, plot = False)
     
     
-    p, u, T, C = model.solution.split()
+    p, u, T, Cl = model.solution.split()
     
-    phi = model.semi_phasefield(T = T, C = C)
+    phil = model.porosity(T = T, Cl = Cl)
     
-    A_S = fe.assemble(phi*fe.dx)
+    liquid_area = fe.assemble(phil*fe.dx)
     
-    print("Solid area = " + str(A_S))
+    print("Liquid area = " + str(liquid_area))
     
-    assert(abs(A_S - expected_solid_area) < tolerance)
+    assert(abs(liquid_area - expected_liquid_area) < tolerance)
         
     
 class VerifiableModel(
-    fempy.models.binary_alloy_convection_coupled_phasechange.Model):
+    fempy.models.binary_alloy_enthalpy_porosity.Model):
 
     def __init__(self, meshsize):
         
@@ -89,9 +89,7 @@ class VerifiableModel(
         
         self.liquidus_slope.assign(-0.1)
         
-        self.phase_interface_smoothing.assign(1./32.)
-        
-        self.smoothing_sequence = None
+        self.latent_heat_smoothing.assign(1./32.)
         
     def init_mesh(self):
         
@@ -101,9 +99,9 @@ class VerifiableModel(
         
         gamma = self.pressure_penalty_factor
         
-        mu_S = self.solid_dynamic_viscosity
+        mu_s = self.solid_dynamic_viscosity
         
-        mu_L = self.liquid_dynamic_viscosity
+        mu_l = self.liquid_dynamic_viscosity
         
         Ra = self.rayleigh_number
         
@@ -117,24 +115,24 @@ class VerifiableModel(
         
         grad, dot, div, sym, diff = fe.grad, fe.dot, fe.div, fe.sym, fe.diff
         
-        p, u, T, C = solution
+        p, u, T, Cl = solution
         
-        b = self.buoyancy(T, C)
+        b = self.buoyancy(T, Cl)
         
-        phi = self.semi_phasefield(T, C)
+        phil = self.porosity(T, Cl)
         
-        mu = mu_L + (mu_S - mu_L)*phi
+        mu = mu_s + (mu_l - mu_s)*phil
         
         r_p = div(u) + gamma*p
         
         r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(mu*sym(grad(u))) + b
         
-        r_T = diff(T, t) - 1./Ste*diff(phi, t) + div(T*u) - 1./Pr*div(grad(T))
+        r_T = diff(T, t) + div(T*u) - 1./Pr*div(grad(T)) + 1./Ste*diff(phil, t)
         
-        r_C = (1. - phi)*diff(C, t) + div(C*u) - 1./Sc*div((1. - phi)*grad(C)) \
-            - C*diff(phi, t)
+        r_Cl = phil*diff(Cl, t) + div(Cl*u) - 1./Sc*div(phil*grad(Cl)) \
+            + Cl*diff(phil, t)
         
-        return r_p, r_u, r_T, r_C
+        return r_p, r_u, r_T, r_Cl
         
     def init_manufactured_solution(self):
         
@@ -155,9 +153,9 @@ class VerifiableModel(
         
         T = 0.5*sin(2.*pi*x[0])*sin(pi*x[1])*(1. - 2*exp(-3.*t**2))
         
-        C = sin(pi*x[0])*sin(2.*pi*x[1])*exp(-2.*t**2)
+        Cl = sin(pi*x[0])*sin(2.*pi*x[1])*exp(-2.*t**2)
         
-        self.manufactured_solution = p, u, T, C
+        self.manufactured_solution = p, u, T, Cl
         
     def init_initial_values(self):
         
@@ -186,7 +184,7 @@ def fails__test__verify_spatial_convergence_order_via_mms(
             "schmidt_number": 1.,
             "pure_liquidus_temperature": 0.,
             "liquidus_slope": -0.01,
-            "phase_interface_smoothing": 1./16.},
+            "latent_heat_smoothing": 1./16.},
         mesh_sizes = (4, 8, 16),
         timestep_size = 1./64.,
         tolerance = 0.2):

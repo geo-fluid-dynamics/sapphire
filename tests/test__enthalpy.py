@@ -1,19 +1,15 @@
 import firedrake as fe 
 import fempy.mms
-import fempy.models.enthalpy_phasechange
+import fempy.models.enthalpy
 
 
-class VerifiableModel(fempy.models.enthalpy_phasechange.Model):
+class VerifiableModel(fempy.models.enthalpy.Model):
     
     def __init__(self, meshsize):
     
         self.meshsize = meshsize
         
         super().__init__()
-        
-        self.stefan_number.assign(0.1)
-        
-        self.phase_interface_smoothing.assign(1./32.)
         
     def init_mesh(self):
     
@@ -25,17 +21,17 @@ class VerifiableModel(fempy.models.enthalpy_phasechange.Model):
         
     def strong_form_residual(self, solution):
         
-        theta = solution
+        T = solution
         
         t = self.time
         
         Ste = self.stefan_number
         
-        phi = self.semi_phasefield
+        phil = self.porosity
         
         diff, div, grad = fe.diff, fe.div, fe.grad
         
-        return diff(theta, t) - div(grad(theta)) - 1./Ste*diff(phi(theta), t)
+        return diff(T, t) - div(grad(T)) + 1./Ste*diff(phil(T), t)
     
     def init_manufactured_solution(self):
         
@@ -62,6 +58,9 @@ def test__verify_spatial_convergence_order_via_mms(
     
     fempy.mms.verify_spatial_order_of_accuracy(
         Model = VerifiableModel,
+        parameters = {
+            "stefan_number": 0.1,
+            "latent_heat_smoothing": 1./32.},
         expected_order = 2,
         mesh_sizes = mesh_sizes,
         timestep_size = timestep_size,
@@ -106,22 +105,22 @@ class SecondOrderVerifiableModel(VerifiableModel):
     def init_time_discrete_terms(self):
         """ Gear/BDF2 finite difference scheme 
         with constant time step size. """
-        thetanp1 = self.solution
+        T_np1 = self.solution
         
-        thetan = self.initial_values[0]
+        T_n = self.initial_values[0]
         
-        thetanm1 = self.initial_values[1]
+        T_nm1 = self.initial_values[1]
         
         Delta_t = self.timestep_size
         
-        theta_t = 1./Delta_t*(3./2.*thetanp1 - 2.*thetan + 0.5*thetanm1)
+        T_t = 1./Delta_t*(3./2.*T_np1 - 2.*T_n + 0.5*T_nm1)
         
-        phi = self.semi_phasefield
+        phil = self.porosity
         
-        phi_t = 1./Delta_t*\
-            (3./2.*phi(thetanp1) - 2.*phi(thetan) + 0.5*phi(thetanm1))
+        phil_t = 1./Delta_t*\
+            (3./2.*phil(T_np1) - 2.*phil(T_n) + 0.5*phil(T_nm1))
         
-        self.time_discrete_terms = theta_t, phi_t
+        self.time_discrete_terms = T_t, phil_t
     
     
 def test__verify_temporal_convergence_order_via_mms__bdf2(
@@ -133,6 +132,9 @@ def test__verify_temporal_convergence_order_via_mms__bdf2(
     
     fempy.mms.verify_temporal_order_of_accuracy(
         Model = SecondOrderVerifiableModel,
+        parameters = {
+            "stefan_number": 0.1,
+            "latent_heat_smoothing": 1./32.},
         expected_order = 2,
         meshsize = meshsize,
         endtime = 1.,
