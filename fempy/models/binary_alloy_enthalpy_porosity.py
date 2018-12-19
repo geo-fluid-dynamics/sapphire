@@ -36,7 +36,9 @@ class Model(fempy.models.enthalpy_porosity.Model):
         self.element = fe.MixedElement(P1, P2, P1, P1)
     
     def concentration_dependent_liquidus_temperature(self, Cl):
-    
+        """ Naming this 'liquidus_temperature' seems to not work
+        when we're inheriting from a class which 
+        had an attrbute of that name. """
         T_m = self.pure_liquidus_temperature
         
         m_L = self.liquidus_slope
@@ -44,14 +46,14 @@ class Model(fempy.models.enthalpy_porosity.Model):
         return T_m + m_L*Cl
     
     def porosity(self, T, Cl):
-        """ Regularization from @cite{zimmerman2018monolithic} """
-        T_L = self.concentration_dependent_liquidus_temperature
+        
+        T_L = self.concentration_dependent_liquidus_temperature(Cl)
         
         s = self.latent_heat_smoothing
         
         tanh = fe.tanh
         
-        return 0.5*(1. + tanh((T - T_L(Cl))/s))
+        return 0.5*(1. + tanh((T - T_L)/s))
         
     def buoyancy(self, T, Cl):
         """ Boussinesq buoyancy """
