@@ -51,12 +51,12 @@ class Model(fempy.models.unsteady_navier_stokes.Model):
         
     def init_initial_values(self):
         
-        self.initial_values = [fe.Function(self.function_space),]
+        self.initial_values = fe.Function(self.function_space)
         
         for u_m, V in zip(
                 self.manufactured_solution, self.function_space):
         
-            self.initial_values[0].assign(fe.interpolate(u_m, V))
+            self.initial_values.assign(fe.interpolate(u_m, V))
 
         
 def test__verify_spatial_convergence_order_via_mms(
