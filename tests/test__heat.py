@@ -10,6 +10,8 @@ class Model(fempy.models.heat.Model):
         
         super().__init__()
         
+        self.update_initial_values()
+        
     def init_mesh(self):
     
         self.mesh = fe.UnitIntervalMesh(self.meshsize)
@@ -34,10 +36,12 @@ class Model(fempy.models.heat.Model):
         
         self.manufactured_solution = sin(2.*pi*x)*exp(-pow(t, 2))
     
-    def init_initial_values(self):
+    def update_initial_values(self):
         
-        self.initial_values = fe.interpolate(
+        initial_values = fe.interpolate(
             self.manufactured_solution, self.function_space)
+            
+        self.initial_values.assign(initial_values)
     
     def init_solver(self, solver_parameters = {"ksp_type": "cg"}):
         
@@ -77,11 +81,13 @@ class SecondOrderModel(Model):
 
     def init_initial_values(self):
         
-        initial_values = fe.interpolate(
-            self.manufactured_solution, self.function_space)
-        
         self.initial_values = [fe.Function(self.function_space)
             for i in range(2)]
+
+    def update_initial_values(self):
+        
+        initial_values = fe.interpolate(
+            self.manufactured_solution, self.function_space)
         
         for iv in self.initial_values:
         

@@ -11,6 +11,8 @@ class VerifiableModel(fempy.models.enthalpy.Model):
         
         super().__init__()
         
+        self.update_initial_values()
+        
     def init_mesh(self):
     
         self.mesh = fe.UnitIntervalMesh(self.meshsize)
@@ -43,12 +45,13 @@ class VerifiableModel(fempy.models.enthalpy.Model):
         
         self.manufactured_solution = 0.5*sin(2.*pi*x)*(1. - 2*exp(-3.*t**2))
 
-    def init_initial_values(self):
+    def update_initial_values(self):
         
-        self.initial_values = fe.interpolate(
+        initial_values = fe.interpolate(
             self.manufactured_solution, self.function_space)
         
-
+        self.initial_values.assign(initial_values)
+        
 def test__verify_spatial_convergence_order_via_mms(
         mesh_sizes = (4, 8, 16, 32),
         timestep_size = 1./256.,
@@ -92,11 +95,13 @@ class SecondOrderVerifiableModel(VerifiableModel):
 
     def init_initial_values(self):
         
-        initial_values = fe.interpolate(
-            self.manufactured_solution, self.function_space)
-        
         self.initial_values = [fe.Function(self.function_space) 
             for i in range(2)]
+        
+    def update_initial_values(self):
+        
+        initial_values = fe.interpolate(
+            self.manufactured_solution, self.function_space)
         
         for iv in self.initial_values:
         

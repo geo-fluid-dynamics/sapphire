@@ -22,17 +22,11 @@ class Model(fempy.models.enthalpy_porosity.Model):
         
         self.liquidus_temperature.assign(0.)
 
+        self.update_initial_values()
+        
     def init_mesh(self):
     
         self.mesh = fe.UnitSquareMesh(self.meshsize, self.meshsize)
-        
-    def init_initial_values(self):
-        
-        self.initial_values = fe.interpolate(
-            fe.Expression(
-                (0., 0., 0., self.cold_wall_temperature.__float__()),
-                element = self.element),
-            self.function_space)
         
     def init_dirichlet_boundary_conditions(self):
     
@@ -42,19 +36,17 @@ class Model(fempy.models.enthalpy_porosity.Model):
             fe.DirichletBC(W.sub(1), (0., 0.), "on_boundary"),
             fe.DirichletBC(W.sub(2), self.hot_wall_temperature, 1),
             fe.DirichletBC(W.sub(2), self.cold_wall_temperature, 2)]
-
-    def run_and_plot(self, endtime):
-        
-        output_prefix = self.output_prefix
-        
-        while self.time.__float__() < (endtime - self.time_tolerance):
-        
-            self.run(endtime = self.time.__float__() + self.timestep_size.__float__())
             
-            self.output_prefix = output_prefix + "t" + str(self.time.__float__()) + "_"
+    def update_initial_values(self):
+        
+        initial_values = fe.interpolate(
+            fe.Expression(
+                (0., 0., 0., self.cold_wall_temperature.__float__()),
+                element = self.element),
+            self.function_space)
             
-            self.plot(save = True, show = False)
-    
+        self.initial_values.assign(initial_values)
+        
 if __name__ == "__main__":
     
     model = Model(meshsize = 32)
@@ -63,5 +55,5 @@ if __name__ == "__main__":
     
     model.latent_heat_smoothing.assign(1./256.)
     
-    model.run_and_plot(endtime = 70.)
+    model.run(endtime = 70., plot = True)
     

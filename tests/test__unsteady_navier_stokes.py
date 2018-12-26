@@ -10,6 +10,8 @@ class Model(fempy.models.unsteady_navier_stokes.Model):
         
         super().__init__()
         
+        self.update_initial_values()
+        
     def init_mesh(self):
         
         self.mesh = fe.UnitSquareMesh(self.meshsize, self.meshsize)
@@ -49,9 +51,7 @@ class Model(fempy.models.unsteady_navier_stokes.Model):
         
         return r_u, r_p
         
-    def init_initial_values(self):
-        
-        self.initial_values = fe.Function(self.function_space)
+    def update_initial_values(self):
         
         for u_m, V in zip(
                 self.manufactured_solution, self.function_space):

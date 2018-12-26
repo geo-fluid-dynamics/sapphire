@@ -4,6 +4,7 @@ with auxiliary data for unsteady (i.e. time-dependent) simulations.
 import firedrake as fe
 import fempy.model
 import abc
+import matplotlib.pyplot as plt
 
 
 class Model(fempy.model.Model):
@@ -22,9 +23,9 @@ class Model(fempy.model.Model):
         
         self.solution_file = None
         
-    @abc.abstractmethod
     def init_initial_values(self):
-        """ Redefine this to set `self.initial_values` to a `fe.Function`. """
+        
+        self.initial_values = fe.Function(self.function_space)
         
     def init_solution(self):
     
@@ -33,14 +34,6 @@ class Model(fempy.model.Model):
         self.init_initial_values()
         
         self.init_time_discrete_terms()
-        
-        u0 = self.initial_values
-        
-        if not ((type(u0) == type((0,))) or (type(u0) == type([0,]))):
-        
-            u0 = (u0,)
-        
-        self.solution.assign(u0[0])
         
     def push_back_initial_values(self):
         
@@ -81,3 +74,26 @@ class Model(fempy.model.Model):
             
                 print("Solved at time t = " + str(self.time.__float__()))
             
+    def plot(self):
+        
+        self.output_directory_path.mkdir(
+                parents = True, exist_ok = True)
+                
+        for i, f in enumerate(self.solution.split()):
+            
+            fe.plot(f)
+            
+            plt.axis("square")
+            
+            plt.title(r"$w_" + str(i) + "$")
+            
+            filepath = self.output_directory_path.joinpath(
+                "w" + str(i) + "_t" + str(self.time.__float__())
+                ).with_suffix(".png")
+            
+            print("Writing plot to " + str(filepath))
+            
+            plt.savefig(str(filepath))
+            
+            plt.close()
+        

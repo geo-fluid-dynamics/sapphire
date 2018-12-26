@@ -1,7 +1,160 @@
 import firedrake as fe 
 import fempy.mms
 import fempy.models.binary_alloy_enthalpy
+import fempy.benchmarks.analytical_binary_alloy_solidification
 
+
+class SalineFreezingModel(fempy.models.binary_alloy_enthalpy.Model):
+    
+    def __init__(self, meshsize):
+        
+        self.meshsize = meshsize
+        
+        self.cold_wall_temperature = fe.Constant(-1.)
+        
+        self.initial_temperature = fe.Constant(0.)
+        
+        self.initial_concentration = fe.Constant(1.)
+        
+        super().__init__()
+        
+        self.output_directory_path = self.output_directory_path.joinpath(
+            "saline_freezing/")
+        
+    def init_mesh(self):
+    
+        self.mesh = fe.UnitIntervalMesh(self.meshsize)
+        
+    def update_initial_values(self):
+    
+        initial_values = fe.interpolate(
+            fe.Expression(
+                (self.initial_temperature.__float__(), 
+                 self.initial_concentration.__float__()),
+                element = self.element),
+            self.function_space)
+            
+        self.initial_values.assign(initial_values)
+        
+    def init_dirichlet_boundary_conditions(self):
+    
+        W = self.function_space
+        
+        self.dirichlet_boundary_conditions = [
+            fe.DirichletBC(W.sub(0), self.cold_wall_temperature, 1),
+            fe.DirichletBC(W.sub(0), self.initial_temperature, 2)]
+            
+def test__saline_freezing():
+
+    # Set material properties of water-ice per @cite{lide2010}
+    k = 2.14  # Thermal conductivity [W/(m*K)]
+    
+    rho = 916.7  # Density [kg/m^3]
+    
+    c_p = 2.11  # Specific heat capacity [J/(kg*K)]
+    
+    h_m = 333641.9  # Specific latent heat [J/kg]
+    
+    T_m = 0.  # Melting temperature [deg C]
+    
+    
+    # Set material properties for salt water as an eutectic binary alloy.
+    T_E = -21.1  # Eutectic point temperature [deg C]
+    
+    C_E = 23.3  # Eutectic point concentration [wt. % NaCl]
+    
+    Le = 80.  # Lewis number
+    
+    
+    # Set typical sea water values
+    C_0 = 3.5  # Salt concentration [wt. % NaCl]
+    
+    
+    # Set initial and boundary values for the problem.
+    """ Set boundary temperature to the eutectic temperature. """
+    T_B = T_E  # Cold wall temperature [deg C]
+    
+    """ Set farfield temperature to liquidus given the farfield concentration. """
+    T_inf = T_E/C_E*C_0  # Initial/farfield temperature [deg C]
+    
+    print("T_inf = " + str(T_inf))
+    
+    """
+    # Compute derived material properties.
+    kappa = k/(rho*c_p)
+    
+    D = kappa/Le
+    
+    # Get the analytical Stefan problem solution per (Worster 2000)
+    C_fun, T_fun, h_fun, T_i, C_i = fempy.benchmarks.\     
+        analytical_binary_alloy_solidification(
+            k = k, rho = rho, C_p = C_p, L = L, T_m = T_m, 
+            T_B = T_B, T_inf = T_inf, D = D, C_0 = C_0, T_E = T_E, C_E = C_E)
+    
+    
+    # Evaluate the solution at some discrete times and discrete points
+    L = 0.02
+    
+    resolution = 1000
+    
+    x = np.linspace(0., L, resolution)
+    
+    times_to_plot = (10., 20., 30.)  # [s]
+    
+    for t in times_to_plot:
+    
+        h = h_fun(t)
+        
+        C = C_fun(t, x)
+        
+        T = T_fun(t, x)
+    """
+    model = SalineFreezingModel(meshsize = 1024)
+    
+    Ste = c_p*(T_inf - T_B)/h_m
+    
+    print("Stefan number = " + str(Ste))
+    
+    model.stefan_number.assign(Ste)
+    
+    model.lewis_number.assign(Le)
+    
+    T_ref = T_inf
+    
+    def theta(T):
+        
+        return (T - T_ref)/(T_inf - T_B)
+
+    def xi(C):
+        
+        return C/C_0
+        
+    theta_B = theta(T_B)
+    
+    print("theta_B = " + str(theta_B))
+    
+    model.cold_wall_temperature.assign(theta_B)
+    
+    theta_inf = theta(T_inf)
+    
+    print("theta_inf = " + str(theta_inf))
+    
+    model.initial_temperature.assign(theta_inf)
+    
+    xi_0 = xi(C_0)
+    
+    print("xi_0 = " + str(xi_0))
+    
+    model.initial_concentration.assign(xi_0)
+    
+    model.timestep_size.assign(1.)
+    
+    model.update_initial_values()
+    
+    model.plot()
+    
+    model.run(endtime = 30., plot = True)
+    
 
 class VerifiableModel(fempy.models.binary_alloy_enthalpy.Model):
     
