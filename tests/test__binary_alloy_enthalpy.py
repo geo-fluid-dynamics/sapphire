@@ -52,7 +52,9 @@ class VerifiableModel(fempy.models.binary_alloy_enthalpy.Model):
         
         T = 0.5*sin(2.*pi*x)*(1. - 2*exp(-3.*t**2))
         
-        Cl = 1. + sin(3.*pi*x)*(2. - exp(-3.*t**2))
+        Cs = self.solid_concentration
+        
+        Cl = 0.5 + Cs - T
         
         self.manufactured_solution = T, Cl
 
