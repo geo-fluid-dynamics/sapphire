@@ -1,5 +1,5 @@
 """ This module solves the analytical 1D Stefan problem for binary alloy solidification. """
-import numpy
+import numpy as np
 import scipy
 import scipy.special
 import scipy.optimize
@@ -55,7 +55,7 @@ def solve(k, rho, C_p, L, T_m, T_B, T_inf, D, C_0, T_E, C_E):
     C_i
         the interfacial concentration
     """
-    pi, sqrt, exp = numpy.pi, numpy.sqrt, numpy.exp
+    pi, sqrt, exp = np.pi, np.sqrt, np.exp
     
     erf, erfc = scipy.special.erf, scipy.special.erfc
     
@@ -140,11 +140,13 @@ def run_salt_water_example():
     
     
     # Set initial and boundary values for the example problem.
-    T_B = -30.  # Cold wall temperature [deg C]
+    """ Set boundary temperature to the eutectic temperature. """
+    T_B = T_E  # Cold wall temperature [deg C]
     
-    T_inf = -20.  # Initial/farfield temperature [deg C]
+    C_0 = 3.5  # Concentration [wt. % NaCl]
     
-    C_0 = 10  # Concentration [wt. % NaCl]
+    """ Set farfield temperature to liquidus given the farfield concentration. """
+    T_inf = T_E/C_E*C_0  # Initial/farfield temperature [deg C]
     
     
     # Compute derived material properties.
@@ -154,7 +156,8 @@ def run_salt_water_example():
     
     
     # Get the analytical Stefan problem solution per (Worster 2000)
-    C_fun, T_fun, h_fun, T_i, C_i = solve(k = k, rho = rho, C_p = C_p, L = L, T_m = T_m, 
+    C_fun, T_fun, h_fun, T_i, C_i = solve(
+        k = k, rho = rho, C_p = C_p, L = L, T_m = T_m, 
         T_B = T_B, T_inf = T_inf, D = D, C_0 = C_0, T_E = T_E, C_E = C_E)
     
     
@@ -163,7 +166,7 @@ def run_salt_water_example():
     
     resolution = 1000
     
-    times_to_plot = (60, 600, 6000)  # [s]
+    times_to_plot = (10., 20., 30.)  # [s]
     
     colors = ("r", "g", "b")
     
@@ -171,30 +174,38 @@ def run_salt_water_example():
     assert(len(times_to_plot) == len(colors))
     
     
-    z = numpy.linspace(0., L, resolution)
+    z = np.linspace(0., L, resolution)
     
     
     fig = plt.figure()
     
     
-    Tax = fig.add_subplot(111)
+    Cax = fig.add_subplot(111)
     
-    plt.xlabel("$x$ [m]")
+    Cax.set_ylim((-0.05*C_E, 1.05*C_E))
     
-    plt.ylabel("$T$ [$^\circ$C]")
+    Cax.set_yticks((0., C_0, C_E))
     
-    plt.ylim([T_B, -15.])
+    Cax.set_ylabel(r"$C$ [wt. % NaCl]")
+    
+    Cax.set_xlabel(r"$x$ [m]")
+    
+    Cax.set_xlim([-L/20., 1.05*L]) 
+
+    Cax.set_xticks(np.linspace(0., L, 5))
     
     
-    Cax = fig.add_subplot(111, sharex=Tax, frameon=False)
+    Tax = fig.add_subplot(111, sharex=Cax, frameon=False)
     
-    Cax.yaxis.tick_right()
+    Tax.set_ylim((1.05*T_E, T_inf + (T_inf - T_E)*0.05))
     
-    Cax.yaxis.set_label_position("right")
+    Tax.yaxis.tick_right()
     
-    plt.ylabel("$C$ [wt. % NaCl]")
+    Tax.set_yticks((T_E, T_B, T_inf))
     
-    plt.ylim([0., 45.])
+    Tax.set_ylabel(r"$T$ [$^\circ$C]")
+    
+    Tax.yaxis.set_label_position("right")
     
     
     T_legend_strings = []
@@ -210,19 +221,21 @@ def run_salt_water_example():
         
         T = T_fun(t, z)
         
-        Tax.plot(z, T, color + "-")
-        
-        T_legend_strings.append("$T$ @ $t = " + str(t) + "$ s")
-        
         Cax.plot(z, C, color + "--")
         
         C_legend_strings.append("$C$ @ $t = " + str(t) + "$ s")
         
-    plt.xlim([0., L])    
+        Tax.plot(z, T, color + "-")
+        
+        T_legend_strings.append("$T$ @ $t = " + str(t) + "$ s")
+        
+        
+    Cax.legend(C_legend_strings, loc = "center", framealpha = 0.)
     
-    Tax.legend(T_legend_strings, loc = "upper left", framealpha = 0.)
+    Tax.legend(T_legend_strings, loc = "center right", framealpha = 0.)
     
-    Cax.legend(C_legend_strings, loc = "upper right", framealpha = 0.)
+    
+    plt.tight_layout()
     
     plt.savefig("salt_water_solidification.png")
     
