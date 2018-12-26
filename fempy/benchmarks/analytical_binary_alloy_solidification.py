@@ -45,9 +45,9 @@ def solve(k, rho, C_p, L, T_m, T_B, T_inf, D, C_0, T_E, C_E):
     Returns
     -------
     C
-        concentration function def C(t, z)
+        concentration function def C(t, x)
     T
-        temperature function def T(t, z)
+        temperature function def T(t, x)
     h
         PCI position function def h(t)
     T_i
@@ -87,30 +87,30 @@ def solve(k, rho, C_p, L, T_m, T_B, T_inf, D, C_0, T_E, C_E):
     
     C_i = -C_0/(F(_lambda) - 1.)  # Eq 4.12a
     
-    def eta(t, z):
+    def eta(t, x):
     
-        return z/(2.*sqrt(D*t))  # Eq 4.11
+        return x/(2.*sqrt(D*t))  # Eq 4.11
     
     
     def h(t):
         
         return 2.*_lambda*sqrt(D*t)  # Eq 4.7, position of the PCI
     
-    def T(t, z):
+    def T(t, x):
     
-        TL = (eta(t,z) < _lambda)* \
-            (T_B + (T_m - m*C_i - T_B)*erf(epsilon*eta(t, z))/erf(epsilon*_lambda))
+        TL = (eta(t,x) < _lambda)* \
+            (T_B + (T_m - m*C_i - T_B)*erf(epsilon*eta(t, x))/erf(epsilon*_lambda))
             # Equation 4.8 sub 4.6
         
-        TR = (eta(t,z) > _lambda)* \
-            (T_inf + (T_m - m*C_i - T_inf)*erfc(epsilon*eta(t,z))/erfc(epsilon*_lambda))
+        TR = (eta(t,x) > _lambda)* \
+            (T_inf + (T_m - m*C_i - T_inf)*erfc(epsilon*eta(t,x))/erfc(epsilon*_lambda))
             # Equation 4.9 sub 4.6
         
         return TL + TR
     
-    def C(t, z):
+    def C(t, x):
         
-        return (eta(t,z) > _lambda)*(C_0 + (C_i - C_0)*erfc(eta(t,z))/erfc(_lambda))  # Eq 4.10
+        return (eta(t,x) > _lambda)*(C_0 + (C_i - C_0)*erfc(eta(t,x))/erfc(_lambda))  # Eq 4.10
         
     T_i = T_m - m*C_i  # Eq 4.6
     
@@ -174,7 +174,7 @@ def run_salt_water_example():
     assert(len(times_to_plot) == len(colors))
     
     
-    z = np.linspace(0., L, resolution)
+    x = np.linspace(0., L, resolution)
     
     
     fig = plt.figure()
@@ -217,15 +217,15 @@ def run_salt_water_example():
 
         h = h_fun(t)
         
-        C = C_fun(t, z)
+        C = C_fun(t, x)
         
-        T = T_fun(t, z)
+        T = T_fun(t, x)
         
-        Cax.plot(z, C, color + "--")
+        Cax.plot(x, C, color + "--")
         
         C_legend_strings.append("$C$ @ $t = " + str(t) + "$ s")
         
-        Tax.plot(z, T, color + "-")
+        Tax.plot(x, T, color + "-")
         
         T_legend_strings.append("$T$ @ $t = " + str(t) + "$ s")
         
