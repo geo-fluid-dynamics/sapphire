@@ -85,10 +85,11 @@ class Model(fempy.model.Model):
             
             plt.axis("square")
             
-            plt.title(r"$w_" + str(i) + "$")
+            plt.title(r"$w_" + str(i) + "$, $ t = " 
+                + str(self.time.__float__()) + "$")
             
             filepath = self.output_directory_path.joinpath(
-                "w" + str(i) + "_t" + str(self.time.__float__())
+                "w" + str(i) + "_t" + str(self.time.__float__()).replace(".", "p")
                 ).with_suffix(".png")
             
             print("Writing plot to " + str(filepath))
