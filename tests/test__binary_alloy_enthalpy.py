@@ -18,6 +18,8 @@ class SalineFreezingModel(fempy.models.binary_alloy_enthalpy.Model):
         
         super().__init__()
         
+        self.update_initial_values()
+        
         self.output_directory_path = self.output_directory_path.joinpath(
             "saline_freezing/")
         
@@ -46,16 +48,19 @@ class SalineFreezingModel(fempy.models.binary_alloy_enthalpy.Model):
             
 def test__saline_freezing():
 
+    # Set length scale
+    L = 0.02  # [m]
+    
     # Set material properties of water-ice per @cite{lide2010}
     k = 2.14  # Thermal conductivity [W/(m*K)]
     
     rho = 916.7  # Density [kg/m^3]
     
-    c_p = 2.11  # Specific heat capacity [J/(kg*K)]
+    c_p = 2110.  # Specific heat capacity [J/(kg*K)]
     
     h_m = 333641.9  # Specific latent heat [J/kg]
     
-    T_m = 0.  # Melting temperature [deg C]
+    T_m = 0.  # Melting temperature of pure water-ice [deg C]
     
     
     # Set material properties for salt water as an eutectic binary alloy.
@@ -64,6 +69,8 @@ def test__saline_freezing():
     C_E = 23.3  # Eutectic point concentration [wt. % NaCl]
     
     Le = 80.  # Lewis number
+    
+    C_s = 0.  # Solute concentration in the solid
     
     
     # Set typical sea water values
@@ -75,15 +82,20 @@ def test__saline_freezing():
     T_B = T_E  # Cold wall temperature [deg C]
     
     """ Set farfield temperature to liquidus given the farfield concentration. """
-    T_inf = T_E/C_E*C_0  # Initial/farfield temperature [deg C]
+    T_inf = T_m + T_E/C_E*C_0  # Initial/farfield temperature [deg C]
     
     print("T_inf = " + str(T_inf))
     
-    """
     # Compute derived material properties.
     kappa = k/(rho*c_p)
     
     D = kappa/Le
+    
+    alpha = k/(rho*c_p)
+    
+    print("alpha = " + str(alpha))
+    
+    """
     
     # Get the analytical Stefan problem solution per (Worster 2000)
     C_fun, T_fun, h_fun, T_i, C_i = fempy.benchmarks.\     
@@ -93,7 +105,6 @@ def test__saline_freezing():
     
     
     # Evaluate the solution at some discrete times and discrete points
-    L = 0.02
     
     resolution = 1000
     
@@ -109,7 +120,20 @@ def test__saline_freezing():
         
         T = T_fun(t, x)
     """
-    model = SalineFreezingModel(meshsize = 1024)
+    endtime_sec = 30.  # [s]
+    
+    nx = 128
+    
+    nt = 48
+    
+    sinv = 128
+    
+    model = SalineFreezingModel(meshsize = nx)
+    
+    model.smoothing.assign(1./float(sinv))
+    
+    model.output_directory_path = model.output_directory_path.joinpath(
+        "nx" + str(nx) + "_nt" + str(nt) + "_sinv" + str(sinv) + "/")
     
     Ste = c_p*(T_inf - T_B)/h_m
     
@@ -118,6 +142,8 @@ def test__saline_freezing():
     model.stefan_number.assign(Ste)
     
     model.lewis_number.assign(Le)
+    
+    model.solid_concentration.assign(C_s)
     
     T_ref = T_inf
     
@@ -137,9 +163,9 @@ def test__saline_freezing():
     
     theta_inf = theta(T_inf)
     
-    print("theta_inf = " + str(theta_inf))
-    
     model.initial_temperature.assign(theta_inf)
+    
+    print("theta_0 = " + str(theta_inf))
     
     xi_0 = xi(C_0)
     
@@ -147,13 +173,25 @@ def test__saline_freezing():
     
     model.initial_concentration.assign(xi_0)
     
-    model.timestep_size.assign(1.)
-    
     model.update_initial_values()
+    
+    model.solution.assign(model.initial_values)
     
     model.plot()
     
-    model.run(endtime = 30., plot = True)
+    def t(t_sec):
+    
+        return t_sec*alpha/pow(L, 2)
+    
+    endtime = t(endtime_sec)
+    
+    print("Scaled end time = " + str(endtime))
+    
+    Delta_t = endtime/float(nt)
+    
+    model.timestep_size.assign(Delta_t)
+    
+    model.run(endtime = endtime, plot = True)
     
 
 class VerifiableModel(fempy.models.binary_alloy_enthalpy.Model):
