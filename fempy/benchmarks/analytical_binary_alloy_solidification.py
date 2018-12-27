@@ -6,7 +6,7 @@ import scipy.optimize
 import matplotlib.pyplot as plt
 
 
-def solve(k, rho, C_p, L, T_m, T_B, T_inf, D, C_0, T_E, C_E):
+def solve(k, rho, c_p, h_m, T_m, T_B, T_inf, D, C_0, T_E, C_E):
     """ Solves 1D binary alloy solidification for the given parameters.
     This solves equations 2.8, 2.14, 4.6-4.12, 4.14 from the 
     "Solidification of Fluids" chapter in
@@ -23,10 +23,10 @@ def solve(k, rho, C_p, L, T_m, T_B, T_inf, D, C_0, T_E, C_E):
         thermal conductivity
     rho
         density
-    C_p
+    c_p
         specific heat capacity
-    L
-        latent heat
+    h_m
+        specific latent heat
     T_m
         melting temperature
     T_B
@@ -60,7 +60,7 @@ def solve(k, rho, C_p, L, T_m, T_B, T_inf, D, C_0, T_E, C_E):
     erf, erfc = scipy.special.erf, scipy.special.erfc
     
     
-    kappa = k/(rho*C_p)  # thermal diffusivity
+    kappa = k/(rho*c_p)  # thermal diffusivity
     
     Le = kappa/D  # Lewis number
     
@@ -80,7 +80,7 @@ def solve(k, rho, C_p, L, T_m, T_B, T_inf, D, C_0, T_E, C_E):
     def Equation4p12ab(_lambda):
 
         return (T_m + m*C_0/(F(_lambda) - 1.) - T_B)/G(epsilon*_lambda) - \
-        (T_inf - T_m - m*C_0/(F(_lambda) - 1.))/F(epsilon*_lambda) - L/C_p
+        (T_inf - T_m - m*C_0/(F(_lambda) - 1.))/F(epsilon*_lambda) - h_m/c_p
         # Equation 4.12b sub 4.6 sub 4.12a
     
     _lambda = scipy.optimize.fsolve(Equation4p12ab, 0.1)
@@ -121,17 +121,20 @@ def run_salt_water_example():
     """ Run a salt water solidification example. """
 
     
-    # Set material properties for salt water.
-    k = 2.3  # Thermal conductivity of the solid [W/(m*K)]
+    # Set material properties of water-ice per @cite{lide2010}
+    k = 2.14  # Thermal conductivity of the solid [W/(m*K)]
     
-    rho = 920.  # Density [kg/m^3]
+    rho = 916.7  # Density [kg/m^3]
     
-    C_p = 4200.  # Heat capacity of the liquid [W/(m*K)]
+    c_p = 2110.  # Heat capacity of the liquid [W/(m*K)]
     
-    L = 333700.  # Latent heat [J/kg]
+    h_m = 333641.9   # Latent heat [J/kg]
     
     T_m = 0.  # Freezing temperature of pure water [deg C]
     
+    
+    # Set material properties for salt water as an eutectic binary alloy
+    # per @cite{worster2000}
     T_E = -21.1  # Eutectic point temperature [deg C]
     
     C_E = 23.3  # Eutectic point concentration [wt. % NaCl]
@@ -150,14 +153,14 @@ def run_salt_water_example():
     
     
     # Compute derived material properties.
-    kappa = k/(rho*C_p)
+    kappa = k/(rho*c_p)
     
     D = kappa/Le
     
     
     # Get the analytical Stefan problem solution per (Worster 2000)
     C_fun, T_fun, h_fun, T_i, C_i = solve(
-        k = k, rho = rho, C_p = C_p, L = L, T_m = T_m, 
+        k = k, rho = rho, c_p = c_p, h_m = h_m, T_m = T_m, 
         T_B = T_B, T_inf = T_inf, D = D, C_0 = C_0, T_E = T_E, C_E = C_E)
     
     
@@ -221,11 +224,11 @@ def run_salt_water_example():
         
         T = T_fun(t, x)
         
-        Cax.plot(x, C, color + "--")
+        Cax.plot(x, C, color + "-")
         
         C_legend_strings.append("$C$ @ $t = " + str(t) + "$ s")
         
-        Tax.plot(x, T, color + "-")
+        Tax.plot(x, T, color + "--")
         
         T_legend_strings.append("$T$ @ $t = " + str(t) + "$ s")
         
