@@ -152,7 +152,7 @@ class Model(fempy.models.enthalpy_porosity.Model):
         for f, label, filename in zip(
                 (self.mesh, p, u, T, C, phil),
                 ("\\Omega_h", "p", "\\mathbf{u}", "T", "C", "\\phi_l"),
-                ("mesh", "p", "u", "T", "Cl", "phil")):
+                ("mesh", "p", "u", "T", "C", "phil")):
             
             fe.plot(f)
             
