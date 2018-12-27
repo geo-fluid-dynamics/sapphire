@@ -1,8 +1,10 @@
 """ An enthalpy model class for melting and solidification of binary alloys"""
 import firedrake as fe
 import fempy.unsteady_model
+import fempy.autosmooth
+import matplotlib.pyplot as plt
 
-    
+
 class Model(fempy.unsteady_model.Model):
     
     def __init__(self):
@@ -15,11 +17,15 @@ class Model(fempy.unsteady_model.Model):
         
         self.liquidus_slope = fe.Constant(-0.1)
         
-        self.solid_concentration = fe.Constant(0.02)
+        self.solid_concentration = fe.Constant(0.)
         
-        self.latent_heat_smoothing = fe.Constant(1./32.)
+        self.smoothing = fe.Constant(1./64.)
         
         super().__init__()
+        
+        self.backup_solution = fe.Function(self.solution)
+        
+        self.smoothing_sequence = None
         
     def init_element(self):
     
@@ -39,7 +45,7 @@ class Model(fempy.unsteady_model.Model):
         
         T_L = self.liquidus_temperature(Cl)
         
-        s = self.latent_heat_smoothing
+        s = self.smoothing
         
         tanh = fe.tanh
         
@@ -88,3 +94,46 @@ class Model(fempy.unsteady_model.Model):
             
         self.weak_form_residual = enthalpy + concentration
         
+    def solve(self):
+        
+        fempy.autosmooth.solve(self)
+        
+    def plot(self):
+    
+        V = fe.FunctionSpace(
+            self.mesh, fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
+        
+        T, Cl = self.solution.split()
+        
+        _phil = self.porosity(T, Cl)
+        
+        phil = fe.interpolate(_phil, V)
+        
+        C = fe.interpolate(_phil*Cl, V)
+        
+        timestr = str(self.time.__float__())
+        
+        self.output_directory_path.mkdir(
+                parents = True, exist_ok = True)
+        
+        for f, label, filename in zip(
+                (T, Cl, C, phil),
+                ("T", "C_l", "C", "\\phi_l"),
+                ("T", "Cl", "C", "phil")):
+            
+            fe.plot(f)
+            
+            plt.xlabel(r"$x$")
+            
+            plt.title(r"$" + label + 
+                ", t = " + timestr + "$")
+            
+            filepath = self.output_directory_path.joinpath(filename + 
+                "_t" + timestr.replace(".", "p")).with_suffix(".png")
+            
+            print("Writing plot to " + str(filepath))
+            
+            plt.savefig(str(filepath))
+            
+            plt.close()
+            
