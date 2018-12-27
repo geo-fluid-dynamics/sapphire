@@ -128,7 +128,7 @@ class Model(fempy.unsteady_model.Model):
 
         self.integration_measure = fe.dx(degree = 4)
         
-    def solve(self, *args, **kwargs):
+    def solve(self):
         
         if self.autosmooth_enable:
             
