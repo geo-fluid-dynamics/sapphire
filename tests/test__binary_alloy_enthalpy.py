@@ -194,20 +194,21 @@ def test__saline_freezing():
     
     model.timestep_size.assign(Delta_t)
     
-    legend_strings = []
-    
-    fig = plt.figure()
-    
-    axes = plt.axes()
-    
-    plt.xlabel(r"$x$")
-    
-    plt.ylabel(r"$C$")
     
     V = fe.FunctionSpace(
             model.mesh, fe.FiniteElement("P", model.mesh.ufl_cell(), 1))
     
-    filepath = model.output_directory_path.joinpath("C").with_suffix(".png")
+    figures = []
+    
+    axes = []
+    
+    for i in range(4):
+    
+        figures.append(plt.figure())
+        
+        axes.append(plt.axes())
+    
+    legend_strings = []
     
     for time, color in zip(
             (endtime/3., 2.*endtime/3., endtime), ("r", "g", "b")):
@@ -224,16 +225,31 @@ def test__saline_freezing():
         
         C = fe.interpolate(_phil*Cl, V)
         
-        fempy.patches.plot(C, axes = axes, color = color)
+        for u, fig, ax, name, label in zip(
+                (T, Cl, phil, C), 
+                figures,
+                axes,
+                ("T", "Cl", "phil", "C"),
+                ("T", "C_l", "\\phi_l", "C")):
         
-        plt.legend(legend_strings)
+            plt.figure(fig.number)
+            
+            fempy.patches.plot(u, axes = ax, color = color)
         
-        print("Writing plot to " + str(filepath))
+            ax.set_xlabel(r"$x$")
+            
+            ax.set_ylabel(r"$" + str(label) + "$")
+            
+            ax.legend(legend_strings)
+        
+            filepath = model.output_directory_path.\
+                joinpath(name).with_suffix(".png")
+        
+            print("Writing plot to " + str(filepath))
     
-        plt.savefig(str(filepath))
-    
-    plt.close()
-
+            fig.savefig(str(filepath))
+            
+        
 class VerifiableModel(fempy.models.binary_alloy_enthalpy.Model):
     
     def __init__(self, meshsize):
