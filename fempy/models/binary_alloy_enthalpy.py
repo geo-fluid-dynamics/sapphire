@@ -51,21 +51,33 @@ class Model(fempy.unsteady_model.Model):
         
         return 0.5*(1. + tanh((T - T_L)/s))
     
-    def init_time_discrete_terms(self):
-        """ Implicit Euler finite difference scheme """
-        T, Cl = self.solution
+    def init_initial_values(self):
         
-        T_n, Cl_n = self.initial_values
+        self.initial_values = [fe.Function(self.function_space)
+            for i in range(2)]
+    
+    def init_time_discrete_terms(self):
         
         Delta_t = self.timestep_size
         
-        T_t = (T - T_n)/Delta_t
+        def bdf2(u_np1, u_n, u_nm1):
         
-        Cl_t = (Cl - Cl_n)/Delta_t
+            return (3.*u_np1 - 4.*u_n + u_nm1)/(2.*Delta_t)
+            
+        T_np1, Cl_np1= self.solution
+        
+        T_n, Cl_n = self.initial_values[0]
+        
+        T_nm1, Cl_nm1 = self.initial_values[1]
+        
+        T_t = bdf2(T_np1, T_n, T_nm1)
+        
+        Cl_t = bdf2(Cl_np1, Cl_n, Cl_nm1)
         
         phil = self.porosity
         
-        phil_t = (phil(T, Cl) - phil(T_n, Cl_n))/Delta_t
+        phil_t = bdf2(
+            phil(T_np1, Cl_np1), phil(T_n, Cl_n), phil(T_np1, Cl_np1))
         
         self.time_discrete_terms = T_t, Cl_t, phil_t
     
@@ -93,6 +105,10 @@ class Model(fempy.unsteady_model.Model):
             + 1./Le*dot(grad(psi_Cl), phil*grad(Cl))
             
         self.weak_form_residual = enthalpy + concentration
+        
+    def init_integration_measure(self):
+
+        self.integration_measure = fe.dx(degree = 16)
         
     def solve(self):
         
