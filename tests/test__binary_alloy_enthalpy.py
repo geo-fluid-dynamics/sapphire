@@ -2,7 +2,8 @@ import firedrake as fe
 import fempy.mms
 import fempy.models.binary_alloy_enthalpy
 import fempy.benchmarks.analytical_binary_alloy_solidification
-
+import matplotlib.pyplot as plt
+import fempy.patches
 
 class SalineFreezingModel(fempy.models.binary_alloy_enthalpy.Model):
     
@@ -36,7 +37,9 @@ class SalineFreezingModel(fempy.models.binary_alloy_enthalpy.Model):
                 element = self.element),
             self.function_space)
             
-        self.initial_values.assign(initial_values)
+        for iv in self.initial_values:
+        
+            iv.assign(initial_values)
         
     def init_dirichlet_boundary_conditions(self):
     
@@ -122,9 +125,9 @@ def test__saline_freezing():
     """
     endtime_sec = 30.  # [s]
     
-    nx = 128
+    nx = 256
     
-    nt = 48
+    nt = 192
     
     sinv = 128
     
@@ -134,6 +137,8 @@ def test__saline_freezing():
     
     model.output_directory_path = model.output_directory_path.joinpath(
         "nx" + str(nx) + "_nt" + str(nt) + "_sinv" + str(sinv) + "/")
+    
+    model.output_directory_path.mkdir(parents = True, exist_ok = True)
     
     Ste = c_p*(T_inf - T_B)/h_m
     
@@ -175,9 +180,7 @@ def test__saline_freezing():
     
     model.update_initial_values()
     
-    model.solution.assign(model.initial_values)
-    
-    model.plot()
+    model.solution.assign(model.initial_values[0])
     
     def t(t_sec):
     
@@ -191,8 +194,45 @@ def test__saline_freezing():
     
     model.timestep_size.assign(Delta_t)
     
-    model.run(endtime = endtime, plot = True)
+    legend_strings = []
     
+    fig = plt.figure()
+    
+    axes = plt.axes()
+    
+    plt.xlabel(r"$x$")
+    
+    plt.ylabel(r"$C$")
+    
+    V = fe.FunctionSpace(
+            model.mesh, fe.FiniteElement("P", model.mesh.ufl_cell(), 1))
+    
+    filepath = model.output_directory_path.joinpath("C").with_suffix(".png")
+    
+    for time, color in zip(
+            (endtime/3., 2.*endtime/3., endtime), ("r", "g", "b")):
+    
+        model.run(endtime = time, plot = False)
+        
+        legend_strings.append(r"$t = " + str(model.time.__float__()) + "$")
+    
+        T, Cl = model.solution.split()
+        
+        _phil = model.porosity(T, Cl)
+        
+        phil = fe.interpolate(_phil, V)
+        
+        C = fe.interpolate(_phil*Cl, V)
+        
+        fempy.patches.plot(C, axes = axes, color = color)
+        
+        plt.legend(legend_strings)
+        
+        print("Writing plot to " + str(filepath))
+    
+        plt.savefig(str(filepath))
+    
+    plt.close()
 
 class VerifiableModel(fempy.models.binary_alloy_enthalpy.Model):
     
