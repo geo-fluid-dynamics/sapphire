@@ -27,6 +27,10 @@ class Model(fempy.models.enthalpy_porosity.Model):
         
         delattr(self, "rayleigh_number")
         
+    def init_integration_measure(self):
+
+        self.integration_measure = fe.dx(degree = 8)
+        
     def init_element(self):
     
         P1 = fe.FiniteElement("P", self.mesh.ufl_cell(), 1)
