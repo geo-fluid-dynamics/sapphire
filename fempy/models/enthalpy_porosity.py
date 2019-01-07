@@ -33,7 +33,7 @@ class Model(fempy.unsteady_model.Model):
         
         self.autosmooth_firstval = 1./4.
         
-        self.autosmooth_maxcount = 16
+        self.autosmooth_maxcount = 32
         
         super().__init__()
         
@@ -133,7 +133,10 @@ class Model(fempy.unsteady_model.Model):
         
         if self.autosmooth_enable:
             
-            fempy.autosmooth.solve(self)
+            fempy.autosmooth.solve(self,
+                firstval = self.autosmooth_firstval,
+                maxval = self.autosmooth_maxval,
+                maxcount = self.autosmooth_maxcount)
             
         elif self.smoothing_sequence == None:
         
