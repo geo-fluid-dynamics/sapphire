@@ -2,47 +2,6 @@ import firedrake as fe
 import fempy.models.binary_alloy_enthalpy_porosity
 import fempy.applications.binary_alloy_cavity_freezing
 
-
-def test__cavity_freezing_regression():
-    
-    model = fempy.applications.binary_alloy_cavity_freezing.\
-        ModelWithBDF2(meshsize = 16)
-    
-    model.cold_wall_temperature_before_freezing.assign(0.25)
-    
-    model.cold_wall_temperature_during_freezing.assign(-1.25)
-    
-    model.temperature_rayleigh_number.assign(3.e5)
-    
-    model.concentration_rayleigh_number.assign(-3.e4)
-    
-    model.schmidt_number.assign(1.)
-    
-    model.liquidus_slope.assign(-0.1)
-    
-    model.latent_heat_smoothing.assign(1./16.)
-    
-    model.output_directory_path = model.output_directory_path.joinpath(
-        "cavity_freezing/")
-    
-    model.timestep_size.assign(1.)
-    
-    model.run(endtime = 3., plot = True)
-    
-    p, u, T, Cl = model.solution.split()
-    
-    phil = model.porosity(T = T, Cl = Cl)
-    
-    expected_liquid_area = 0.82
-    
-    tolerance = 1.e-2
-    
-    liquid_area = fe.assemble(phil*fe.dx)
-    
-    print("Liquid area = " + str(liquid_area))
-    
-    assert(abs(liquid_area - expected_liquid_area) < tolerance)
-
     
 def test__sea_ice_cavity_freezing__regression():
 
@@ -56,7 +15,7 @@ def test__sea_ice_cavity_freezing__regression():
     
     expected_liquid_area = 0.92
     
-    tolerance = 0.001
+    tolerance = 0.01
     
     
     model = fempy.applications.binary_alloy_cavity_freezing.Model(
@@ -64,16 +23,13 @@ def test__sea_ice_cavity_freezing__regression():
     
     model.output_directory_path = model.output_directory_path.joinpath(
         "sea_ice_cavity_freezing/")
+        
     
     model.hot_wall_temperature.assign(1./3.)
     
     model.cold_wall_temperature_before_freezing.assign(0.)
     
     model.cold_wall_temperature_during_freezing.assign(-2./3.)
-    
-    model.temperature_rayleigh_number.assign(1.e6)
-    
-    model.concentration_rayleigh_number.assign(-1.e6)
     
     model.prandtl_number.assign(13.)
     
@@ -86,6 +42,16 @@ def test__sea_ice_cavity_freezing__regression():
     model.initial_concentration.assign(1.)
     
     model.liquidus_slope.assign(-0.1)
+    
+    """ Run with reduced Rayleigh numbers.
+    With the other parameters in this test, 
+    realistic Rayleigh numbers are Ra_T = 5.e6 and Ra_C = -6.e7;
+    but running higher Rayleigh numbers may require stabilization.
+    """
+    model.temperature_rayleigh_number.assign(1.e6)
+    
+    model.concentration_rayleigh_number.assign(-1.e6)
+    
     
     model.latent_heat_smoothing.assign(latent_heat_smoothing)
     
