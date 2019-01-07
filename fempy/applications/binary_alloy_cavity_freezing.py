@@ -49,10 +49,6 @@ class Model(fempy.models.binary_alloy_enthalpy_porosity.Model):
         self.function_space = self.navier_stokes_boussinesq_function_space*\
             self.concentration_function_space
         
-    def init_initial_values(self):
-        
-        self.initial_values = fe.Function(self.function_space)
-        
     def init_dirichlet_boundary_conditions(self):
     
         W = self.function_space
@@ -151,7 +147,15 @@ class Model(fempy.models.binary_alloy_enthalpy_porosity.Model):
         self.cold_wall_temperature.assign(
             self.cold_wall_temperature_during_freezing)
         
-        self.initial_values.assign(self.solution)
+        if type(self.initial_values) is type([]):
+        
+            for iv in self.initial_values:
+            
+                iv.assign(self.solution)
+        
+        else:
+        
+            self.initial_values.assign(self.solution)
         
         print("Dropped cold wall temperature")
         
@@ -159,3 +163,9 @@ class Model(fempy.models.binary_alloy_enthalpy_porosity.Model):
         
         super().run(endtime = endtime, plot = plot)
         
+        
+class ModelWithBDF2(
+        fempy.models.binary_alloy_enthalpy_porosity.ModelWithBDF2,
+        Model):
+    """ Second-order accurate """
+    

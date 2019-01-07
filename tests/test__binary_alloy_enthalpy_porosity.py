@@ -1,10 +1,50 @@
 import firedrake as fe
 import fempy.models.binary_alloy_enthalpy_porosity
 import fempy.applications.binary_alloy_cavity_freezing
-import pathlib
 
 
-def test__convection_coupled_sea_ice_cavity_freezing__regression():
+def test__cavity_freezing_regression():
+    
+    model = fempy.applications.binary_alloy_cavity_freezing.\
+        ModelWithBDF2(meshsize = 16)
+    
+    model.cold_wall_temperature_before_freezing.assign(0.25)
+    
+    model.cold_wall_temperature_during_freezing.assign(-1.25)
+    
+    model.temperature_rayleigh_number.assign(3.e5)
+    
+    model.concentration_rayleigh_number.assign(-3.e4)
+    
+    model.schmidt_number.assign(1.)
+    
+    model.liquidus_slope.assign(-0.1)
+    
+    model.latent_heat_smoothing.assign(1./16.)
+    
+    model.output_directory_path = model.output_directory_path.joinpath(
+        "cavity_freezing/")
+    
+    model.timestep_size.assign(1.)
+    
+    model.run(endtime = 3., plot = True)
+    
+    p, u, T, Cl = model.solution.split()
+    
+    phil = model.porosity(T = T, Cl = Cl)
+    
+    expected_liquid_area = 0.82
+    
+    tolerance = 1.e-2
+    
+    liquid_area = fe.assemble(phil*fe.dx)
+    
+    print("Liquid area = " + str(liquid_area))
+    
+    assert(abs(liquid_area - expected_liquid_area) < tolerance)
+
+    
+def test__sea_ice_cavity_freezing__regression():
 
     endtime = 1.
     
@@ -23,7 +63,7 @@ def test__convection_coupled_sea_ice_cavity_freezing__regression():
         meshsize = meshsize)
     
     model.output_directory_path = model.output_directory_path.joinpath(
-        "convection_coupled_sea_ice_cavity_freezing/")
+        "sea_ice_cavity_freezing/")
     
     model.hot_wall_temperature.assign(1./3.)
     
@@ -64,7 +104,7 @@ def test__convection_coupled_sea_ice_cavity_freezing__regression():
     print("Liquid area = " + str(liquid_area))
     
     assert(abs(liquid_area - expected_liquid_area) < tolerance)
-        
+    
     
 class VerifiableModel(
     fempy.models.binary_alloy_enthalpy_porosity.Model):

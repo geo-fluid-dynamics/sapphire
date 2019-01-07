@@ -69,6 +69,10 @@ class Model(fempy.models.enthalpy_porosity.Model):
         
         return 1./Pr*(Ra_T*T + Ra_C*Cl)*ghat
         
+    def init_initial_values(self):
+        
+        self.initial_values = fe.Function(self.function_space)
+        
     def init_time_discrete_terms(self):
         """ Implicit Euler finite difference scheme """
         p, u, T, Cl = fe.split(self.solution)
@@ -180,6 +184,11 @@ class Model(fempy.models.enthalpy_porosity.Model):
             
 class ModelWithBDF2(Model):
     
+    def init_initial_values(self):
+        
+        self.initial_values = [fe.Function(self.function_space)
+            for i in range(2)]
+        
     def init_time_discrete_terms(self):
         
         Delta_t = self.timestep_size
