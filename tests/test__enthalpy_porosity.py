@@ -12,7 +12,7 @@ def test__melting_octadecane_benchmark__regression():
     
     model.timestep_size.assign(10.)
     
-    model.latent_heat_smoothing.assign(1./256.)
+    model.smoothing.assign(1./256.)
     
     model.output_directory_path = model.output_directory_path.joinpath(
         "melting_octadecane/")
@@ -130,7 +130,7 @@ def fails__test__verify_spatial_convergence_order_via_mms(
             "rayleigh_number": 10.,
             "prandtl_number": 5.,
             "stefan_number": 0.2,
-            "latent_heat_smoothing": 1./16.},
+            "smoothing": 1./16.},
         mesh_sizes = (4, 8, 16),
         timestep_size = 1./64.,
         tolerance = 0.2):

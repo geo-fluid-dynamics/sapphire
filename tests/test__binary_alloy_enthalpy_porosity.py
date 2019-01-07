@@ -11,7 +11,7 @@ def test__sea_ice_cavity_freezing__regression():
     
     meshsize = 32
     
-    latent_heat_smoothing = 1./64.
+    smoothing = 1./64.
     
     expected_liquid_area = 0.92
     
@@ -53,7 +53,7 @@ def test__sea_ice_cavity_freezing__regression():
     model.concentration_rayleigh_number.assign(-1.e6)
     
     
-    model.latent_heat_smoothing.assign(latent_heat_smoothing)
+    model.smoothing.assign(smoothing)
     
     model.timestep_size.assign(timestep_size)
     
@@ -95,7 +95,7 @@ class VerifiableModel(
         
         self.liquidus_slope.assign(-0.1)
         
-        self.latent_heat_smoothing.assign(1./32.)
+        self.smoothing.assign(1./32.)
         
     def init_mesh(self):
         
@@ -190,7 +190,7 @@ def fails__test__verify_spatial_convergence_order_via_mms(
             "schmidt_number": 1.,
             "pure_liquidus_temperature": 0.,
             "liquidus_slope": -0.01,
-            "latent_heat_smoothing": 1./16.},
+            "smoothing": 1./16.},
         mesh_sizes = (4, 8, 16),
         timestep_size = 1./64.,
         tolerance = 0.2):

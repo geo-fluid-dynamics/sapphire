@@ -11,7 +11,7 @@ class Model(fempy.unsteady_model.Model):
         
         self.liquidus_temperature = fe.Constant(0.)
         
-        self.latent_heat_smoothing = fe.Constant(1./32.)
+        self.smoothing = fe.Constant(1./32.)
         
         super().__init__()
         
@@ -23,7 +23,7 @@ class Model(fempy.unsteady_model.Model):
         
         T_L = self.liquidus_temperature
         
-        s = self.latent_heat_smoothing
+        s = self.smoothing
         
         tanh = fe.tanh
         

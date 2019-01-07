@@ -53,7 +53,7 @@ class Model(fempy.models.enthalpy_porosity.Model):
         
         T_L = self.concentration_dependent_liquidus_temperature(Cl)
         
-        s = self.latent_heat_smoothing
+        s = self.smoothing
         
         tanh = fe.tanh
         

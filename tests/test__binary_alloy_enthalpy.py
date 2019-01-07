@@ -312,7 +312,7 @@ def fails__test__verify_spatial_convergence_order_via_mms(
             "stefan_number": 0.1,
             "lewis_number": 8.,
             "solid_concentration": 0.02,
-            "latent_heat_smoothing": 1./32.},
+            "smoothing": 1./32.},
         expected_order = 2,
         mesh_sizes = mesh_sizes,
         timestep_size = timestep_size,

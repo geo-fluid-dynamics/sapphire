@@ -2,8 +2,9 @@
 import firedrake as fe
 import fempy.unsteady_model
 import matplotlib.pyplot as plt
+import fempy.autosmooth
 
-    
+
 class Model(fempy.unsteady_model.Model):
     
     def __init__(self):
@@ -22,7 +23,7 @@ class Model(fempy.unsteady_model.Model):
         
         self.liquidus_temperature = fe.Constant(0.)
         
-        self.latent_heat_smoothing = fe.Constant(1./256.)
+        self.smoothing = fe.Constant(1./256.)
         
         self.smoothing_sequence = None
         
@@ -49,7 +50,7 @@ class Model(fempy.unsteady_model.Model):
         """ Regularization from @cite{zimmerman2018monolithic} """
         T_L = self.liquidus_temperature
         
-        s = self.latent_heat_smoothing
+        s = self.smoothing
         
         tanh = fe.tanh
         
@@ -132,7 +133,7 @@ class Model(fempy.unsteady_model.Model):
         
         if self.autosmooth_enable:
             
-            self.solve_with_auto_smoothing()
+            fempy.autosmooth.solve(self)
             
         elif self.smoothing_sequence == None:
         
@@ -140,117 +141,19 @@ class Model(fempy.unsteady_model.Model):
            
         else:
         
-            assert(self.latent_heat_smoothing.__float__()
+            assert(self.smoothing.__float__()
                 == self.smoothing_sequence[-1])
         
             for s in self.smoothing_sequence:
             
-                self.latent_heat_smoothing.assign(s)
+                self.smoothing.assign(s)
                 
                 self.solver.solve()
                 
                 if not self.quiet:
                     
                     print("Solved with s = " + str(s))
-        
-    def solve_with_auto_smoothing(self):
-            
-        if self.smoothing_sequence is None:
-        
-            smoothing_sequence = (self.latent_heat_smoothing.__float__(),)
-            
-            while smoothing_sequence[0] < self.autosmooth_firstval:
-
-                smoothing_sequence = (2.*smoothing_sequence[0],) + \
-                    smoothing_sequence
-            
-        else:
-        
-            smoothing_sequence = self.smoothing_sequence
-        
-        first_s_to_solve = smoothing_sequence[0]
-        
-        attempts = range(self.autosmooth_maxcount - len(smoothing_sequence))
-        
-        solved = False
-        
-        for attempt in attempts:
-
-            s_start_index = smoothing_sequence.index(first_s_to_solve)
-            
-            try:
-            
-                for s in smoothing_sequence[s_start_index:]:
-                    
-                    self.latent_heat_smoothing.assign(s)
-                    
-                    self.backup_solution.assign(self.solution)
-                    
-                    self.solver.solve()
-                    
-                    if not self.quiet:
-                    
-                        print("Solved with s = " + str(s))
-                    
-                solved = True
-                
-                break
-                
-            except fe.exceptions.ConvergenceError:  
-                
-                current_s = self.latent_heat_smoothing.__float__()
-                
-                ss = smoothing_sequence
-                
-                if not self.quiet:
-                
-                    print("Failed to solve with s = " + str(current_s) +
-                        " from the sequence " + str(ss))
-                
-                if attempt == attempts[-1]:
-                    
-                    break
-                
-                if current_s >= self.autosmooth_maxval:
-                
-                    print("Exceeded maximum regularization (s_max = " + 
-                        str(self.autosmooth_maxval) + ")")
-                    
-                    break
-                
-                index = ss.index(current_s)
-                
-                if index == 0:
-                
-                    s_to_insert = 2.*ss[0]
-                    
-                    new_ss = (s_to_insert,) + ss
-                    
-                    self.solution.assign(self.initial_values[0])
-                
-                else:
-                
-                    s_to_insert = (current_s + ss[index - 1])/2.
-                
-                    new_ss = ss[:index] + (s_to_insert,) + ss[index:]
-                    
-                    self.solution.assign(self.backup_solution)
-                
-                smoothing_sequence = new_ss
-                
-                if not self.quiet:
-                
-                    print("Inserted new value of " + str(s_to_insert))
-                
-                first_s_to_solve = s_to_insert
-        
-        assert(solved)
-        
-        assert(self.latent_heat_smoothing.__float__() ==
-            smoothing_sequence[-1])
-            
-        self.smoothing_sequence = smoothing_sequence
-        
+    
     def plot(self):
     
         V = fe.FunctionSpace(

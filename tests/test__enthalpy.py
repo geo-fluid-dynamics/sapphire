@@ -63,7 +63,7 @@ def test__verify_spatial_convergence_order_via_mms(
         Model = VerifiableModel,
         parameters = {
             "stefan_number": 0.1,
-            "latent_heat_smoothing": 1./32.},
+            "smoothing": 1./32.},
         expected_order = 2,
         mesh_sizes = mesh_sizes,
         timestep_size = timestep_size,
@@ -139,7 +139,7 @@ def test__verify_temporal_convergence_order_via_mms__bdf2(
         Model = SecondOrderVerifiableModel,
         parameters = {
             "stefan_number": 0.1,
-            "latent_heat_smoothing": 1./32.},
+            "smoothing": 1./32.},
         expected_order = 2,
         meshsize = meshsize,
         endtime = 1.,
