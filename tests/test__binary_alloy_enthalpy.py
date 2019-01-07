@@ -5,6 +5,7 @@ import fempy.benchmarks.analytical_binary_alloy_solidification
 import matplotlib.pyplot as plt
 import fempy.patches
 
+
 class SalineFreezingModel(fempy.models.binary_alloy_enthalpy.Model):
     
     def __init__(self, meshsize):
@@ -49,7 +50,8 @@ class SalineFreezingModel(fempy.models.binary_alloy_enthalpy.Model):
             fe.DirichletBC(W.sub(0), self.cold_wall_temperature, 1),
             fe.DirichletBC(W.sub(0), self.initial_temperature, 2)]
             
-def test__saline_freezing():
+            
+def fails__test__saline_freezing():
 
     # Set length scale
     L = 0.02  # [m]
@@ -98,35 +100,14 @@ def test__saline_freezing():
     
     print("alpha = " + str(alpha))
     
-    """
-    
-    # Get the analytical Stefan problem solution per (Worster 2000)
-    C_fun, T_fun, h_fun, T_i, C_i = fempy.benchmarks.\     
-        analytical_binary_alloy_solidification(
-            k = k, rho = rho, C_p = C_p, L = L, T_m = T_m, 
-            T_B = T_B, T_inf = T_inf, D = D, C_0 = C_0, T_E = T_E, C_E = C_E)
-    
-    
-    # Evaluate the solution at some discrete times and discrete points
-    
-    resolution = 1000
-    
-    x = np.linspace(0., L, resolution)
-    
-    times_to_plot = (10., 20., 30.)  # [s]
-    
-    for t in times_to_plot:
-    
-        h = h_fun(t)
-        
-        C = C_fun(t, x)
-        
-        T = T_fun(t, x)
-    """
     endtime_sec = 30.  # [s]
     
     nx = 64
-    
+    """ Note: Stability of this method is seeming to require quadrupling
+    the number of time steps when doubling the grid size.
+    This would be quite impractical, 
+    so we should test the behavior more rigorously.
+    """
     nt = 12
     
     sinv = 128
@@ -249,6 +230,9 @@ def test__saline_freezing():
     
             fig.savefig(str(filepath))
             
+    assert(False)
+    # @todo: Compare to analytical solution
+    
         
 class VerifiableModel(fempy.models.binary_alloy_enthalpy.Model):
     
