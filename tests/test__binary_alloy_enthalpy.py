@@ -125,9 +125,9 @@ def test__saline_freezing():
     """
     endtime_sec = 30.  # [s]
     
-    nx = 256
+    nx = 64
     
-    nt = 192
+    nt = 12
     
     sinv = 128
     
