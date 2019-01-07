@@ -1,4 +1,6 @@
-""" This module solves the analytical 1D Stefan problem for binary alloy solidification. """
+""" This module solves the analytical 1D Stefan problem 
+for binary alloy solidification. 
+"""
 import numpy as np
 import scipy
 import scipy.special
@@ -117,8 +119,8 @@ def solve(k, rho, c_p, h_m, T_m, T_B, T_inf, D, C_0, T_E, C_E):
     return C, T, h, T_i, C_i
     
     
-def run_salt_water_example():
-    """ Run a salt water solidification example. """
+def run_saline_example():
+    """ Run a saline freezing example. """
 
     
     # Set material properties of water-ice per @cite{lide2010}
@@ -240,10 +242,10 @@ def run_salt_water_example():
     
     plt.tight_layout()
     
-    plt.savefig("salt_water_solidification.png")
+    plt.savefig("saline_freezing.png")
     
     
 if __name__ == "__main__":
 
-    run_salt_water_example()
+    run_saline_example()
     
