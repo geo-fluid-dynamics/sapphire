@@ -7,7 +7,7 @@ def test__sea_ice_cavity_freezing__regression():
 
     endtime = 1.
     
-    timestep_size = 1./32.
+    timestep_size = 1./4.
     
     meshsize = 32
     
