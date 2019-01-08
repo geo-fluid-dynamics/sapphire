@@ -1,39 +1,29 @@
 """ These contents will ideally be obsoleted by upstream updates """
+import firedrake as fe
+import matplotlib.pyplot as plt
 
 
-def plot_unit_interval(u_h, u_m, sample_size = 100):
-
+def plot(u_h, sample_size = 1000, axes = None, color = "k", **kwargs):
+    """ fe.plot ignores color argument """
     mesh = u_h.function_space().mesh()
     
-    assert(type(mesh) == type(fe.UnitIntervalMesh(1)))
+    if (type(mesh) == type(fe.UnitIntervalMesh(1))):
+        
+        sample_points = [x/float(sample_size) for x in range(sample_size + 1)]
+        
+        if axes is None:
+        
+            fig = plt.figure()
+            
+            axes = plt.axes()
     
-    sample_points = [x/float(sample_size) for x in range(sample_size + 1)]
+        plt.plot(
+            sample_points, 
+            [u_h((p,)) for p in sample_points],
+            axes = axes,
+            color = color)
     
-    fig = plt.figure()
+    else:
     
-    axes = plt.axes()
-    
-    plt.plot(
-        sample_points, 
-        [u_h((p,)) for p in sample_points],
-        axes = axes,
-        color = "red")
-    
-    _u_m = fe.interpolate(u_m, u_h.function_space())
-    
-    axes = plt.plot(
-        sample_points, 
-        [_u_m((p,)) for p in sample_points],
-        axes = axes,
-        color = "blue")
-    
-    plt.axis("square")
-    
-    plt.xlim((-0.1, 1.1))
-    
-    plt.legend((r"$u_h$", r"$u_m$"))
-    
-    plt.xlabel(r"$x$")
-    
-    plt.ylabel(r"$u$")
+        fe.plot(u_h, axes = axes, color = color, **kwargs)
     

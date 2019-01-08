@@ -1,6 +1,8 @@
 """ An abstract class on which to base finite element models """
 import firedrake as fe
 import abc
+import pathlib
+import matplotlib.pyplot as plt
 
 
 class Model(metaclass = abc.ABCMeta):
@@ -11,7 +13,7 @@ class Model(metaclass = abc.ABCMeta):
         
         self.init_element()
         
-        self.function_space = fe.FunctionSpace(self.mesh, self.element)
+        self.init_function_space()
         
         self.init_solution()
         
@@ -27,7 +29,7 @@ class Model(metaclass = abc.ABCMeta):
         
         self.quiet = False
         
-        self.output_prefix = ""
+        self.output_directory_path = pathlib.Path("output/")
         
     @abc.abstractmethod
     def init_mesh(self):
@@ -45,7 +47,11 @@ class Model(metaclass = abc.ABCMeta):
         """ Redefine this to set `self.weak_form_residual` 
         to a `fe.NonlinearVariationalForm`.
         """
-        
+    
+    def init_function_space(self):
+    
+        self.function_space = fe.FunctionSpace(self.mesh, self.element)
+    
     def init_solution(self):
     
         self.solution = fe.Function(self.function_space)
@@ -70,10 +76,12 @@ class Model(metaclass = abc.ABCMeta):
             r, u, self.dirichlet_boundary_conditions, fe.derivative(r, u))
         
     def init_solver(self, solver_parameters = {
-                "ksp_type": "preonly", 
-                "pc_type": "lu", 
-                "mat_type": "aij",
-                "pc_factor_mat_solver_type": "mumps"}):
+            "snes_type": "newtonls",
+            "snes_monitor": True,
+            "ksp_type": "preonly", 
+            "pc_type": "lu", 
+            "mat_type": "aij",
+            "pc_factor_mat_solver_type": "mumps"}):
         
         self.solver = fe.NonlinearVariationalSolver(
             self.problem, solver_parameters = solver_parameters)
@@ -82,7 +90,15 @@ class Model(metaclass = abc.ABCMeta):
     
         for key, value in parameters.items():
         
-            getattr(self, key).assign(value)
+            attribute = getattr(self, key)
+            
+            if type(attribute) is type(fe.Constant(0.)):
+            
+                attribute.assign(value)
+                
+            else:
+            
+                setattr(self, key, value)
     
     def solve(self):
     
@@ -93,4 +109,26 @@ class Model(metaclass = abc.ABCMeta):
         dim = self.mesh.geometric_dimension()
         
         return tuple([fe.unit_vector(i, dim) for i in range(dim)])
+        
+    def plot(self):
+        
+        for i, f in enumerate(self.solution.split()):
+            
+            fe.plot(f)
+            
+            plt.axis("square")
+            
+            plt.title(r"$w_" + str(i) + "$")
+            
+            self.output_directory_path.mkdir(
+                parents = True, exist_ok = True)
+        
+            filepath = self.output_directory_path.joinpath(
+                "solution_" + str(i)).with_suffix(".png")
+            
+            print("Writing plot to " + str(filepath))
+            
+            plt.savefig(str(filepath))
+            
+            plt.close()
         

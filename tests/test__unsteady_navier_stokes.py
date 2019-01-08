@@ -10,6 +10,8 @@ class Model(fempy.models.unsteady_navier_stokes.Model):
         
         super().__init__()
         
+        self.update_initial_values()
+        
     def init_mesh(self):
         
         self.mesh = fe.UnitSquareMesh(self.meshsize, self.meshsize)
@@ -49,25 +51,23 @@ class Model(fempy.models.unsteady_navier_stokes.Model):
         
         return r_u, r_p
         
-    def init_initial_values(self):
-        
-        self.initial_values = [fe.Function(self.function_space),]
+    def update_initial_values(self):
         
         for u_m, V in zip(
                 self.manufactured_solution, self.function_space):
         
-            self.initial_values[0].assign(fe.interpolate(u_m, V))
+            self.initial_values.assign(fe.interpolate(u_m, V))
 
         
 def test__verify_spatial_convergence_order_via_mms(
-        grid_sizes = (4, 8, 16, 32),
+        mesh_sizes = (4, 8, 16, 32),
         timestep_size = 1./64.,
         tolerance = 0.2):
     
     fempy.mms.verify_spatial_order_of_accuracy(
         Model = Model,
         expected_order = 2,
-        grid_sizes = grid_sizes,
+        mesh_sizes = mesh_sizes,
         tolerance = tolerance,
         timestep_size = timestep_size,
         endtime = 1.)

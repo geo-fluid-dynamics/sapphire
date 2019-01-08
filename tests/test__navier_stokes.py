@@ -3,7 +3,7 @@ import fempy.models.navier_stokes
 
 
 def test__verify_convergence_order_via_MMS(
-        grid_sizes = (16, 32), tolerance = 0.1):
+        mesh_sizes = (16, 32), tolerance = 0.1):
 
     class Model(fempy.models.navier_stokes.Model):
     
@@ -51,6 +51,6 @@ def test__verify_convergence_order_via_MMS(
     fempy.mms.verify_spatial_order_of_accuracy(
         Model = Model,
         expected_order = 2,
-        grid_sizes = grid_sizes,
+        mesh_sizes = mesh_sizes,
         tolerance = tolerance)
     

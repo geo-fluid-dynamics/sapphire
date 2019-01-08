@@ -7,7 +7,7 @@ old*
 build
 dist
 .idea/
-phaseflow.egg-info
+*.egg-info
 log.txt
 .coverage
 **/.ipynb_checkpoints/
