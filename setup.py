@@ -3,6 +3,6 @@ import setuptools
 
 setuptools.setup(
     name = "fempy",
-    version = "0.1.0a0",
+    version = "0.2.0a0",
     packages = setuptools.find_packages(),
 )
