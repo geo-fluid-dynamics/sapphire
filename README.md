@@ -1,4 +1,4 @@
-# fempy
+# FemPy
 A Python package for finite element models using Firedrake
 
 ## Setup
@@ -17,3 +17,9 @@ Install with
 
     python3 fempy/setup.py install
     
+## Development
+### Project structure
+This project mostly follows the structure suggested by [The Hitchhiker's Guide to Python](http://docs.python-guide.org/en/latest/).
+
+### Guidelines
+Mostly we try to follow PEP proposed guidelines, e.g. [The Zen of Python (PEP 20)](https://www.python.org/dev/peps/pep-0020/), and do not ever `from firedrake import *` ([PEP 8](https://www.python.org/dev/peps/pep-0008/)).
