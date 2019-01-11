@@ -9,9 +9,9 @@ Download FemPy with
 
     git clone git@github.com:geo-fluid-dynamics/fempy.git
 
-Test with
+Verify that tests pass as expected with
 
-    python3 -m pytest fempy/
+    python3 -m pytest -v -s -k "not fails" fempy/
 
 Install with
 

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import fempy.patches
 
 
-class SalineFreezingModel(fempy.models.binary_alloy_enthalpy.Model):
+class BinaryAlloySolidification(fempy.models.binary_alloy_enthalpy.Model):
     
     def __init__(self, meshsize):
         
@@ -23,7 +23,7 @@ class SalineFreezingModel(fempy.models.binary_alloy_enthalpy.Model):
         self.update_initial_values()
         
         self.output_directory_path = self.output_directory_path.joinpath(
-            "saline_freezing/")
+            "binary_alloy_solidification/")
         
     def init_mesh(self):
     
@@ -51,19 +51,126 @@ class SalineFreezingModel(fempy.models.binary_alloy_enthalpy.Model):
             fe.DirichletBC(W.sub(0), self.initial_temperature, 2)]
             
             
-def fails__test__saline_freezing():
+def run_binary_alloy_solidification(
+        stefan_number, 
+        lewis_number, 
+        solid_concentration,
+        initial_temperature,
+        cold_wall_temperature,
+        endtime, 
+        meshsize,
+        timestep_size,
+        smoothing):
+    
+    model = BinaryAlloySolidification(meshsize = meshsize)
+    
+    model.smoothing.assign(smoothing)
+    
+    model.output_directory_path = model.output_directory_path.joinpath(
+        "Ste" + str(stefan_number) 
+        + "_Le" + str(lewis_number) 
+        + "_Tinf" + str(initial_temperature) + "_TB" 
+        + str(cold_wall_temperature) + "/")
+    
+    model.output_directory_path = model.output_directory_path.joinpath(
+        "nx" + str(meshsize) 
+        + "_Deltat" + str(timestep_size)
+        + "_s" + str(smoothing) + "/")
+    
+    model.output_directory_path.mkdir(parents = True, exist_ok = True)
+    
+    model.stefan_number.assign(stefan_number)
+    
+    model.lewis_number.assign(lewis_number)
+    
+    model.solid_concentration.assign(solid_concentration)
+    
+    model.cold_wall_temperature.assign(cold_wall_temperature)
+    
+    model.initial_temperature.assign(initial_temperature)
+    
+    model.initial_concentration.assign(1.)
+    
+    model.update_initial_values()
+    
+    model.solution.assign(model.initial_values[0])
+    
+    model.timestep_size.assign(timestep_size)
+    
+    
+    V = fe.FunctionSpace(
+            model.mesh, fe.FiniteElement("P", model.mesh.ufl_cell(), 1))
+    
+    figures = []
+    
+    axes = []
+    
+    for i in range(4):
+    
+        figures.append(plt.figure())
+        
+        axes.append(plt.axes())
+    
+    legend_strings = []
+    
+    times_to_plot = (endtime/4., endtime/2., 3.*endtime/4., endtime)
+    
+    for time, color in zip(times_to_plot, ("k", "r", "g", "b")):
+    
+        model.run(endtime = time, plot = False)
+        
+        legend_strings.append(r"$t = " + str(model.time.__float__()) + "$")
+    
+        T, Cl = model.solution.split()
+        
+        _phil = model.porosity(T, Cl)
+        
+        phil = fe.interpolate(_phil, V)
+        
+        C = fe.interpolate(_phil*Cl, V)
+        
+        for u, fig, ax, name, label in zip(
+                (T, Cl, phil, C), 
+                figures,
+                axes,
+                ("T", "Cl", "phil", "C"),
+                ("T", "C_l", "\\phi_l", "C")):
+                
+            plt.figure(fig.number)
+            
+            fempy.patches.plot(u, axes = ax, color = color)
+            
+            ax.set_xlabel(r"$x$")
+            
+            ax.set_ylabel(r"$" + str(label) + "$")
+            
+            ax.set_aspect(1./ax.get_data_ratio())
+            
+            ax.legend(legend_strings)
+            
+            filepath = model.output_directory_path.\
+                joinpath(name).with_suffix(".png")
+            
+            print("Writing plot to " + str(filepath))
+            
+            fig.savefig(str(filepath), bbox_inches = "tight")
+            
+    
+def scale_saline_freezing():
 
-    # Set length scale
-    L = 0.02  # [m]
+    L = 0.038  # side length of experimental cavity in @cite{michalek2003} [m]
     
-    # Set material properties of water-ice per @cite{lide2010}
-    k = 2.14  # Thermal conductivity [W/(m*K)]
     
-    rho = 916.7  # Density [kg/m^3]
+    """ Set reference values for pure water thermodynamic properties per @cite{michalek2003}.
+    Mostly these seem right for being near the freezing temperature.
+    """
+    k = 0.6  # Thermal conductivity [W/(m*K)]
     
-    c_p = 2110.  # Specific heat capacity [J/(kg*K)]
+    rho = 999.8  # Density [kg/m^3]
     
-    h_m = 333641.9  # Specific latent heat [J/kg]
+    c_p = 4182.  # Specific heat capacity [J/(kg*K)]
+    
+    h_m = 335000.  # Specific latent heat [J/kg]
     
     T_m = 0.  # Melting temperature of pure water-ice [deg C]
     
@@ -100,140 +207,84 @@ def fails__test__saline_freezing():
     
     print("alpha = " + str(alpha))
     
-    endtime_sec = 30.  # [s]
-    
-    nx = 64
-    """ Note: Stability of this method is seeming to require quadrupling
-    the number of time steps when doubling the grid size.
-    This would be quite impractical, 
-    so we should test the behavior more rigorously.
-    """
-    nt = 12
-    
-    sinv = 128
-    
-    model = SalineFreezingModel(meshsize = nx)
-    
-    model.smoothing.assign(1./float(sinv))
-    
-    model.output_directory_path = model.output_directory_path.joinpath(
-        "nx" + str(nx) + "_nt" + str(nt) + "_sinv" + str(sinv) + "/")
-    
-    model.output_directory_path.mkdir(parents = True, exist_ok = True)
     
     Ste = c_p*(T_inf - T_B)/h_m
     
     print("Stefan number = " + str(Ste))
     
-    model.stefan_number.assign(Ste)
-    
-    model.lewis_number.assign(Le)
-    
-    model.solid_concentration.assign(C_s)
     
     T_ref = T_inf
     
     def theta(T):
         
         return (T - T_ref)/(T_inf - T_B)
-
-    def xi(C):
-        
-        return C/C_0
-        
+    
     theta_B = theta(T_B)
     
     print("theta_B = " + str(theta_B))
     
-    model.cold_wall_temperature.assign(theta_B)
-    
     theta_inf = theta(T_inf)
     
-    model.initial_temperature.assign(theta_inf)
-    
-    print("theta_0 = " + str(theta_inf))
-    
-    xi_0 = xi(C_0)
-    
-    print("xi_0 = " + str(xi_0))
-    
-    model.initial_concentration.assign(xi_0)
-    
-    model.update_initial_values()
-    
-    model.solution.assign(model.initial_values[0])
-    
-    def t(t_sec):
-    
-        return t_sec*alpha/pow(L, 2)
-    
-    endtime = t(endtime_sec)
-    
-    print("Scaled end time = " + str(endtime))
-    
-    Delta_t = endtime/float(nt)
-    
-    model.timestep_size.assign(Delta_t)
+    print("theta_inf = " + str(theta_inf))
     
     
-    V = fe.FunctionSpace(
-            model.mesh, fe.FiniteElement("P", model.mesh.ufl_cell(), 1))
+    def t_sec(t):
     
-    figures = []
-    
-    axes = []
-    
-    for i in range(4):
-    
-        figures.append(plt.figure())
+        return pow(L, 2)*t/alpha
         
-        axes.append(plt.axes())
+    return Ste, Le, C_s, t_sec, theta_inf, theta_B
     
-    legend_strings = []
     
-    for time, color in zip(
-            (endtime/3., 2.*endtime/3., endtime), ("r", "g", "b")):
+def run_saline_freezing(meshsize, timesteps, smoothing):
+    """ Run the binary alloy solidification model 
+    with saline freezing parameters.
     
-        model.run(endtime = time, plot = False)
-        
-        legend_strings.append(r"$t = " + str(model.time.__float__()) + "$")
+    Note: Stability of the nonlinear solver is seeming to require 
+    quadrupling the number of time steps when doubling the grid size.
+    This would be quite impractical, 
+    so we should test the behavior more rigorously.
+    """
+    Ste, Le, C_s, t_sec, theta_inf, theta_B = scale_saline_freezing()
     
-        T, Cl = model.solution.split()
-        
-        _phil = model.porosity(T, Cl)
-        
-        phil = fe.interpolate(_phil, V)
-        
-        C = fe.interpolate(_phil*Cl, V)
-        
-        for u, fig, ax, name, label in zip(
-                (T, Cl, phil, C), 
-                figures,
-                axes,
-                ("T", "Cl", "phil", "C"),
-                ("T", "C_l", "\\phi_l", "C")):
-        
-            plt.figure(fig.number)
-            
-            fempy.patches.plot(u, axes = ax, color = color)
-        
-            ax.set_xlabel(r"$x$")
-            
-            ax.set_ylabel(r"$" + str(label) + "$")
-            
-            ax.legend(legend_strings)
-        
-            filepath = model.output_directory_path.\
-                joinpath(name).with_suffix(".png")
-        
-            print("Writing plot to " + str(filepath))
+    endtime = 1.
     
-            fig.savefig(str(filepath))
-            
-    assert(False)
+    print("End time in seconds = " + str(t_sec(endtime)))
+    
+    run_binary_alloy_solidification(
+        stefan_number = Ste,
+        lewis_number = Le,
+        solid_concentration = C_s,
+        endtime = endtime,
+        initial_temperature = theta_inf,
+        cold_wall_temperature = theta_B,
+        meshsize = meshsize,
+        timestep_size = endtime/float(timesteps),
+        smoothing = smoothing)
+        
+    
+def test__saline_freezing():
+    
+    run_saline_freezing(meshsize = 512, timesteps = 64, smoothing = 1./32.)
+    
     # @todo: Compare to analytical solution
     
-        
+    
+def test__binary_alloy_solidification():
+    
+    run_binary_alloy_solidification(
+        stefan_number = 1.,
+        lewis_number = 1.,
+        solid_concentration = 0.,
+        initial_temperature = 0.5,
+        cold_wall_temperature = -0.5,
+        endtime = 1./8.,
+        meshsize = 512,
+        timestep_size = 1./64.,
+        smoothing = 1./32.)
+    
+    # @todo: Compare to analytical solution
+
+    
 class VerifiableModel(fempy.models.binary_alloy_enthalpy.Model):
     
     def __init__(self, meshsize):
@@ -299,7 +350,7 @@ class VerifiableModel(fempy.models.binary_alloy_enthalpy.Model):
             self.initial_values.assign(fe.interpolate(u_m, V))
             
 
-def fails__test__verify_spatial_convergence_order_via_mms(
+def test__fails__verify_spatial_convergence_order_via_mms(
         mesh_sizes = (4, 8, 16, 32, 64),
         timestep_size = 1./256.,
         tolerance = 0.1,
