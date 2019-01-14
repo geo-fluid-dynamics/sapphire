@@ -208,11 +208,9 @@ def scale_saline_freezing():
     print("T_inf = " + str(T_inf))
     
     # Compute derived material properties.
-    kappa = k/(rho*c_p)
-    
-    D = kappa/Le
-    
     alpha = k/(rho*c_p)
+    
+    D = alpha/Le
     
     print("alpha = " + str(alpha))
     
@@ -306,9 +304,9 @@ def compare_bas_to_analytical_solution(
         initial_temperature,
         initial_concentration,
         cold_wall_temperature,
-        endtime,
+        simulated_endtime,
         meshsize,
-        timestep_size,
+        simulated_timestep_size,
         smoothing,
         sample_size = 1000):
     
@@ -342,15 +340,25 @@ def compare_bas_to_analytical_solution(
     
     
     # Compute derived material properties.
-    kappa = k/(rho*c_p)
-    
-    D = kappa/Le
-    
     alpha = k/(rho*c_p)
     
-    m_L = (T_E - T_m)/C_E
+    D = alpha/Le
     
-    liquidus_slope = m_L
+    
+    # Compute the analytical model
+    _C, _T, x_s, _, _ = fempy.benchmarks.\
+        analytical_binary_alloy_solidification.solve(
+            k = k,
+            rho = rho, 
+            c_p = c_p, 
+            h_m = h_m, 
+            T_m = T_m, 
+            T_B = cold_wall_temperature,
+            T_inf = initial_temperature,
+            D = D,
+            C_0 = initial_concentration,
+            T_E = T_E,
+            C_E = C_E)
     
     
     # Scale values
@@ -360,26 +368,21 @@ def compare_bas_to_analytical_solution(
     
     T_ref = T_inf
     
+    def chi(x):
+    
+        return L*x
+    
     def theta(T):
         
         return (T - T_ref)/(T_inf - T_B)
     
-    theta_B = theta(T_B)
+    def xi(C):
     
-    theta_inf = theta(T_inf)
+        return C/initial_concentration
     
-    def xi(Cl):
+    m_L = (theta(T_E) - theta(T_m))/xi(C_E)
     
-        return Cl/initial_concentration
-        
-    xi_s = xi(solid_concentration)
-        
-    xi_0 = xi(initial_concentration)
-    
-    def t_sec(t):
-    
-        return pow(L, 2)*t/alpha
-    
+    liquidus_slope = m_L
     
     model = BinaryAlloySolidification(meshsize = meshsize)
     
@@ -389,13 +392,13 @@ def compare_bas_to_analytical_solution(
         "Ste" + str(stefan_number) 
         + "_Le" + str(lewis_number) 
         + "mL" + str(liquidus_slope)
-        + "_Tinf" + str(theta_inf) 
-        + "_TB" + str(theta_B)
+        + "_thetainf" + str(theta(T_inf)) 
+        + "_thetaB" + str(theta(T_B))
         + "/")
     
     model.output_directory_path = model.output_directory_path.joinpath(
         "nx" + str(meshsize) 
-        + "_Deltat" + str(timestep_size)
+        + "_Deltatau" + str(simulated_timestep_size)
         + "_s" + str(smoothing) 
         + "/")
     
@@ -407,19 +410,19 @@ def compare_bas_to_analytical_solution(
     
     model.liquidus_slope.assign(liquidus_slope)
     
-    model.solid_concentration.assign(xi_s)
+    model.solid_concentration.assign(xi(C_s))
     
-    model.cold_wall_temperature.assign(theta_B)
+    model.cold_wall_temperature.assign(theta(T_B))
     
-    model.initial_temperature.assign(theta_inf)
+    model.initial_temperature.assign(theta(T_inf))
     
-    model.initial_concentration.assign(xi_0)
+    model.initial_concentration.assign(xi(C_0))
     
     model.update_initial_values()
     
     model.solution.assign(model.initial_values[0])
     
-    model.timestep_size.assign(timestep_size)
+    model.timestep_size.assign(simulated_timestep_size)
     
     
     V = fe.FunctionSpace(
@@ -437,23 +440,11 @@ def compare_bas_to_analytical_solution(
     
     legend_strings = []
     
-    times_to_plot = (endtime/4., endtime/2., 3.*endtime/4., endtime)
+    tau_f = simulated_endtime
+    
+    times_to_plot = (tau_f/4., tau_f/2., 3.*tau_f/4., tau_f)
     
     sample_points = [x/float(sample_size) for x in range(sample_size + 1)]
-    
-    _C, _T, x_s, _, _ = fempy.benchmarks.analytical_binary_alloy_solidification.\
-        solve(
-            k = kappa,
-            rho = rho, 
-            c_p = c_p, 
-            h_m = h_m, 
-            T_m = T_m, 
-            T_B = cold_wall_temperature,
-            T_inf = initial_temperature,
-            D = D,
-            C_0 = initial_concentration,
-            T_E = T_E,
-            C_E = C_E)
     
     def _phil(t, x):
         """ The analytical model does not include a mushy layer. """
@@ -481,13 +472,17 @@ def compare_bas_to_analytical_solution(
     
         return xi(_C(t, x))
     
-    for t, color in zip(times_to_plot, ("k", "r", "g", "b")):
+    def t(tau):
     
-        model.run(endtime = t, plot = False)
+        return tau*pow(L, 2)/alpha
+    
+    for tau, color in zip(times_to_plot, ("k", "r", "g", "b")):
+    
+        model.run(endtime = tau, plot = False)
         
-        legend_strings.append(r"$u, t = " + str(model.time.__float__()) + "$")
+        legend_strings.append(r"$u, \tau = " + str(model.time.__float__()) + "$")
         
-        legend_strings.append(r"$u_h, t = " + str(model.time.__float__()) + "$")
+        legend_strings.append(r"$u_h, \tau = " + str(model.time.__float__()) + "$")
     
         theta_h, xil_h = model.solution.split()
         
@@ -502,14 +497,15 @@ def compare_bas_to_analytical_solution(
                 (_theta, _xil, _phil, _xi),
                 figures,
                 axes,
-                ("T", "Cl", "phil", "C"),
-                ("T", "C_l", "\\phi_l", "C")):
+                ("theta", "xil", "phil", "xi"),
+                (r"\left(T - T_m\right)/\left(T_\infty - T_B\right)", 
+                 r"C_l/C_{l,0}", r"\phi_l", r"C/C_0")):
                 
             plt.figure(fig.number)
             
             lines = plt.plot(
                 sample_points, 
-                [u(t_sec(t), L*p) for p in sample_points],
+                [u(t(tau), L*p) for p in sample_points],
                 axes = ax,
                 color = color)
             
@@ -523,7 +519,7 @@ def compare_bas_to_analytical_solution(
                 
             lines[-1].set_linestyle("--")
             
-            ax.set_xlabel(r"$x$")
+            ax.set_xlabel(r"$x/L$")
             
             ax.set_ylabel(r"$" + str(label) + "$")
             
@@ -553,9 +549,9 @@ def test__verify_bas_with_analytical_solution():
     
     c_p = 4182.  # Specific heat capacity [J/(kg*K)]
     
-    h_m = 335000.  # Specific latent heat [J/kg]
-    
     T_m = 0.  # Melting temperature of pure water-ice [deg C]
+    
+    h_m = 335000.  # Specific latent heat [J/kg]
     
     
     # Set material properties for salt water as an eutectic binary alloy.
@@ -565,13 +561,11 @@ def test__verify_bas_with_analytical_solution():
     
     C_s = 0.  # Solute concentration in the solid
     
+    Le = 80.  # Lewis number
+    
     
     # Set typical sea water values
     C_0 = 3.5  # Salt concentration [wt. % NaCl]
-    
-    
-    # Set a Lewis number that makes the computation easier
-    Le = 2.
     
     
     # Set initial and boundary values for the problem.
@@ -582,6 +576,7 @@ def test__verify_bas_with_analytical_solution():
     T_inf = T_m + T_E/C_E*C_0  # Initial/farfield temperature [deg C]
     
     
+    #
     compare_bas_to_analytical_solution(
         length_scale = L,
         thermal_conductivity = k,
@@ -596,9 +591,9 @@ def test__verify_bas_with_analytical_solution():
         initial_concentration = C_0,
         initial_temperature = T_inf,
         cold_wall_temperature = T_B,
-        endtime = 1.,
+        simulated_endtime = 1.,
         meshsize = 512,
-        timestep_size = 1./64.,
+        simulated_timestep_size = 1./64.,
         smoothing = 1./256.)
     
     
