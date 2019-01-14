@@ -571,7 +571,7 @@ def test__verify_bas_with_analytical_solution():
     
     
     # Set a Lewis number that makes the computation easier
-    Le = 10.
+    Le = 2.
     
     
     # Set initial and boundary values for the problem.
