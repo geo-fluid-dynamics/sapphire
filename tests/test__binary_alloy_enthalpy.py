@@ -272,12 +272,12 @@ def test__saline_freezing():
 def test__binary_alloy_solidification():
     
     run_binary_alloy_solidification(
-        stefan_number = 1.,
-        lewis_number = 1.,
+        stefan_number = 0.2,
+        lewis_number = 10.,
         solid_concentration = 0.,
         initial_temperature = 0.5,
         cold_wall_temperature = -0.5,
-        endtime = 1./8.,
+        endtime = 1.,
         meshsize = 512,
         timestep_size = 1./64.,
         smoothing = 1./32.)
