@@ -62,9 +62,9 @@ def solve(k, rho, c_p, h_m, T_m, T_B, T_inf, D, C_0, T_E, C_E):
     erf, erfc = scipy.special.erf, scipy.special.erfc
     
     
-    kappa = k/(rho*c_p)  # thermal diffusivity
+    alpha = k/(rho*c_p)  # thermal diffusivity
     
-    Le = kappa/D  # Lewis number
+    Le = alpha/D  # Lewis number
     
     epsilon = 1./sqrt(Le)  # Worster uses this in place of the Lewis number
     
@@ -155,9 +155,9 @@ def run_saline_example():
     
     
     # Compute derived material properties.
-    kappa = k/(rho*c_p)
+    alpha = k/(rho*c_p)
     
-    D = kappa/Le
+    D = alpha/Le
     
     
     # Get the analytical Stefan problem solution per (Worster 2000)
