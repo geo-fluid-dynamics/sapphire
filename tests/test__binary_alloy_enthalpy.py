@@ -53,7 +53,8 @@ class BinaryAlloySolidification(fempy.models.binary_alloy_enthalpy.Model):
             
 def run_binary_alloy_solidification(
         stefan_number, 
-        lewis_number, 
+        lewis_number,
+        liquidus_slope,
         solid_concentration,
         initial_temperature,
         cold_wall_temperature,
@@ -69,6 +70,7 @@ def run_binary_alloy_solidification(
     model.output_directory_path = model.output_directory_path.joinpath(
         "Ste" + str(stefan_number) 
         + "_Le" + str(lewis_number) 
+        + "mL" + str(liquidus_slope)
         + "_Tinf" + str(initial_temperature) + "_TB" 
         + str(cold_wall_temperature) + "/")
     
@@ -82,6 +84,8 @@ def run_binary_alloy_solidification(
     model.stefan_number.assign(stefan_number)
     
     model.lewis_number.assign(lewis_number)
+    
+    model.liquidus_slope.assign(liquidus_slope)
     
     model.solid_concentration.assign(solid_concentration)
     
@@ -129,8 +133,8 @@ def run_binary_alloy_solidification(
         
         C = fe.interpolate(_phil*Cl, V)
         
-        for u, fig, ax, name, label in zip(
-                (T, Cl, phil, C), 
+        for u_h, fig, ax, name, label in zip(
+                (T, Cl, phil, C),
                 figures,
                 axes,
                 ("T", "Cl", "phil", "C"),
@@ -138,7 +142,12 @@ def run_binary_alloy_solidification(
                 
             plt.figure(fig.number)
             
-            fempy.patches.plot(u, axes = ax, color = color)
+            fempy.patches.plot(
+                u,
+                sample_points = sample_points,
+                axes = ax,
+                color = color,
+                linestyle = "-")
             
             ax.set_xlabel(r"$x$")
             
@@ -154,7 +163,7 @@ def run_binary_alloy_solidification(
             print("Writing plot to " + str(filepath))
             
             fig.savefig(str(filepath), bbox_inches = "tight")
-            
+    
     
 def scale_saline_freezing():
 
@@ -250,7 +259,7 @@ def run_saline_freezing(meshsize, timesteps, smoothing):
     
     print("End time in seconds = " + str(t_sec(endtime)))
     
-    run_binary_alloy_solidification(
+    u_h = run_binary_alloy_solidification(
         stefan_number = Ste,
         lewis_number = Le,
         solid_concentration = C_s,
@@ -282,8 +291,316 @@ def test__binary_alloy_solidification():
         timestep_size = 1./64.,
         smoothing = 1./32.)
     
-    # @todo: Compare to analytical solution
+    
+def compare_bas_to_analytical_solution(
+        length_scale,
+        thermal_conductivity,
+        density,
+        specific_heat_capacity,
+        specific_latent_heat,
+        pure_melting_temperature,
+        eutectic_temperature,
+        eutectic_concentration,
+        lewis_number,
+        solid_concentration,
+        initial_temperature,
+        initial_concentration,
+        cold_wall_temperature,
+        endtime,
+        meshsize,
+        timestep_size,
+        smoothing,
+        sample_size = 1000):
+    
+    
+    L = length_scale
+    
+    k = thermal_conductivity
+    
+    rho = density
+    
+    c_p = specific_heat_capacity
+    
+    h_m = specific_latent_heat
+    
+    T_m = pure_melting_temperature
+    
+    T_E = eutectic_temperature
+    
+    C_E = eutectic_concentration
+    
+    Le = lewis_number
+    
+    C_s = solid_concentration
+    
+    C_0 = initial_concentration
+    
+    
+    T_B = cold_wall_temperature
+    
+    T_inf = initial_temperature
+    
+    
+    # Compute derived material properties.
+    kappa = k/(rho*c_p)
+    
+    D = kappa/Le
+    
+    alpha = k/(rho*c_p)
+    
+    m_L = (T_E - T_m)/C_E
+    
+    liquidus_slope = m_L
+    
+    
+    # Scale values
+    Ste = c_p*(T_inf - T_B)/h_m
+    
+    stefan_number = Ste
+    
+    T_ref = T_inf
+    
+    def theta(T):
+        
+        return (T - T_ref)/(T_inf - T_B)
+    
+    theta_B = theta(T_B)
+    
+    theta_inf = theta(T_inf)
+    
+    def xi(Cl):
+    
+        return Cl/initial_concentration
+        
+    xi_s = xi(solid_concentration)
+        
+    xi_0 = xi(initial_concentration)
+    
+    def t_sec(t):
+    
+        return pow(L, 2)*t/alpha
+    
+    
+    model = BinaryAlloySolidification(meshsize = meshsize)
+    
+    model.smoothing.assign(smoothing)
+    
+    model.output_directory_path = model.output_directory_path.joinpath(
+        "Ste" + str(stefan_number) 
+        + "_Le" + str(lewis_number) 
+        + "mL" + str(liquidus_slope)
+        + "_Tinf" + str(theta_inf) 
+        + "_TB" + str(theta_B)
+        + "/")
+    
+    model.output_directory_path = model.output_directory_path.joinpath(
+        "nx" + str(meshsize) 
+        + "_Deltat" + str(timestep_size)
+        + "_s" + str(smoothing) 
+        + "/")
+    
+    model.output_directory_path.mkdir(parents = True, exist_ok = True)
+    
+    model.stefan_number.assign(stefan_number)
+    
+    model.lewis_number.assign(lewis_number)
+    
+    model.liquidus_slope.assign(liquidus_slope)
+    
+    model.solid_concentration.assign(xi_s)
+    
+    model.cold_wall_temperature.assign(theta_B)
+    
+    model.initial_temperature.assign(theta_inf)
+    
+    model.initial_concentration.assign(xi_0)
+    
+    model.update_initial_values()
+    
+    model.solution.assign(model.initial_values[0])
+    
+    model.timestep_size.assign(timestep_size)
+    
+    
+    V = fe.FunctionSpace(
+            model.mesh, fe.FiniteElement("P", model.mesh.ufl_cell(), 1))
+    
+    figures = []
+    
+    axes = []
+    
+    for i in range(4):
+    
+        figures.append(plt.figure())
+        
+        axes.append(plt.axes())
+    
+    legend_strings = []
+    
+    times_to_plot = (endtime/4., endtime/2., 3.*endtime/4., endtime)
+    
+    sample_points = [x/float(sample_size) for x in range(sample_size + 1)]
+    
+    _C, _T, x_s, _, _ = fempy.benchmarks.analytical_binary_alloy_solidification.\
+        solve(
+            k = kappa,
+            rho = rho, 
+            c_p = c_p, 
+            h_m = h_m, 
+            T_m = T_m, 
+            T_B = cold_wall_temperature,
+            T_inf = initial_temperature,
+            D = D,
+            C_0 = initial_concentration,
+            T_E = T_E,
+            C_E = C_E)
+    
+    def _phil(t, x):
+        """ The analytical model does not include a mushy layer. """
+        if x <= x_s(t):
+        
+            return 0.
+            
+        else:
+        
+            return 1.
+    
+    def _Cl(t, x):
+        """ $C = C_l*\phi_l + C_s*(1 - \phi_l)$"""
+        return (_C(t, x) - C_s*(1. - _phil(t, x)))/_phil(t, x)
+        
+    def _theta(t, x):
+    
+        return theta(_T(t, x))
+    
+    def _xil(t, x):
+    
+        return xi(_Cl(t, x))
+        
+    def _xi(t, x):
+    
+        return xi(_C(t, x))
+    
+    for t, color in zip(times_to_plot, ("k", "r", "g", "b")):
+    
+        model.run(endtime = t, plot = False)
+        
+        legend_strings.append(r"$u, t = " + str(model.time.__float__()) + "$")
+        
+        legend_strings.append(r"$u_h, t = " + str(model.time.__float__()) + "$")
+    
+        theta_h, xil_h = model.solution.split()
+        
+        _phil_h = model.porosity(theta_h, xil_h)
+        
+        phil_h = fe.interpolate(_phil_h, V)
+        
+        xi_h = fe.interpolate(_phil_h*xil_h, V)
+        
+        for u_h, u, fig, ax, name, label in zip(
+                (theta_h, xil_h, phil_h, xi_h),
+                (_theta, _xil, _phil, _xi),
+                figures,
+                axes,
+                ("T", "Cl", "phil", "C"),
+                ("T", "C_l", "\\phi_l", "C")):
+                
+            plt.figure(fig.number)
+            
+            lines = plt.plot(
+                sample_points, 
+                [u(t_sec(t), L*p) for p in sample_points],
+                axes = ax,
+                color = color)
+            
+            lines[-1].set_linestyle("-")
+            
+            lines = fempy.patches.plot(
+                u_h, 
+                sample_points = sample_points,
+                axes = ax,
+                color = color)
+                
+            lines[-1].set_linestyle("--")
+            
+            ax.set_xlabel(r"$x$")
+            
+            ax.set_ylabel(r"$" + str(label) + "$")
+            
+            ax.set_aspect(1./ax.get_data_ratio())
+            
+            ax.legend(legend_strings)
+            
+            filepath = model.output_directory_path.\
+                joinpath(name).with_suffix(".png")
+            
+            print("Writing plot to " + str(filepath))
+            
+            fig.savefig(str(filepath), bbox_inches = "tight")
 
+  
+def test__verify_bas_with_analytical_solution():
+
+    L = 0.038  # side length of experimental cavity in @cite{michalek2003} [m]
+    
+    
+    """ Set reference values for pure water thermodynamic properties per @cite{michalek2003}.
+    Mostly these seem right for being near the freezing temperature.
+    """
+    k = 0.6  # Thermal conductivity [W/(m*K)]
+    
+    rho = 999.8  # Density [kg/m^3]
+    
+    c_p = 4182.  # Specific heat capacity [J/(kg*K)]
+    
+    h_m = 335000.  # Specific latent heat [J/kg]
+    
+    T_m = 0.  # Melting temperature of pure water-ice [deg C]
+    
+    
+    # Set material properties for salt water as an eutectic binary alloy.
+    T_E = -21.1  # Eutectic point temperature [deg C]
+    
+    C_E = 23.3  # Eutectic point concentration [wt. % NaCl]
+    
+    C_s = 0.  # Solute concentration in the solid
+    
+    
+    # Set typical sea water values
+    C_0 = 3.5  # Salt concentration [wt. % NaCl]
+    
+    
+    # Set a Lewis number that makes the computation easier
+    Le = 10.
+    
+    
+    # Set initial and boundary values for the problem.
+    """ Set boundary temperature to the eutectic temperature. """
+    T_B = T_E  # Cold wall temperature [deg C]
+    
+    """ Set farfield temperature to liquidus given the farfield concentration. """
+    T_inf = T_m + T_E/C_E*C_0  # Initial/farfield temperature [deg C]
+    
+    
+    compare_bas_to_analytical_solution(
+        length_scale = L,
+        thermal_conductivity = k,
+        density = rho,
+        specific_heat_capacity = c_p,
+        specific_latent_heat = h_m,
+        pure_melting_temperature = T_m,
+        eutectic_temperature = T_E,
+        eutectic_concentration = C_E,
+        lewis_number = Le,
+        solid_concentration = C_s,
+        initial_concentration = C_0,
+        initial_temperature = T_inf,
+        cold_wall_temperature = T_B,
+        endtime = 1.,
+        meshsize = 512,
+        timestep_size = 1./64.,
+        smoothing = 1./32.)
+    
     
 class VerifiableModel(fempy.models.binary_alloy_enthalpy.Model):
     
