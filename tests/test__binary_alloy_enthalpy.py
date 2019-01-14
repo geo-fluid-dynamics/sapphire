@@ -599,7 +599,7 @@ def test__verify_bas_with_analytical_solution():
         endtime = 1.,
         meshsize = 512,
         timestep_size = 1./64.,
-        smoothing = 1./32.)
+        smoothing = 1./256.)
     
     
 class VerifiableModel(fempy.models.binary_alloy_enthalpy.Model):
