@@ -17,7 +17,7 @@ def plot(u_h, sample_size = 1000, axes = None, color = "k", **kwargs):
             
             axes = plt.axes()
     
-        plt.plot(
+        return plt.plot(
             sample_points, 
             [u_h((p,)) for p in sample_points],
             axes = axes,
@@ -25,5 +25,5 @@ def plot(u_h, sample_size = 1000, axes = None, color = "k", **kwargs):
     
     else:
     
-        fe.plot(u_h, axes = axes, color = color, **kwargs)
+        return fe.plot(u_h, axes = axes, color = color, **kwargs)
     
