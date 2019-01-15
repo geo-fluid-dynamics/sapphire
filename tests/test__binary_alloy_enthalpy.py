@@ -401,6 +401,9 @@ def compare_bas_to_analytical_solution(
         + "_Deltatau" + str(simulated_timestep_size)
         + "_s" + str(smoothing) 
         + "/")
+        
+    model.output_directory_path = model.output_directory_path.joinpath(
+        "tauf" + str(simulated_endtime) + "/")
     
     model.output_directory_path.mkdir(parents = True, exist_ok = True)
     
@@ -535,7 +538,7 @@ def compare_bas_to_analytical_solution(
             fig.savefig(str(filepath), bbox_inches = "tight")
 
   
-def test__verify_bas_with_analytical_solution():
+def test__verify_bas_without_supercooling_against_analytical_solution():
 
     L = 0.038  # side length of experimental cavity in @cite{michalek2003} [m]
     
@@ -576,6 +579,9 @@ def test__verify_bas_with_analytical_solution():
     T_inf = T_m + T_E/C_E*C_0  # Initial/farfield temperature [deg C]
     
     
+    # Try a low Le value to prevent supercooling
+    low_Le = 2.
+    
     #
     compare_bas_to_analytical_solution(
         length_scale = L,
@@ -586,12 +592,12 @@ def test__verify_bas_with_analytical_solution():
         pure_melting_temperature = T_m,
         eutectic_temperature = T_E,
         eutectic_concentration = C_E,
-        lewis_number = Le,
+        lewis_number = low_Le,
         solid_concentration = C_s,
         initial_concentration = C_0,
         initial_temperature = T_inf,
         cold_wall_temperature = T_B,
-        simulated_endtime = 1.,
+        simulated_endtime = 1./8.,
         meshsize = 512,
         simulated_timestep_size = 1./64.,
         smoothing = 1./256.)
