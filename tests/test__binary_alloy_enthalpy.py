@@ -47,8 +47,7 @@ class BinaryAlloySolidification(fempy.models.binary_alloy_enthalpy.Model):
         W = self.function_space
         
         self.dirichlet_boundary_conditions = [
-            fe.DirichletBC(W.sub(0), self.cold_wall_temperature, 1),
-            fe.DirichletBC(W.sub(0), self.initial_temperature, 2)]
+            fe.DirichletBC(W.sub(0), self.cold_wall_temperature, 1),]
             
             
 def run_binary_alloy_solidification(
@@ -600,7 +599,7 @@ def test__verify_bas_without_supercooling_against_analytical_solution():
         simulated_endtime = 1./8.,
         meshsize = 512,
         simulated_timestep_size = 1./64.,
-        smoothing = 1./256.)
+        smoothing = 1./4096.)
     
     
 class VerifiableModel(fempy.models.binary_alloy_enthalpy.Model):
