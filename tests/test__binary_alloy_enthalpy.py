@@ -193,6 +193,12 @@ def scale_saline_freezing():
     C_s = 0.  # Solute concentration in the solid
     
     
+    # Define linear liquidus
+    def T_L(C):
+    
+        return T_m + (T_E - T_m)/C_E*C_0
+        
+    
     # Set typical sea water values
     C_0 = 3.5  # Salt concentration [wt. % NaCl]
     
@@ -201,8 +207,9 @@ def scale_saline_freezing():
     """ Set boundary temperature to the eutectic temperature. """
     T_B = T_E  # Cold wall temperature [deg C]
     
-    """ Set farfield temperature to liquidus given the farfield concentration. """
-    T_inf = T_m + T_E/C_E*C_0  # Initial/farfield temperature [deg C]
+    
+    """ Set farfield temperature to liquidus given the farfield concentration. """    
+    T_inf = T_L(C_0)  # Initial/farfield temperature [deg C]
     
     print("T_inf = " + str(T_inf))
     
@@ -219,7 +226,7 @@ def scale_saline_freezing():
     print("Stefan number = " + str(Ste))
     
     
-    T_ref = T_inf
+    T_ref = T_L(C_0)
     
     def theta(T):
         
