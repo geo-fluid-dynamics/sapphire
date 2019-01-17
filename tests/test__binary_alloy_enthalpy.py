@@ -2,8 +2,9 @@ import firedrake as fe
 import fempy.mms
 import fempy.models.binary_alloy_enthalpy
 import fempy.benchmarks.analytical_binary_alloy_solidification
-import matplotlib.pyplot as plt
 import fempy.patches
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 class BinaryAlloySolidification(fempy.models.binary_alloy_enthalpy.Model):
@@ -485,7 +486,9 @@ def compare_bas_to_analytical_solution(
     
         return tau*pow(L, 2)/alpha
     
-    for tau, color in zip(times_to_plot, ("k", "r", "g", "b")):
+    colors = [plt.cm.cool(i) for i in np.linspace(0, 1, len(times_to_plot))]
+    
+    for tau, color in zip(times_to_plot, colors):
     
         model.run(endtime = tau, plot = False)
         
@@ -501,14 +504,22 @@ def compare_bas_to_analytical_solution(
         
         xi_h = fe.interpolate(_phil_h*xil_h, V)
         
+        names_for_file = ("theta", "xil", "phil", "xi")
+        
+        yaxis_labels = (
+            r"\theta \equiv " +
+                r"\left(T - T_{L,0}\right)/\left(T_{L,0} - T_B\right)",
+            r"\xi_l \equiv C_l/C_{l,0}", 
+            r"\phi_l", 
+            r"\xi \equiv C/C_0")
+        
         for u_h, u, fig, ax, name, label in zip(
                 (theta_h, xil_h, phil_h, xi_h),
                 (_theta, _xil, _phil, _xi),
                 figures,
                 axes,
-                ("theta", "xil", "phil", "xi"),
-                (r"\left(T - T_m\right)/\left(T_\infty - T_B\right)", 
-                 r"C_l/C_{l,0}", r"\phi_l", r"C/C_0")):
+                names_for_file,
+                yaxis_labels):
                 
             plt.figure(fig.number)
             
@@ -582,7 +593,11 @@ def test__verify_bas_without_supercooling_against_analytical_solution():
     T_B = T_E  # Cold wall temperature [deg C]
     
     """ Set farfield temperature to liquidus given the farfield concentration. """
-    T_inf = T_m + T_E/C_E*C_0  # Initial/farfield temperature [deg C]
+    def T_L(C):
+    
+        return T_m + (T_E - T_m)/C_E*C_0
+        
+    T_inf = T_L(C_0)  # Initial/farfield temperature [deg C]
     
     
     # Try a low Le value to prevent supercooling
