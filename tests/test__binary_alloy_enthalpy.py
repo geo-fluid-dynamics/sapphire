@@ -621,7 +621,7 @@ def test__verify_bas_without_supercooling_against_analytical_solution():
         simulated_endtime = 1./8.,
         meshsize = 512,
         simulated_timestep_size = 1./64.,
-        smoothing = 1./4096.)
+        smoothing = 1./128.)
     
     
 class VerifiableModel(fempy.models.binary_alloy_enthalpy.Model):
