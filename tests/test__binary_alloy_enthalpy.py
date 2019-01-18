@@ -73,7 +73,8 @@ def run_binary_alloy_solidification(
         solid_concentration,
         initial_temperature,
         cold_wall_temperature,
-        endtime, 
+        endtime,
+        minimum_porosity,
         meshsize,
         timestep_size,
         smoothing):
@@ -92,7 +93,8 @@ def run_binary_alloy_solidification(
     model.output_directory_path = model.output_directory_path.joinpath(
         "nx" + str(meshsize) 
         + "_Deltat" + str(timestep_size)
-        + "_s" + str(smoothing) + "/")
+        + "_s" + str(smoothing) 
+        + "_philmin" + str(minimum_porosity) + "/")
     
     model.output_directory_path.mkdir(parents = True, exist_ok = True)
     
@@ -113,6 +115,8 @@ def run_binary_alloy_solidification(
     model.update_initial_values()
     
     model.solution.assign(model.initial_values[0])
+    
+    model.minimum_porosity.assign(minimum_porosity)
     
     model.timestep_size.assign(timestep_size)
     
@@ -264,7 +268,7 @@ def scale_saline_freezing():
     return Ste, Le, C_s, t_sec, theta_inf, theta_B
     
     
-def run_saline_freezing(meshsize, timesteps, smoothing):
+def run_saline_freezing(minimum_porosity, meshsize, timesteps, smoothing):
     """ Run the binary alloy solidification model 
     with saline freezing parameters.
     
@@ -286,6 +290,7 @@ def run_saline_freezing(meshsize, timesteps, smoothing):
         endtime = endtime,
         initial_temperature = theta_inf,
         cold_wall_temperature = theta_B,
+        minimum_porosity = minimum_porosity,
         meshsize = meshsize,
         timestep_size = endtime/float(timesteps),
         smoothing = smoothing)
@@ -307,6 +312,7 @@ def test__binary_alloy_solidification():
         initial_temperature = 0.5,
         cold_wall_temperature = -0.5,
         endtime = 1.,
+        minimum_porosity = 0.01,
         meshsize = 512,
         timestep_size = 1./64.,
         smoothing = 1./32.)
@@ -327,6 +333,7 @@ def compare_bas_to_analytical_solution(
         initial_concentration,
         cold_wall_temperature,
         simulated_endtime,
+        minimum_porosity,
         meshsize,
         simulated_timestep_size,
         smoothing,
@@ -422,6 +429,7 @@ def compare_bas_to_analytical_solution(
         "nx" + str(meshsize) 
         + "_Deltatau" + str(simulated_timestep_size)
         + "_s" + str(smoothing) 
+        + "_philmin" + str(minimum_porosity)
         + "/")
         
     model.output_directory_path = model.output_directory_path.joinpath(
@@ -446,6 +454,8 @@ def compare_bas_to_analytical_solution(
     model.update_initial_values()
     
     model.solution.assign(model.initial_values[0])
+    
+    model.minimum_porosity.assign(minimum_porosity)
     
     model.timestep_size.assign(simulated_timestep_size)
     
@@ -633,10 +643,11 @@ def test__verify_bas_without_supercooling_against_analytical_solution():
         initial_concentration = C_0,
         initial_temperature = T_inf,
         cold_wall_temperature = T_B,
+        minimum_porosity = 0.001,
         simulated_endtime = 1./8.,
-        meshsize = 512,
-        simulated_timestep_size = 1./64.,
-        smoothing = 1./1024.)
+        meshsize = 4096,
+        simulated_timestep_size = 1./2048.,
+        smoothing = 1./4096.)
     
     
 class VerifiableModel(fempy.models.binary_alloy_enthalpy.Model):
@@ -717,6 +728,7 @@ def test__fails__verify_spatial_convergence_order_via_mms(
             "stefan_number": 0.1,
             "lewis_number": 8.,
             "solid_concentration": 0.02,
+            "minimum_porosity": 0.01,
             "smoothing": 1./32.},
         expected_order = 2,
         mesh_sizes = mesh_sizes,
