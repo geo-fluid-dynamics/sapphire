@@ -77,7 +77,7 @@ class Model(fempy.unsteady_model.Model):
         phil = self.porosity
         
         phil_t = bdf2(
-            phil(T_np1, Cl_np1), phil(T_n, Cl_n), phil(T_np1, Cl_np1))
+            phil(T_np1, Cl_np1), phil(T_n, Cl_n), phil(T_nm1, Cl_nm1))
         
         self.time_discrete_terms = T_t, Cl_t, phil_t
     
