@@ -53,7 +53,7 @@ class Model(fempy.unsteady_model.Model):
         
         tanh = fe.tanh
         
-        return 0.5*(1. + tanh((T - T_L)/s)) + phil_min
+        return 0.5*(1. + tanh((T - T_L)/s))*(1. - phil_min) + phil_min
     
     def init_initial_values(self):
         
