@@ -43,12 +43,27 @@ class BinaryAlloySolidification(fempy.models.binary_alloy_enthalpy.Model):
         
             iv.assign(initial_values)
         
+    def cold_boundary_liquid_concentration(self):
+        
+        Cs = self.solid_concentration
+    
+        phil_min = self.minimum_porosity
+    
+        return 1. - Cs*(1. - phil_min)/phil_min
+        
     def init_dirichlet_boundary_conditions(self):
     
         W = self.function_space
         
         self.dirichlet_boundary_conditions = [
-            fe.DirichletBC(W.sub(0), self.cold_wall_temperature, 1),]
+            fe.DirichletBC(
+                W.sub(0),
+                self.cold_wall_temperature,
+                1),
+            fe.DirichletBC(
+                W.sub(1),
+                self.cold_boundary_liquid_concentration(),
+                1)]
             
             
 def run_binary_alloy_solidification(
@@ -619,9 +634,9 @@ def test__verify_bas_without_supercooling_against_analytical_solution():
         initial_temperature = T_inf,
         cold_wall_temperature = T_B,
         simulated_endtime = 1./8.,
-        meshsize = 512,
+        meshsize = 1024,
         simulated_timestep_size = 1./64.,
-        smoothing = 1./128.)
+        smoothing = 1./4096.)
     
     
 class VerifiableModel(fempy.models.binary_alloy_enthalpy.Model):
