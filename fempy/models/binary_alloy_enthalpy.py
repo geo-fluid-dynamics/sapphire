@@ -17,6 +17,8 @@ class Model(fempy.unsteady_model.Model):
         
         self.liquidus_slope = fe.Constant(-0.1)
         
+        self.minimum_porosity = fe.Constant(0.01)
+        
         self.solid_concentration = fe.Constant(0.)
         
         self.smoothing = fe.Constant(1./64.)
@@ -45,11 +47,13 @@ class Model(fempy.unsteady_model.Model):
         
         T_L = self.liquidus_temperature(Cl)
         
+        phil_min = self.minimum_porosity
+        
         s = self.smoothing
         
         tanh = fe.tanh
         
-        return 0.5*(1. + tanh((T - T_L)/s))
+        return 0.5*(1. + tanh((T - T_L)/s)) + phil_min
     
     def init_initial_values(self):
         
