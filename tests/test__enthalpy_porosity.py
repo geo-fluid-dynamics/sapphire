@@ -123,7 +123,7 @@ class VerifiableModel(fempy.models.enthalpy_porosity.Model):
         print("Solved at time t = " + str(self.time.__float__()))
         
         
-def fails__test__verify_spatial_convergence_order_via_mms(
+def test__verify_spatial_convergence_order_via_mms(
         parameters = {
             "grashof_number": 2.,
             "prandtl_number": 5.,
