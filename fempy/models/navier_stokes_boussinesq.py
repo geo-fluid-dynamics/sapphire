@@ -9,7 +9,7 @@ class Model(fempy.model.Model):
     
         self.dynamic_viscosity = fe.Constant(1.)
         
-        self.rayleigh_number = fe.Constant(1.)
+        self.grashof_number = fe.Constant(1.)
         
         self.prandtl_number = fe.Constant(1.)
         
@@ -26,7 +26,7 @@ class Model(fempy.model.Model):
 
         mu = self.dynamic_viscosity
         
-        Ra = self.rayleigh_number
+        Gr = self.grashof_number
         
         Pr = self.prandtl_number
         
@@ -45,7 +45,7 @@ class Model(fempy.model.Model):
         
         mass = psi_p*div(u)
         
-        momentum = dot(psi_u, grad(u)*u + Ra/Pr*T*ghat) \
+        momentum = dot(psi_u, grad(u)*u + Gr*T*ghat) \
             - div(psi_u)*p + 2.*mu*inner(sym(grad(psi_u)), sym(grad(u)))
         
         energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))

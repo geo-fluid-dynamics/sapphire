@@ -13,7 +13,7 @@ class Model(fempy.unsteady_model.Model):
         
         self.solid_dynamic_viscosity = fe.Constant(1.e8)
         
-        self.rayleigh_number = fe.Constant(1.)
+        self.grashof_number = fe.Constant(1.)
         
         self.prandtl_number = fe.Constant(1.)
         
@@ -58,15 +58,13 @@ class Model(fempy.unsteady_model.Model):
         
     def buoyancy(self, T):
         """ Boussinesq buoyancy """
-        Ra = self.rayleigh_number
-        
-        Pr = self.prandtl_number
+        Gr = self.grashof_number
         
         ihat, jhat = self.unit_vectors()
         
         ghat = fe.Constant(-jhat)
         
-        return Ra/Pr*T*ghat
+        return Gr*T*ghat
         
     def init_time_discrete_terms(self):
         """ Implicit Euler finite difference scheme """

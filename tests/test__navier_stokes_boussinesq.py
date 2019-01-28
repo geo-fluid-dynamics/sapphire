@@ -44,7 +44,7 @@ class VerifiableModel(fempy.models.navier_stokes_boussinesq.Model):
             
             mu = self.dynamic_viscosity
             
-            Ra = self.rayleigh_number
+            Gr = self.grashof_number
             
             Pr = self.prandtl_number
             
@@ -56,7 +56,7 @@ class VerifiableModel(fempy.models.navier_stokes_boussinesq.Model):
             
             r_p = div(u)
             
-            r_u = grad(u)*u + grad(p) - 2.*div(mu*sym(grad(u))) + Ra/Pr*T*ghat
+            r_u = grad(u)*u + grad(p) - 2.*div(mu*sym(grad(u))) + Gr*T*ghat
             
             r_T = dot(u, grad(T)) - 1./Pr*div(grad(T))
             
@@ -69,12 +69,16 @@ def test__verify_convergence_order_via_mms(
         plot_errors = False,
         plot_solution = False):
     
+    Ra = 10.
+    
+    Pr = 0.7
+    
     fempy.mms.verify_spatial_order_of_accuracy(
         Model = VerifiableModel,
         parameters = {
             "dynamic_viscosity": 0.1, 
-            "rayleigh_number": 10., 
-            "prandtl_number": 0.7},
+            "grashof_number": Ra/Pr,
+            "prandtl_number": Pr},
         expected_order = 2,
         mesh_sizes = mesh_sizes,
         tolerance = tolerance,
@@ -157,9 +161,11 @@ def test__verify_against_heat_driven_cavity_benchmark():
     model.solver.solve()
     
     """ Verify against the result published in @cite{wang2010comprehensive}. """
-    Ra = model.rayleigh_number.__float__()
+    Gr = model.grashof_number.__float__()
     
     Pr = model.prandtl_number.__float__()
+    
+    Ra = Gr*Pr
     
     """ Verify coordinates (0.3499, 0.8499, 0.9999) instead of (0.35, 0.85, 1)
     because the Function evaluation fails arbitrarily at these points.

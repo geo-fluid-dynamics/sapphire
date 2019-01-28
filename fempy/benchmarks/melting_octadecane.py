@@ -14,9 +14,13 @@ class Model(fempy.models.enthalpy_porosity.Model):
         
         super().__init__()
         
-        self.rayleigh_number.assign(3.27e5)
+        Ra = 3.27e5
         
-        self.prandtl_number.assign(56.2)
+        Pr = 56.2
+        
+        self.grashof_number.assign(Ra/Pr)
+        
+        self.prandtl_number.assign(Pr)
         
         self.stefan_number.assign(0.045)
         

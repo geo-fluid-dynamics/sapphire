@@ -62,8 +62,6 @@ class VerifiableModel(fempy.models.enthalpy_porosity.Model):
         
         mu_l = self.liquid_dynamic_viscosity
         
-        Ra = self.rayleigh_number
-        
         Pr = self.prandtl_number
         
         Ste = self.stefan_number
@@ -127,7 +125,7 @@ class VerifiableModel(fempy.models.enthalpy_porosity.Model):
         
 def fails__test__verify_spatial_convergence_order_via_mms(
         parameters = {
-            "rayleigh_number": 10.,
+            "grashof_number": 2.,
             "prandtl_number": 5.,
             "stefan_number": 0.2,
             "smoothing": 1./16.},

@@ -14,9 +14,13 @@ class Model(fempy.models.navier_stokes_boussinesq.Model):
         
         super().__init__()
         
-        self.rayleigh_number.assign(1.e6)
+        Ra = 1.e6
         
-        self.prandtl_number.assign(0.71)
+        Pr = 0.71
+        
+        self.grashof_number.assign(Ra/Pr)
+        
+        self.prandtl_number.assign(Pr)
         
     def init_mesh(self):
     
