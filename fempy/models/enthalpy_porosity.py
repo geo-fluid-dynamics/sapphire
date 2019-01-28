@@ -58,13 +58,25 @@ class Model(fempy.unsteady_model.Model):
         
     def buoyancy(self, T):
         """ Boussinesq buoyancy """
+        _, _, T = fe.split(self.solution)
+        
         Gr = self.grashof_number
         
-        ihat, jhat = self.unit_vectors()
+        _, jhat = self.unit_vectors()
         
         ghat = fe.Constant(-jhat)
         
         return Gr*T*ghat
+        
+    def viscosity(self, T):
+        
+        mu_s = self.solid_dynamic_viscosity
+        
+        mu_l = self.liquid_dynamic_viscosity
+        
+        phil = self.porosity(T)
+        
+        return mu_s + (mu_l - mu_s)*phil
         
     def init_time_discrete_terms(self):
         """ Implicit Euler finite difference scheme """
@@ -84,44 +96,66 @@ class Model(fempy.unsteady_model.Model):
         
         self.time_discrete_terms = u_t, T_t, phil_t
         
-    def init_weak_form_residual(self):
-        """ Weak form from @cite{zimmerman2018monolithic} """
-        mu_s = self.solid_dynamic_viscosity
+    def mass(self):
         
-        mu_l = self.liquid_dynamic_viscosity
+        p, u, _ = fe.split(self.solution)
         
-        Pr = self.prandtl_number
+        psi_p, _, _ = fe.TestFunctions(self.function_space)
         
-        Ste = self.stefan_number
+        div = fe.div
+        
+        mass = psi_p*div(u)
         
         gamma = self.pressure_penalty_factor
+        
+        stabilization = gamma*psi_p*p
+        
+        return mass + stabilization
+        
+    def momentum(self):
         
         inner, dot, grad, div, sym = \
             fe.inner, fe.dot, fe.grad, fe.div, fe.sym
         
         p, u, T = fe.split(self.solution)
         
-        u_t, T_t, phil_t = self.time_discrete_terms
+        u_t, _, _ = self.time_discrete_terms
         
         b = self.buoyancy(T)
         
-        phil = self.porosity(T)
+        mu = self.viscosity(T)
         
-        mu = mu_s + (mu_l - mu_s)*phil
+        _, psi_u, _ = fe.TestFunctions(self.function_space)
         
-        psi_p, psi_u, psi_T = fe.TestFunctions(self.function_space)
-        
-        mass = psi_p*div(u)
-        
-        momentum = dot(psi_u, u_t + grad(u)*u + b) \
+        return dot(psi_u, u_t + grad(u)*u + b) \
             - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), mu*sym(grad(u)))
         
-        enthalpy = psi_T*(T_t + 1./Ste*phil_t) \
+    def enthalpy(self):
+        
+        Pr = self.prandtl_number
+        
+        Ste = self.stefan_number
+        
+        _, u, T = fe.split(self.solution)
+        
+        _, T_t, phil_t = self.time_discrete_terms
+        
+        _, _, psi_T = fe.TestFunctions(self.function_space)
+        
+        dot, grad = fe.dot, fe.grad
+        
+        return psi_T*(T_t + 1./Ste*phil_t) \
             + dot(grad(psi_T), 1./Pr*grad(T) - T*u)
         
-        stabilization = gamma*psi_p*p
+    def init_weak_form_residual(self):
+        """ Weak form from @cite{zimmerman2018monolithic} """
+        mass = self.mass()
         
-        self.weak_form_residual = mass + momentum + enthalpy + stabilization
+        momentum = self.momentum()
+        
+        enthalpy = self.enthalpy()
+        
+        self.weak_form_residual = mass + momentum + enthalpy
 
     def init_integration_measure(self):
 
