@@ -36,6 +36,44 @@ def test__melting_octadecane_benchmark__regression():
     print("Maximum phil = " + str(max_phil))
     
     assert(abs(max_phil - 1.) < tolerance)
+    
+    
+def test__melting_octadecane_benchmark_with_darcy_resistance__regression():
+    
+    endtime, expected_liquid_area, tolerance = 30., 0.24, 0.01
+    
+    D = 1.e12
+    
+    model = fempy.benchmarks.melting_octadecane.ModelWithDarcyResistance(meshsize = 32)
+    
+    model.timestep_size.assign(10.)
+    
+    model.smoothing.assign(1./256.)
+    
+    model.darcy_resistance_factor.assign(D)
+    
+    model.output_directory_path = model.output_directory_path.joinpath(
+        "melting_octadecane_with_darcy_resistance/D" + str(D) + "/")
+        
+    model.run(endtime = endtime, plot = True)
+    
+    p, u, T = model.solution.split()
+    
+    phil = model.porosity(T)
+    
+    liquid_area = fe.assemble(phil*fe.dx)
+    
+    print("Liquid area = " + str(liquid_area))
+    
+    assert(abs(liquid_area - expected_liquid_area) < tolerance)
+    
+    phil_h = fe.interpolate(phil, model.function_space.sub(2))
+    
+    max_phil = phil_h.vector().max()
+    
+    print("Maximum phil = " + str(max_phil))
+    
+    assert(abs(max_phil - 1.) < tolerance)
 
 
 class VerifiableModel(fempy.models.enthalpy_porosity.Model):
