@@ -174,9 +174,9 @@ def test__verify_spatial_convergence_order_via_mms(
             "prandtl_number": 5.,
             "stefan_number": 0.2,
             "smoothing": 1./16.},
-        mesh_sizes = (8, 16, 32),
+        mesh_sizes = (4, 8, 16),
         timestep_size = 1./64.,
-        tolerance = 0.2):
+        tolerance = 0.4):
     
     fempy.mms.verify_spatial_order_of_accuracy(
         Model = VerifiableModel,
