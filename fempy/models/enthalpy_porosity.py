@@ -58,13 +58,27 @@ class Model(fempy.unsteady_model.Model):
         
     def buoyancy(self, T):
         """ Boussinesq buoyancy """
+        _, _, T = fe.split(self.solution)
+        
         Gr = self.grashof_number
         
-        ihat, jhat = self.unit_vectors()
+        _, jhat = self.unit_vectors()
         
         ghat = fe.Constant(-jhat)
         
         return Gr*T*ghat
+        
+    def dynamic_viscosity(self):
+        
+        _, _, T = fe.split(self.solution)
+        
+        mu_s = self.solid_dynamic_viscosity
+        
+        mu_l = self.liquid_dynamic_viscosity
+        
+        phil = self.porosity(T)
+        
+        return mu_s + (mu_l - mu_s)*phil
         
     def init_time_discrete_terms(self):
         """ Implicit Euler finite difference scheme """
@@ -84,44 +98,66 @@ class Model(fempy.unsteady_model.Model):
         
         self.time_discrete_terms = u_t, T_t, phil_t
         
-    def init_weak_form_residual(self):
-        """ Weak form from @cite{zimmerman2018monolithic} """
-        mu_s = self.solid_dynamic_viscosity
+    def mass(self):
         
-        mu_l = self.liquid_dynamic_viscosity
+        p, u, _ = fe.split(self.solution)
+        
+        psi_p, _, _ = fe.TestFunctions(self.function_space)
+        
+        div = fe.div
+        
+        mass = psi_p*div(u)
+        
+        gamma = self.pressure_penalty_factor
+        
+        stabilization = gamma*psi_p*p
+        
+        return mass + stabilization
+        
+    def momentum(self):
+        
+        p, u, T = fe.split(self.solution)
+        
+        u_t, _, _ = self.time_discrete_terms
+        
+        b = self.buoyancy(T)
+        
+        mu = self.dynamic_viscosity()
+        
+        _, psi_u, _ = fe.TestFunctions(self.function_space)
+        
+        inner, dot, grad, div, sym = \
+            fe.inner, fe.dot, fe.grad, fe.div, fe.sym
+            
+        return dot(psi_u, u_t + grad(u)*u + b) \
+            - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), mu*sym(grad(u)))
+        
+    def enthalpy(self):
         
         Pr = self.prandtl_number
         
         Ste = self.stefan_number
         
-        gamma = self.pressure_penalty_factor
+        _, u, T = fe.split(self.solution)
         
-        inner, dot, grad, div, sym = \
-            fe.inner, fe.dot, fe.grad, fe.div, fe.sym
+        _, T_t, phil_t = self.time_discrete_terms
         
-        p, u, T = fe.split(self.solution)
+        _, _, psi_T = fe.TestFunctions(self.function_space)
         
-        u_t, T_t, phil_t = self.time_discrete_terms
+        dot, grad = fe.dot, fe.grad
         
-        b = self.buoyancy(T)
-        
-        phil = self.porosity(T)
-        
-        mu = mu_s + (mu_l - mu_s)*phil
-        
-        psi_p, psi_u, psi_T = fe.TestFunctions(self.function_space)
-        
-        mass = psi_p*div(u)
-        
-        momentum = dot(psi_u, u_t + grad(u)*u + b) \
-            - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), mu*sym(grad(u)))
-        
-        enthalpy = psi_T*(T_t + 1./Ste*phil_t) \
+        return psi_T*(T_t + 1./Ste*phil_t) \
             + dot(grad(psi_T), 1./Pr*grad(T) - T*u)
         
-        stabilization = gamma*psi_p*p
+    def init_weak_form_residual(self):
+        """ Weak form from @cite{zimmerman2018monolithic} """
+        mass = self.mass()
         
-        self.weak_form_residual = mass + momentum + enthalpy + stabilization
+        momentum = self.momentum()
+        
+        enthalpy = self.enthalpy()
+        
+        self.weak_form_residual = mass + momentum + enthalpy
 
     def init_integration_measure(self):
 
@@ -220,4 +256,48 @@ class ModelWithBDF2(Model):
         phil_t = bdf2(phil(T_np1), phil(T_n), phil(T_nm1))
         
         self.time_discrete_terms = u_t, T_t, phil_t
+        
+        
+class ModelWithDarcyResistance(Model):
+
+    def __init__(self):
+        
+        self.darcy_resistance_factor = fe.Constant(1.e6)
+        
+        self.small_number_to_avoid_division_by_zero = fe.Constant(1.e-8)
+        
+        super().__init__()
+        
+        delattr(self, "solid_dynamic_viscosity")
+        
+    def darcy_resistance(self, T):
+        """ Resistance to flow based on permeability of the porous media """
+        D = self.darcy_resistance_factor
+        
+        epsilon = self.small_number_to_avoid_division_by_zero
+        
+        phil = self.porosity(T)
+        
+        return D*(1. - phil)**2/(phil**3 + epsilon)
+        
+    def dynamic_viscosity(self):
+        
+        return self.liquid_dynamic_viscosity
+        
+    def momentum(self):
+        
+        _, u, T = fe.split(self.solution)
+        
+        u_t, _, _ = self.time_discrete_terms
+        
+        b = self.buoyancy(T)
+        
+        d = self.darcy_resistance(T)
+        
+        _, psi_u, _ = fe.TestFunctions(self.function_space)
+        
+        dot = fe.dot
+        
+        return super().momentum() + dot(psi_u, d*u)
+        
         
