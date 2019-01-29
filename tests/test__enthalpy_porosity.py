@@ -83,7 +83,7 @@ def test__melting_octadecane_benchmark_with_darcy_resistance__regression():
     assert(abs(max_phil - 1.) < tolerance)
 
 
-class VerifiableModel(fempy.models.enthalpy_porosity.Model):
+class VerifiableModel(fempy.models.enthalpy_porosity.ModelWithBDF2):
 
     def __init__(self, meshsize):
     
@@ -123,11 +123,11 @@ class VerifiableModel(fempy.models.enthalpy_porosity.Model):
         
         mu = mu_s + (mu_l - mu_s)*phil
         
-        r_p = div(u) + gamma*p
+        r_p = div(u)
         
         r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(mu*sym(grad(u))) + b
         
-        r_T = diff(T, t) + 1./Ste*diff(phil, t) + div(T*u) - 1./Pr*div(grad(T))
+        r_T = diff(T + 1./Ste*phil, t) + div(T*u) - 1./Pr*div(grad(T))
         
         return r_p, r_u, r_T
         
@@ -146,9 +146,9 @@ class VerifiableModel(fempy.models.enthalpy_porosity.Model):
         u = exp(t)*sin(2.*pi*x[0])*sin(pi*x[1])*ihat + \
             exp(t)*sin(pi*x[0])*sin(2.*pi*x[1])*jhat
         
-        p = -0.5*(u[0]**2 + u[1]**2)
+        p = -sin(pi*x[0])*sin(2.*pi*x[1])
         
-        T = 0.5*sin(2.*pi*x[0])*sin(pi*x[1])*(1. - 2*exp(-3.*t**2))
+        T = 0.5*sin(2.*pi*x[0])*sin(pi*x[1])*(1. - exp(-t**2))
         
         self.manufactured_solution = p, u, T
         
@@ -168,13 +168,13 @@ class VerifiableModel(fempy.models.enthalpy_porosity.Model):
         print("Solved at time t = " + str(self.time.__float__()))
         
         
-def fails__test__verify_spatial_convergence_order_via_mms(
+def test__verify_spatial_convergence_order_via_mms(
         parameters = {
             "grashof_number": 2.,
             "prandtl_number": 5.,
             "stefan_number": 0.2,
             "smoothing": 1./16.},
-        mesh_sizes = (4, 8, 16),
+        mesh_sizes = (8, 16, 32),
         timestep_size = 1./64.,
         tolerance = 0.2):
     

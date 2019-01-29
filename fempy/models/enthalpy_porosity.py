@@ -233,6 +233,11 @@ class Model(fempy.unsteady_model.Model):
             
 class ModelWithBDF2(Model):
 
+    def init_initial_values(self):
+        
+        self.initial_values = [fe.Function(self.function_space)
+            for i in range(2)]
+
     def init_time_discrete_terms(self):
     
         Delta_t = self.timestep_size
