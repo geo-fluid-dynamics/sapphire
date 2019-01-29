@@ -8,14 +8,21 @@ def test__melting_octadecane_benchmark__regression():
     
     endtime, expected_liquid_area, tolerance = 30., 0.24, 0.01
     
-    model = fempy.benchmarks.melting_octadecane.Model(meshsize = 32)
+    nx = 32
     
-    model.timestep_size.assign(10.)
+    Delta_t = 10.
     
-    model.smoothing.assign(1./256.)
+    model = fempy.benchmarks.melting_octadecane.Model(meshsize = nx)
+    
+    model.timestep_size.assign(Delta_t)
+    
+    s = 1./256.
+    
+    model.smoothing.assign(s)
     
     model.output_directory_path = model.output_directory_path.joinpath(
-        "melting_octadecane/")
+        "melting_octadecane/" + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
+        + "_s" + str(s) + "_tf" + str(endtime) + "/")
         
     model.run(endtime = endtime, plot = False)
     
