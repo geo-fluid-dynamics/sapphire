@@ -186,4 +186,24 @@ def test__verify_spatial_convergence_order_via_mms(
         tolerance = tolerance,
         timestep_size = timestep_size,
         endtime = 1.)
+        
+        
+def test__verify_temporal_convergence_order_via_mms(
+        parameters = {
+            "grashof_number": 2.,
+            "prandtl_number": 5.,
+            "stefan_number": 0.2,
+            "smoothing": 1./16.},
+        meshsize = 32,
+        timestep_sizes = (1./4., 1./8., 1./16.),
+        tolerance = 0.3):
+    
+    fempy.mms.verify_temporal_order_of_accuracy(
+        Model = VerifiableModel,
+        parameters = parameters,
+        expected_order = 2,
+        meshsize = meshsize,
+        tolerance = tolerance,
+        timestep_sizes = timestep_sizes,
+        endtime = 1.)
     
