@@ -1,5 +1,5 @@
 # FemPy
-A Python package for finite element models using Firedrake
+FemPy is a Python package using Firedrake to construct finite element models for monolithic multi-physics simulations.
 
 ## Setup
 
