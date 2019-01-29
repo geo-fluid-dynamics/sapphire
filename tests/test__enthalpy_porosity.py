@@ -55,7 +55,7 @@ def test__melting_octadecane_benchmark_with_darcy_resistance__regression():
     model.output_directory_path = model.output_directory_path.joinpath(
         "melting_octadecane_with_darcy_resistance/D" + str(D) + "/")
         
-    model.run(endtime = endtime, plot = True)
+    model.run(endtime = endtime, plot = False)
     
     p, u, T = model.solution.split()
     
