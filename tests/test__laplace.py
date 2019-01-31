@@ -43,5 +43,6 @@ def test__verify_convergence_order_via_mms(
         Model = OneDimMMSModel,
         expected_order = 2,
         mesh_sizes = mesh_sizes,
-        tolerance = tolerance)
+        tolerance = tolerance,
+        plot_solution = True)
     
