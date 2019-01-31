@@ -196,8 +196,8 @@ def test__verify_temporal_convergence_order_via_mms(
             "stefan_number": 0.2,
             "smoothing": 1./16.},
         meshsize = 32,
-        timestep_sizes = (1./4., 1./8., 1./16.),
-        tolerance = 0.4):
+        timestep_sizes = (1./4., 1./8., 1./16., 1./32.),
+        tolerance = 0.2):
     
     fempy.mms.verify_temporal_order_of_accuracy(
         Model = VerifiableModel,
@@ -206,6 +206,6 @@ def test__verify_temporal_convergence_order_via_mms(
         meshsize = meshsize,
         tolerance = tolerance,
         timestep_sizes = timestep_sizes,
-        endtime = 1.,
+        endtime = 0.5,
         plot_solution = False)
         
