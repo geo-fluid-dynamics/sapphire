@@ -227,6 +227,8 @@ def verify_temporal_order_of_accuracy(
         
             model.initial_values.assign(initial_values[0])
             
+        model.solution.assign(model.initial_values[0])
+        
         model.run(endtime = endtime, plot = plot_solution)
             
         table.append({
