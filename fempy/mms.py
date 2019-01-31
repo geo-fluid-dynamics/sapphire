@@ -96,6 +96,18 @@ def verify_spatial_order_of_accuracy(
         
         model = MMSVerificationModel(meshsize = meshsize)
         
+        model.output_directory_path = model.output_directory_path.joinpath(
+            "mms_space")
+            
+        if timestep_size is not None:
+            
+            model.output_directory_path = \
+                model.output_directory_path.joinpath(
+                "Deltat" + str(timestep_size))
+        
+        model.output_directory_path = model.output_directory_path.joinpath(
+            "m" + str(meshsize) + "/")
+        
         model.assign_parameters(parameters)
         
         if hasattr(model, "time"):
@@ -104,7 +116,7 @@ def verify_spatial_order_of_accuracy(
             
             model.timestep_size.assign(timestep_size)
             
-            model.run(endtime = endtime)
+            model.run(endtime = endtime, plot = plot_solution)
         
         else:
         
@@ -156,11 +168,6 @@ def verify_spatial_order_of_accuracy(
         
         plt.close()
         
-    
-    if plot_solution:
-    
-        model.plot()
-    
     assert(abs(order - expected_order) < tolerance)
     
     
@@ -182,6 +189,8 @@ def verify_temporal_order_of_accuracy(
     
     model = MMSVerificationModel(meshsize = meshsize)
     
+    basepath = model.output_directory_path
+    
     model.assign_parameters(parameters)
     
     u_m = model.initial_values
@@ -198,6 +207,14 @@ def verify_temporal_order_of_accuracy(
         
         model.timestep_size.assign(timestep_size)
         
+        model.output_directory_path = basepath.joinpath("mms_time")
+        
+        model.output_directory_path = model.output_directory_path.joinpath(
+            "m" + str(meshsize))
+            
+        model.output_directory_path = model.output_directory_path.joinpath(
+            "Deltat" + str(timestep_size))
+        
         model.time.assign(starttime)
         
         if (type(model.initial_values) == type((0,)) or
@@ -210,7 +227,9 @@ def verify_temporal_order_of_accuracy(
         
             model.initial_values.assign(initial_values[0])
             
-        model.run(endtime = endtime)
+        model.solution.assign(model.initial_values[0])
+        
+        model.run(endtime = endtime, plot = plot_solution)
             
         table.append({
             "Delta_t": timestep_size,
@@ -257,11 +276,7 @@ def verify_temporal_order_of_accuracy(
         plt.savefig(str(filepath))
         
         plt.close()
-    
-    if plot_solution:
-    
-        model.plot()
-    
+        
     assert(abs(order - expected_order) < tolerance)
     
     

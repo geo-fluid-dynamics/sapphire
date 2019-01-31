@@ -128,7 +128,8 @@ def test__verify_temporal_convergence_order_via_mms__bdf2(
         meshsize = meshsize,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
-        tolerance = tolerance)
+        tolerance = tolerance,
+        plot_solution = True)
         
         
 class ModelWithWave(Model):
