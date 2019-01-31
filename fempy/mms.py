@@ -207,10 +207,13 @@ def verify_temporal_order_of_accuracy(
         
         model.timestep_size.assign(timestep_size)
         
-        model.output_directory_path = basepath.joinpath(
-            "mms_time" 
-            + "m" + str(meshsize) 
-            + "Deltat" + str(timestep_size) + "/")
+        model.output_directory_path = basepath.joinpath("mms_time")
+        
+        model.output_directory_path = model.output_directory_path.joinpath(
+            "m" + str(meshsize))
+            
+        model.output_directory_path = model.output_directory_path.joinpath(
+            "Deltat" + str(timestep_size))
         
         model.time.assign(starttime)
         
