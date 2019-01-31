@@ -53,6 +53,10 @@ class Model(fempy.model.Model):
         
     def run(self, endtime, plot = False):
         
+        if plot:
+                
+            self.plot()
+                
         while self.time.__float__() < (endtime - self.time_tolerance):
             
             self.time.assign(self.time + self.timestep_size)
