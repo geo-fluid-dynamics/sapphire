@@ -39,6 +39,10 @@ class Model(fempy.unsteady_model.Model):
         
         self.backup_solution = fe.Function(self.solution)
         
+        
+        # Add some attributes for reporting
+        self.liquid_area = None
+        
     def init_element(self):
     
         self.element = fe.MixedElement(
@@ -190,6 +194,16 @@ class Model(fempy.unsteady_model.Model):
                 if not self.quiet:
                     
                     print("Solved with s = " + str(s))
+    
+    def report(self, write_header):
+        
+        p, u, T = self.solution.split()
+    
+        phil = self.porosity(T)
+        
+        self.liquid_area = fe.assemble(phil*self.integration_measure)
+        
+        super().report(write_header = write_header)
     
     def plot(self):
     
