@@ -1,10 +1,10 @@
 """ An abstract class on which to base finite element models
-with auxiliary data for unsteady (i.e. time-dependent) simulations.
+with auxiliary data for unsteady simulations.
 """
 import firedrake as fe
 import fempy.model
-import abc
 import matplotlib.pyplot as plt
+import csv
 
 
 class Model(fempy.model.Model):
@@ -50,19 +50,27 @@ class Model(fempy.model.Model):
                     self.initial_values[-i - 2])
                 
             self.initial_values[0].assign(self.solution)
+            
+    def run(self, endtime, report = True, plot = False):
         
-    def run(self, endtime, plot = False):
+        if report:
+            
+            self.report(write_header = True)
         
         if plot:
-                
+            
             self.plot()
-                
+            
         while self.time.__float__() < (endtime - self.time_tolerance):
             
             self.time.assign(self.time + self.timestep_size)
                 
             self.solve()
             
+            if report:
+            
+                self.report(write_header = False)
+                
             if plot:
                 
                 self.plot()
@@ -77,6 +85,30 @@ class Model(fempy.model.Model):
             if not self.quiet:
             
                 print("Solved at time t = " + str(self.time.__float__()))
+            
+    def report(self, write_header = True):
+    
+        self.output_directory_path.mkdir(
+            parents = True, exist_ok = True)
+        
+        repvars = vars(self).copy()
+        
+        for key in repvars.keys():
+            
+            if type(repvars[key]) is type(fe.Constant(0.)):
+            
+                repvars[key] = repvars[key].__float__()
+        
+        with open(self.output_directory_path.joinpath(
+                    "report").with_suffix(".csv"), "a+") as csv_file:
+            
+            writer = csv.DictWriter(csv_file, fieldnames = repvars.keys())
+            
+            if write_header:
+                
+                writer.writeheader()
+            
+            writer.writerow(repvars)
             
     def plot(self):
         
