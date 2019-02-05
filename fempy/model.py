@@ -1,12 +1,11 @@
 """ An abstract class on which to base finite element models """
 import firedrake as fe
-import abc
 import pathlib
 import matplotlib.pyplot as plt
 
 
-class Model(metaclass = abc.ABCMeta):
-    """ An abstract class on which to base finite element models. """
+class Model(object):
+    """ A class on which to base finite element models. """
     def __init__(self):
         
         self.init_mesh()
@@ -31,22 +30,22 @@ class Model(metaclass = abc.ABCMeta):
         
         self.output_directory_path = pathlib.Path("output/")
         
-    @abc.abstractmethod
     def init_mesh(self):
         """ Redefine this to set `self.mesh` to a `fe.Mesh`.
         """
+        assert(False)
     
-    @abc.abstractmethod
     def init_element(self):
         """ Redefine this to set `self.element` 
         to a  `fe.FiniteElement` or `fe.MixedElement`.
         """
+        assert(False)
         
-    @abc.abstractmethod
     def init_weak_form_residual(self):
         """ Redefine this to set `self.weak_form_residual` 
         to a `fe.NonlinearVariationalForm`.
         """
+        assert(False)
     
     def init_function_space(self):
     
