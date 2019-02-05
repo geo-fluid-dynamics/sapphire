@@ -33,6 +33,15 @@ class Model(fempy.model.Model):
         
         self.init_initial_values()
         
+        if ((type(self.initial_values) == type((0,))) 
+                or (type(self.initial_values) == type([0,]))):
+        
+            self.solution.assign(self.initial_values[0])
+            
+        else:
+            
+            self.solution.assign(self.initial_values)
+        
         self.init_time_discrete_terms()
         
     def push_back_initial_values(self):
