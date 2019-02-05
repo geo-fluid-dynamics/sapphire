@@ -4,6 +4,30 @@ import fempy.models.enthalpy_porosity
 import fempy.benchmarks.melting_octadecane
 
 
+def test__long__melting_octadecane_benchmark__validation():
+    
+    endtime = 72.
+    
+    s = 1./128.
+    
+    nx = 64
+    
+    for Delta_t in (72., 36., 24., 12., 8., 4., 2., 1., 1./2.):
+    
+        model = fempy.benchmarks.melting_octadecane.ModelWithBDF2(
+            meshsize = nx)
+        
+        model.timestep_size.assign(Delta_t)
+        
+        model.smoothing.assign(s)
+        
+        model.output_directory_path = model.output_directory_path.joinpath(
+            "melting_octadecane/" + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
+            + "_s" + str(s) + "_tf" + str(endtime) + "/")
+            
+        model.run(endtime = endtime, plot = True)
+        
+    
 def test__melting_octadecane_benchmark__regression():
     
     endtime, expected_liquid_area, tolerance = 30., 0.24, 0.01
