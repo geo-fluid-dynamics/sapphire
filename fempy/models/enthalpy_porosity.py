@@ -182,7 +182,7 @@ class Model(fempy.unsteady_model.Model):
             
         elif self.smoothing_sequence == None:
         
-            self.solver.solve()
+            super().solve()
            
         else:
         
@@ -193,7 +193,7 @@ class Model(fempy.unsteady_model.Model):
             
                 self.smoothing.assign(s)
                 
-                self.solver.solve()
+                super().solve()
                 
                 if not self.quiet:
                     

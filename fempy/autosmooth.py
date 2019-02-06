@@ -3,6 +3,7 @@ problems with successively reduced regularization.
 Here we use the word 'smooth' as a shorter synonym for 'regularize'.
 """
 import firedrake as fe
+import fempy.model
 
 
 def solve(
@@ -46,7 +47,7 @@ def solve(
                 
                 model.backup_solution.assign(model.solution)
                 
-                model.solver.solve()
+                fempy.model.Model.solve(model)
                 
                 if not model.quiet:
                 
