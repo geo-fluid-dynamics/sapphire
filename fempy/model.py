@@ -30,6 +30,8 @@ class Model(object):
         
         self.output_directory_path = pathlib.Path("output/")
         
+        self.snes_iteration_counter = 0
+        
     def init_mesh(self):
         """ Redefine this to set `self.mesh` to a `fe.Mesh`.
         """
@@ -102,6 +104,8 @@ class Model(object):
     def solve(self):
     
         self.solver.solve()
+        
+        self.snes_iteration_counter += self.solver.snes.getIterationNumber()
     
     def unit_vectors(self):
         
