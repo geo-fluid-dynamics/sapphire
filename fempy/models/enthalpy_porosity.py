@@ -350,63 +350,6 @@ class ThirdOrderModel(Model):
         self.time_discrete_terms = u_t, T_t, phil_t
         
         
-class FourthOrderModel(Model):
-
-    def init_element(self):
-    
-        self.element = fe.MixedElement(
-            fe.FiniteElement("P", self.mesh.ufl_cell(), 3),
-            fe.VectorElement("P", self.mesh.ufl_cell(), 4),
-            fe.FiniteElement("P", self.mesh.ufl_cell(), 3))
-
-    def init_initial_values(self):
-        
-        self.initial_values = [fe.Function(self.function_space)
-            for i in range(4)]
-        
-    def init_time_discrete_terms(self):
-    
-        Delta_t = self.timestep_size
-        
-        def bdf4(ys):
-            
-            k = 4
-            
-            assert(len(ys) == (k + 1))
-            
-            alphas = (25./12., -4., 3., -4./3., 1./4.)
-            
-            y_t = alphas[-1]*ys[-1]
-            
-            for alpha, y in zip(alphas[:-1], ys[:-1]):
-            
-                y_t += alpha*y
-            
-            y_t /= Delta_t
-            
-            return y_t
-            
-        p_np1, u_np1, T_np1 = fe.split(self.solution)
-        
-        p_n, u_n, T_n = fe.split(self.initial_values[0])
-        
-        p_nm1, u_nm1, T_nm1 = fe.split(self.initial_values[1])
-        
-        p_nm2, u_nm2, T_nm2 = fe.split(self.initial_values[2])
-        
-        p_nm3, u_nm3, T_nm3 = fe.split(self.initial_values[3])
-        
-        u_t = bdf4((u_np1, u_n, u_nm1, u_nm2, u_nm3))
-        
-        T_t = bdf4((T_np1, T_n, T_nm1, T_nm2, T_nm3))
-        
-        phil = self.porosity
-        
-        phil_t = bdf4((phil(T_np1), phil(T_n), phil(T_nm1), phil(T_nm2), phil(T_nm3)))
-        
-        self.time_discrete_terms = u_t, T_t, phil_t
-        
-        
 class DarcyResistanceModel(Model):
 
     def __init__(self):
