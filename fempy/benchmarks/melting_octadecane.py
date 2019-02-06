@@ -60,7 +60,7 @@ class Model(fempy.models.enthalpy_porosity.Model):
             
         self.solution.assign(initial_values)
 
-class ModelWithBDF2(fempy.models.enthalpy_porosity.ModelWithBDF2):
+class SecondOrderModel(fempy.models.enthalpy_porosity.SecondOrderModel):
     
     def __init__(self, meshsize):
         
@@ -119,8 +119,8 @@ class ModelWithBDF2(fempy.models.enthalpy_porosity.ModelWithBDF2):
         self.solution.assign(initial_values)
         
         
-class ModelWithDarcyResistance(
-        fempy.models.enthalpy_porosity.ModelWithDarcyResistance):
+class DarcyResistanceModel(
+        fempy.models.enthalpy_porosity.DarcyResistanceModel):
     
     def __init__(self, meshsize):
         
@@ -174,8 +174,8 @@ class ModelWithDarcyResistance(
         self.initial_values.assign(initial_values)
         
         
-class ModelWithDarcyResistanceAndBDF2(
-        fempy.models.enthalpy_porosity.ModelWithDarcyResistanceAndBDF2):
+class SecondOrderDarcyResistanceModel(
+        fempy.models.enthalpy_porosity.SecondOrderDarcyResistanceModel):
     
     def __init__(self, meshsize):
         
