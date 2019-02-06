@@ -23,6 +23,8 @@ class Model(fempy.unsteady_model.Model):
         
         self.liquidus_temperature = fe.Constant(0.)
         
+        self.liquidus_temperature_offset = fe.Constant(0.)
+        
         self.smoothing = fe.Constant(1./256.)
         
         self.smoothing_sequence = None
@@ -54,11 +56,13 @@ class Model(fempy.unsteady_model.Model):
         """ Regularization from @cite{zimmerman2018monolithic} """
         T_L = self.liquidus_temperature
         
+        delta_T_L = self.liquidus_temperature_offset
+        
         s = self.smoothing
         
         tanh = fe.tanh
         
-        return 0.5*(1. + tanh((T - T_L)/s))
+        return 0.5*(1. + tanh((T - T_L + delta_T_L)/s))
         
     def buoyancy(self, T):
         """ Boussinesq buoyancy """
@@ -217,9 +221,9 @@ class Model(fempy.unsteady_model.Model):
         timestr = str(self.time.__float__())
         
         for f, label, filename in zip(
-                (self.mesh, p, u, T, phil),
-                ("\\Omega_h", "p", "\\mathbf{u}", "T", "\\phi_l"),
-                ("mesh", "p", "u", "T", "phil")):
+                (p, u, T, phil),
+                ("p", "\\mathbf{u}", "T", "\\phi_l"),
+                ("p", "u", "T", "phil")):
             
             fe.plot(f)
             
@@ -320,3 +324,44 @@ class ModelWithDarcyResistance(Model):
         return super().momentum() + dot(psi_u, d*u)
         
         
+class ModelWithDarcyResistanceAndBDF2(ModelWithBDF2):
+
+    def __init__(self):
+        
+        self.darcy_resistance_factor = fe.Constant(1.e6)
+        
+        self.small_number_to_avoid_division_by_zero = fe.Constant(1.e-8)
+        
+        super().__init__()
+        
+        delattr(self, "solid_dynamic_viscosity")
+        
+    def darcy_resistance(self, T):
+        """ Resistance to flow based on permeability of the porous media """
+        D = self.darcy_resistance_factor
+        
+        epsilon = self.small_number_to_avoid_division_by_zero
+        
+        phil = self.porosity(T)
+        
+        return D*(1. - phil)**2/(phil**3 + epsilon)
+        
+    def dynamic_viscosity(self):
+        
+        return self.liquid_dynamic_viscosity
+        
+    def momentum(self):
+        
+        _, u, T = fe.split(self.solution)
+        
+        u_t, _, _ = self.time_discrete_terms
+        
+        b = self.buoyancy(T)
+        
+        d = self.darcy_resistance(T)
+        
+        _, psi_u, _ = fe.TestFunctions(self.function_space)
+        
+        dot = fe.dot
+        
+        return super().momentum() + dot(psi_u, d*u)
