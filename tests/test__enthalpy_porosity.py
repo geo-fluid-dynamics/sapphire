@@ -4,31 +4,63 @@ import fempy.models.enthalpy_porosity
 import fempy.benchmarks.melting_octadecane
 
 
-def test__long__melting_octadecane_benchmark__validation():
+def test__melting_octadecane_benchmark__viscosity__validation():
+    
+    endtime = 72.
+    
+    delta_T_L = 0.01
+    
+    s = 1./128.
+    
+    nx = 128
+    
+    Delta_t = 1.
+
+    model = fempy.benchmarks.melting_octadecane.ModelWithBDF2(
+        meshsize = nx)
+    
+    model.timestep_size.assign(Delta_t)
+    
+    model.smoothing.assign(s)
+    
+    model.liquidus_temperature_offset.assign(delta_T_L)
+    
+    model.output_directory_path = model.output_directory_path.joinpath(
+        "melting_octadecane/viscosity/" + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
+        + "_s" + str(s) + "_deltaTL" + str(delta_T_L) + "_tf" + str(endtime) + "/")
+        
+    model.run(endtime = endtime, plot = True)
+
+    
+def test__long__melting_octadecane_benchmark__darcy__validation():
     
     endtime = 72.
     
     s = 1./128.
     
-    nx = 64
+    nx = 128
     
-    for Delta_t in (72., 36., 24., 12., 8., 4., 2., 1., 1./2.):
+    D = 1.e6
     
-        model = fempy.benchmarks.melting_octadecane.ModelWithBDF2(
-            meshsize = nx)
-        
-        model.timestep_size.assign(Delta_t)
-        
-        model.smoothing.assign(s)
-        
-        model.output_directory_path = model.output_directory_path.joinpath(
-            "melting_octadecane/" + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
-            + "_s" + str(s) + "_tf" + str(endtime) + "/")
-            
-        model.run(endtime = endtime, plot = True)
-        
+    Delta_t = 1.
+
+    model = fempy.benchmarks.melting_octadecane.ModelWithDarcyResistanceAndBDF2(
+        meshsize = nx)
     
-def test__melting_octadecane_benchmark__regression():
+    model.timestep_size.assign(Delta_t)
+    
+    model.smoothing.assign(s)
+    
+    model.darcy_resistance_factor.assign(D)
+    
+    model.output_directory_path = model.output_directory_path.joinpath(
+        "melting_octadecane/darcy/" + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
+        + "_s" + str(s) + "_D" + str(D) + "_tf" + str(endtime) + "/")
+        
+    model.run(endtime = endtime, plot = True)
+
+        
+def test__melting_octadecane_benchmark__viscosity__regression():
     
     endtime, expected_liquid_area, tolerance = 30., 0.24, 0.01
     
@@ -45,7 +77,7 @@ def test__melting_octadecane_benchmark__regression():
     model.smoothing.assign(s)
     
     model.output_directory_path = model.output_directory_path.joinpath(
-        "melting_octadecane/" + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
+        "melting_octadecane/viscosity/" + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
         + "_s" + str(s) + "_tf" + str(endtime) + "/")
         
     model.run(endtime = endtime, plot = False)
@@ -69,7 +101,7 @@ def test__melting_octadecane_benchmark__regression():
     assert(abs(max_phil - 1.) < tolerance)
     
     
-def test__melting_octadecane_benchmark_with_darcy_resistance__regression():
+def test__melting_octadecane_benchmark__darcy__regression():
     
     endtime, expected_liquid_area, tolerance = 30., 0.24, 0.01
     
