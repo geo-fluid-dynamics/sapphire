@@ -62,7 +62,7 @@ class Model(fempy.unsteady_model.Model):
         
         tanh = fe.tanh
         
-        return 0.5*(1. + tanh((T - T_L + delta_T_L)/s))
+        return 0.5*(1. + tanh((T - (T_L + delta_T_L))/s))
         
     def buoyancy(self, T):
         """ Boussinesq buoyancy """
