@@ -4,60 +4,116 @@ import fempy.models.enthalpy_porosity
 import fempy.benchmarks.melting_octadecane
 
 
-def test__melting_octadecane_benchmark__viscosity__validation():
+def test__melting_octadecane_benchmark__viscosity__validation__second_order():
     
-    endtime = 72.
+    endtime = 80.
     
-    delta_T_L = 0.01
+    s = 1./100.
     
-    s = 1./128.
-    
-    nx = 128
+    nx = 64
     
     Delta_t = 1.
 
-    model = fempy.benchmarks.melting_octadecane.ModelWithBDF2(
-        meshsize = nx)
+    for delta_T_L in (0.01, 0.):
     
-    model.timestep_size.assign(Delta_t)
-    
-    model.smoothing.assign(s)
-    
-    model.liquidus_temperature_offset.assign(delta_T_L)
-    
-    model.output_directory_path = model.output_directory_path.joinpath(
-        "melting_octadecane/viscosity/" + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
-        + "_s" + str(s) + "_deltaTL" + str(delta_T_L) + "_tf" + str(endtime) + "/")
+        model = fempy.benchmarks.melting_octadecane.SecondOrderModel(
+            meshsize = nx)
         
-    model.run(endtime = endtime, plot = True)
+        model.timestep_size.assign(Delta_t)
+        
+        model.smoothing.assign(s)
+        
+        model.liquidus_temperature_offset.assign(delta_T_L)
+        
+        model.output_directory_path = model.output_directory_path.joinpath(
+            "melting_octadecane/second_order/viscosity/" + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
+            + "_s" + str(s) + "_deltaTL" + str(delta_T_L) + "_tf" + str(endtime) + "/")
+            
+        model.run(endtime = endtime, plot = True)
 
     
-def test__long__melting_octadecane_benchmark__darcy__validation():
+def test__melting_octadecane_benchmark__darcy__validation__second_order():
     
-    endtime = 72.
+    endtime = 80.
     
-    s = 1./128.
+    s = 1./100.
     
-    nx = 128
+    nx = 64
     
-    D = 1.e6
+    Delta_t = 1.
+    
+    for D in (1.e6, 1.e12):
+
+        model = fempy.benchmarks.melting_octadecane.SecondOrderDarcyResistanceModel(
+            meshsize = nx)
+        
+        model.timestep_size.assign(Delta_t)
+        
+        model.smoothing.assign(s)
+        
+        model.darcy_resistance_factor.assign(D)
+        
+        model.output_directory_path = model.output_directory_path.joinpath(
+            "melting_octadecane/second_order/darcy/" + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
+            + "_s" + str(s) + "_D" + str(D) + "_tf" + str(endtime) + "/")
+            
+        model.run(endtime = endtime, plot = True)
+
+
+def test__melting_octadecane_benchmark__viscosity__validation__third_order():
+    
+    endtime = 80.
+    
+    s = 1./100.
+    
+    nx = 64
     
     Delta_t = 1.
 
-    model = fempy.benchmarks.melting_octadecane.ModelWithDarcyResistanceAndBDF2(
-        meshsize = nx)
+    for delta_T_L in (0.01, 0.):
     
-    model.timestep_size.assign(Delta_t)
-    
-    model.smoothing.assign(s)
-    
-    model.darcy_resistance_factor.assign(D)
-    
-    model.output_directory_path = model.output_directory_path.joinpath(
-        "melting_octadecane/darcy/" + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
-        + "_s" + str(s) + "_D" + str(D) + "_tf" + str(endtime) + "/")
+        model = fempy.benchmarks.melting_octadecane.ThirdOrderModel(
+            meshsize = nx)
         
-    model.run(endtime = endtime, plot = True)
+        model.timestep_size.assign(Delta_t)
+        
+        model.smoothing.assign(s)
+        
+        model.liquidus_temperature_offset.assign(delta_T_L)
+        
+        model.output_directory_path = model.output_directory_path.joinpath(
+            "melting_octadecane/third_order/viscosity/" + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
+            + "_s" + str(s) + "_deltaTL" + str(delta_T_L) + "_tf" + str(endtime) + "/")
+            
+        model.run(endtime = endtime, plot = True)
+
+    
+def test__melting_octadecane_benchmark__darcy__validation__third_order():
+    
+    endtime = 80.
+    
+    s = 1./100.
+    
+    nx = 64
+    
+    Delta_t = 1.
+    
+    for D in (1.e6, 1.e12):
+
+        model = fempy.benchmarks.melting_octadecane.ThirdOrderDarcyResistanceModel(
+            meshsize = nx)
+        
+        model.timestep_size.assign(Delta_t)
+        
+        model.smoothing.assign(s)
+        
+        model.darcy_resistance_factor.assign(D)
+        
+        model.output_directory_path = model.output_directory_path.joinpath(
+            "melting_octadecane/third_order/darcy/" + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
+            + "_s" + str(s) + "_D" + str(D) + "_tf" + str(endtime) + "/")
+            
+        model.run(endtime = endtime, plot = True)
 
         
 def test__melting_octadecane_benchmark__viscosity__regression():
@@ -307,134 +363,7 @@ class ThirdOrderVerifiableModel(fempy.models.enthalpy_porosity.ThirdOrderModel):
         super().solve()
             
         print("Solved at time t = " + str(self.time.__float__()))
-        
-        
-class FourthOrderVerifiableModel(fempy.models.enthalpy_porosity.FourthOrderModel):
 
-    def __init__(self, meshsize):
-    
-        self.meshsize = meshsize
-        
-        super().__init__()
-        
-    def init_mesh(self):
-        
-        self.mesh = fe.UnitSquareMesh(self.meshsize, self.meshsize)
-        
-    def init_integration_measure(self):
-        
-        self.integration_measure = fe.dx(degree = 16)
-        
-    def strong_form_residual(self, solution):
-        
-        gamma = self.pressure_penalty_factor
-        
-        mu_s = self.solid_dynamic_viscosity
-        
-        mu_l = self.liquid_dynamic_viscosity
-        
-        Pr = self.prandtl_number
-        
-        Ste = self.stefan_number
-        
-        t = self.time
-        
-        grad, dot, div, sym, diff = fe.grad, fe.dot, fe.div, fe.sym, fe.diff
-        
-        p, u, T = solution
-        
-        b = self.buoyancy(T)
-        
-        phil = self.porosity(T)
-        
-        mu = mu_s + (mu_l - mu_s)*phil
-        
-        r_p = div(u)
-        
-        r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(mu*sym(grad(u))) + b
-        
-        r_T = diff(T + 1./Ste*phil, t) + div(T*u) - 1./Pr*div(grad(T))
-        
-        return r_p, r_u, r_T
-        
-    def init_manufactured_solution(self):
-        
-        pi, sin, cos, exp = fe.pi, fe.sin, fe.cos, fe.exp
-        
-        x = fe.SpatialCoordinate(self.mesh)
-        
-        t = self.time
-        
-        t_f = fe.Constant(1.)
-        
-        ihat, jhat = self.unit_vectors()
-        
-        u = exp(t)*sin(2.*pi*x[0])*sin(pi*x[1])*ihat + \
-            exp(t)*sin(pi*x[0])*sin(2.*pi*x[1])*jhat
-        
-        p = -sin(pi*x[0])*sin(2.*pi*x[1])
-        
-        T = 0.5*sin(2.*pi*x[0])*sin(pi*x[1])*(1. - exp(-t**2))
-        
-        self.manufactured_solution = p, u, T
-        
-    def update_initial_values(self):
-        
-        for u_m, V in zip(
-                self.manufactured_solution, self.function_space):
-        
-            self.initial_values.assign(fe.interpolate(u_m, V))
-        
-    def solve(self):
-        
-        self.solver.parameters["snes_monitor"] = False
-        
-        super().solve()
-            
-        print("Solved at time t = " + str(self.time.__float__()))
-        
-        
-def test__verify_spatial_convergence_order_via_mms__second_order(
-        parameters = {
-            "grashof_number": 2.,
-            "prandtl_number": 5.,
-            "stefan_number": 0.2,
-            "smoothing": 1./16.},
-        mesh_sizes = (8, 16, 32),
-        timestep_size = 1./256.,
-        tolerance = 0.4):
-    
-    fempy.mms.verify_spatial_order_of_accuracy(
-        Model = SecondOrderVerifiableModel,
-        parameters = parameters,
-        expected_order = 2,
-        mesh_sizes = mesh_sizes,
-        tolerance = tolerance,
-        timestep_size = timestep_size,
-        endtime = 0.5,
-        plot_solution = False)
-        
-        
-def test__verify_temporal_convergence_order_via_mms__second_order(
-        parameters = {
-            "grashof_number": 2.,
-            "prandtl_number": 5.,
-            "stefan_number": 0.2,
-            "smoothing": 1./16.},
-        meshsize = 32,
-        timestep_sizes = (1./4., 1./8., 1./16., 1./32.),
-        tolerance = 0.2):
-    
-    fempy.mms.verify_temporal_order_of_accuracy(
-        Model = SecondOrderVerifiableModel,
-        parameters = parameters,
-        expected_order = 2,
-        meshsize = meshsize,
-        tolerance = tolerance,
-        timestep_sizes = timestep_sizes,
-        endtime = 0.5,
-        plot_solution = False)
-        
         
 def test__verify_spatial_convergence_order_via_mms__third_order(
         parameters = {
@@ -454,7 +383,8 @@ def test__verify_spatial_convergence_order_via_mms__third_order(
         tolerance = tolerance,
         timestep_size = timestep_size,
         endtime = 0.5,
-        plot_solution = False)
+        plot_solution = False,
+        plot_errors = True)
         
         
 def test__verify_temporal_convergence_order_via_mms__third_order(
@@ -475,5 +405,6 @@ def test__verify_temporal_convergence_order_via_mms__third_order(
         tolerance = tolerance,
         timestep_sizes = timestep_sizes,
         endtime = 0.5,
-        plot_solution = False)
+        plot_solution = False,
+        plot_errors = True)
         

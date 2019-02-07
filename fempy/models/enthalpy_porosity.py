@@ -434,3 +434,47 @@ class SecondOrderDarcyResistanceModel(SecondOrderModel):
         dot = fe.dot
         
         return super().momentum() + dot(psi_u, d*u)
+        
+        
+class ThirdOrderDarcyResistanceModel(ThirdOrderModel):
+
+    def __init__(self):
+        
+        self.darcy_resistance_factor = fe.Constant(1.e6)
+        
+        self.small_number_to_avoid_division_by_zero = fe.Constant(1.e-8)
+        
+        super().__init__()
+        
+        delattr(self, "solid_dynamic_viscosity")
+        
+    def darcy_resistance(self, T):
+        """ Resistance to flow based on permeability of the porous media """
+        D = self.darcy_resistance_factor
+        
+        epsilon = self.small_number_to_avoid_division_by_zero
+        
+        phil = self.porosity(T)
+        
+        return D*(1. - phil)**2/(phil**3 + epsilon)
+        
+    def dynamic_viscosity(self):
+        
+        return self.liquid_dynamic_viscosity
+        
+    def momentum(self):
+        
+        _, u, T = fe.split(self.solution)
+        
+        u_t, _, _ = self.time_discrete_terms
+        
+        b = self.buoyancy(T)
+        
+        d = self.darcy_resistance(T)
+        
+        _, psi_u, _ = fe.TestFunctions(self.function_space)
+        
+        dot = fe.dot
+        
+        return super().momentum() + dot(psi_u, d*u)
+        
