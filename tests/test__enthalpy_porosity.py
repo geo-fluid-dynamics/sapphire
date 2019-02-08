@@ -365,13 +365,58 @@ class ThirdOrderVerifiableModel(fempy.models.enthalpy_porosity.ThirdOrderModel):
         print("Solved at time t = " + str(self.time.__float__()))
 
         
+def test__verify_spatial_convergence_order_via_mms__second_order(
+        parameters = {
+            "grashof_number": 2.,
+            "prandtl_number": 5.,
+            "stefan_number": 0.2,
+            "smoothing": 1./16.},
+        mesh_sizes = (4, 8, 16, 32),
+        timestep_size = 1./256.,
+        tolerance = 0.4):
+    
+    fempy.mms.verify_spatial_order_of_accuracy(
+        Model = SecondOrderVerifiableModel,
+        parameters = parameters,
+        expected_order = 2,
+        mesh_sizes = mesh_sizes,
+        tolerance = tolerance,
+        timestep_size = timestep_size,
+        endtime = 0.5,
+        plot_solution = False,
+        plot_errors = True)
+        
+        
+def test__verify_temporal_convergence_order_via_mms__second_order(
+        parameters = {
+            "grashof_number": 2.,
+            "prandtl_number": 5.,
+            "stefan_number": 0.2,
+            "smoothing": 1./16.},
+        meshsize = 32,
+        timestep_sizes = (1./4., 1./8., 1./16., 1./32.),
+        tolerance = 0.25):
+    
+    fempy.mms.verify_temporal_order_of_accuracy(
+        Model = SecondOrderVerifiableModel,
+        parameters = parameters,
+        expected_order = 2,
+        meshsize = meshsize,
+        tolerance = tolerance,
+        timestep_sizes = timestep_sizes,
+        endtime = 0.5,
+        plot_solution = False,
+        plot_errors = True)
+        
+        
+        
 def test__verify_spatial_convergence_order_via_mms__third_order(
         parameters = {
             "grashof_number": 2.,
             "prandtl_number": 5.,
             "stefan_number": 0.2,
             "smoothing": 1./16.},
-        mesh_sizes = (4, 8, 16),
+        mesh_sizes = (2, 4, 8, 16),
         timestep_size = 1./128.,
         tolerance = 0.4):
     
@@ -394,7 +439,7 @@ def test__verify_temporal_convergence_order_via_mms__third_order(
             "stefan_number": 0.2,
             "smoothing": 1./16.},
         meshsize = 32,
-        timestep_sizes = (1./4., 1./8., 1./16.),
+        timestep_sizes = (1./2., 1./4., 1./8., 1./16.),
         tolerance = 0.25):
     
     fempy.mms.verify_temporal_order_of_accuracy(
