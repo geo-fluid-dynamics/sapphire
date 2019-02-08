@@ -18,6 +18,8 @@ def make_mms_verification_model_class(Model):
             
             self.init_manufactured_solution()
             
+            self._L2_error = None
+            
         def init_weak_form_residual(self):
         
             super().init_weak_form_residual()
@@ -71,6 +73,12 @@ def make_mms_verification_model_class(Model):
                 
             return e
             
+        def report(self, write_header = True):
+            
+            self._L2_error = self.L2_error()
+            
+            super().report(write_header = write_header)
+            
     return MMSVerificationModel
     
     
@@ -97,7 +105,7 @@ def verify_spatial_order_of_accuracy(
         model = MMSVerificationModel(meshsize = meshsize)
         
         model.output_directory_path = model.output_directory_path.joinpath(
-            "mms_space")
+            "mms_space_p" + str(expected_order) + "/")
             
         if timestep_size is not None:
             
@@ -156,11 +164,8 @@ def verify_spatial_order_of_accuracy(
         
         plt.grid(True)
         
-        outdir_path = pathlib.Path("output/mms/")
-        
-        outdir_path.mkdir(parents = True, exist_ok = True)
-        
-        filepath = outdir_path.joinpath("e_vs_h").with_suffix(".png")
+        filepath = model.output_directory_path.joinpath(
+            "e_vs_h").with_suffix(".png")
         
         print("Writing plot to " + str(filepath))
         
@@ -207,7 +212,8 @@ def verify_temporal_order_of_accuracy(
         
         model.timestep_size.assign(timestep_size)
         
-        model.output_directory_path = basepath.joinpath("mms_time")
+        model.output_directory_path = basepath.joinpath(
+            "mms_time_q" + str(expected_order) + "/")
         
         model.output_directory_path = model.output_directory_path.joinpath(
             "m" + str(meshsize))
@@ -265,11 +271,8 @@ def verify_temporal_order_of_accuracy(
         
         plt.grid(True)
         
-        outdir_path = pathlib.Path("output/mms/")
-        
-        outdir_path.mkdir(parents = True, exist_ok = True)
-        
-        filepath = outdir_path.joinpath("e_vs_Delta_t").with_suffix(".png")
+        filepath = model.output_directory_path.joinpath(
+            "e_vs_Delta_t").with_suffix(".png")
         
         print("Writing plot to " + str(filepath))
         
