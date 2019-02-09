@@ -115,18 +115,6 @@ def test__melting_octadecane_benchmark__darcy__validation__third_order():
             
         model.run(endtime = endtime, plot = True)
 
-
-class ThirdOrderSimpleResistanceModel(
-        fempy.benchmarks.melting_octadecane.ThirdOrderDarcyResistanceModel):
-        
-    def darcy_resistance(self, T):
-        """ Resistance to flow based on permeability of the porous media """
-        D = self.darcy_resistance_factor
-        
-        phil = self.porosity(T)
-        
-        return D*(1. - phil)
-        
         
 class SecondOrderSimpleResistanceModel(
         fempy.benchmarks.melting_octadecane.SecondOrderDarcyResistanceModel):
@@ -139,12 +127,59 @@ class SecondOrderSimpleResistanceModel(
         
         return D*(1. - phil)
         
+    def init_problem(self):
+    
+        self.top_wall_heat_flux = fe.Constant(0.)
         
-def test__melting_octadecane_benchmark__simple_resistance__validation__third_order():
+        q = self.top_wall_heat_flux
+        
+        _, _, psi_T = fe.TestFunctions(self.function_space)
+        
+        ds = fe.ds(domain = self.mesh, subdomain_id = 4)
+        
+        r = self.weak_form_residual*self.integration_measure + psi_T*q*ds
+        
+        u = self.solution
+        
+        self.problem = fe.NonlinearVariationalProblem(
+            r, u, self.dirichlet_boundary_conditions, fe.derivative(r, u))
+        
+
+class ThirdOrderSimpleResistanceModel(
+        fempy.benchmarks.melting_octadecane.ThirdOrderDarcyResistanceModel):
+        
+        
+    def darcy_resistance(self, T):
+        """ Resistance to flow based on permeability of the porous media """
+        D = self.darcy_resistance_factor
+        
+        phil = self.porosity(T)
+        
+        return D*(1. - phil)
+        
+    def init_problem(self):
+    
+        self.top_wall_heat_flux = fe.Constant(0.)
+        
+        q = self.top_wall_heat_flux
+        
+        _, _, psi_T = fe.TestFunctions(self.function_space)
+        
+        ds = fe.ds(domain = self.mesh, subdomain_id = 4)
+        
+        r = self.weak_form_residual*self.integration_measure + psi_T*q*ds
+        
+        u = self.solution
+        
+        self.problem = fe.NonlinearVariationalProblem(
+            r, u, self.dirichlet_boundary_conditions, fe.derivative(r, u))
+
+        
+def test__melting_octadecane_benchmark__heat_flux__validation__second_order():
     
     endtime = 80.
     
-    s = 1./100.
+    s = 1./200.
     
     nx = 64
     
@@ -152,27 +187,95 @@ def test__melting_octadecane_benchmark__simple_resistance__validation__third_ord
     
     D = 1.e12
     
-    model = ThirdOrderSimpleResistanceModel(meshsize = nx)
+    for q in (-0.01,):
     
-    model.timestep_size.assign(Delta_t)
-    
-    model.smoothing.assign(s)
-    
-    model.darcy_resistance_factor.assign(D)
-    
-    model.output_directory_path = model.output_directory_path.joinpath(
-        "melting_octadecane/third_order/simple_resistance/" 
-        + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
-        + "_s" + str(s) + "_D" + str(D) + "_tf" + str(endtime) + "/")
+        model = SecondOrderSimpleResistanceModel(meshsize = nx)
         
-    model.run(endtime = endtime, plot = True)
+        model.timestep_size.assign(Delta_t)
+        
+        model.smoothing.assign(s)
+        
+        model.darcy_resistance_factor.assign(D)
+        
+        model.top_wall_heat_flux.assign(q)
+        
+        model.output_directory_path = model.output_directory_path.joinpath(
+            "melting_octadecane/heat_flux_tf" + str(endtime) + "/"
+            + "q" + str(q) + "/"
+            + "second_order_"
+            + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
+            + "_s" + str(s) + "_D" + str(D) + "/")
+            
+        model.run(endtime = endtime, plot = True)
+        
+
+def test__melting_octadecane_benchmark__heat_flux__validation__third_order():
+    
+    endtime = 80.
+    
+    s = 1./200.
+    
+    nx = 64
+    
+    Delta_t = 1.
+    
+    D = 1.e12
+    
+    for q in (-0.01,):
+    
+        model = ThirdOrderSimpleResistanceModel(meshsize = nx)
+        
+        model.timestep_size.assign(Delta_t)
+        
+        model.smoothing.assign(s)
+        
+        model.darcy_resistance_factor.assign(D)
+        
+        model.top_wall_heat_flux.assign(q)
+        
+        model.output_directory_path = model.output_directory_path.joinpath(
+            "melting_octadecane/heat_flux_tf" + str(endtime) + "/"
+            + "q" + str(q) + "/"
+            + "third_order_"
+            + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
+            + "_s" + str(s) + "_D" + str(D) + "/")
+            
+        model.run(endtime = endtime, plot = True)
+        
+        
+def test__melting_octadecane_benchmark__simple_resistance__validation__third_order():
+    
+    endtime = 80.
+    
+    nx = 64
+    
+    Delta_t = 1.
+    
+    D = 1.e12
+    
+    for s in (1./128., 1./256.):
+    
+        model = ThirdOrderSimpleResistanceModel(meshsize = nx)
+        
+        model.timestep_size.assign(Delta_t)
+        
+        model.smoothing.assign(s)
+        
+        model.darcy_resistance_factor.assign(D)
+        
+        model.output_directory_path = model.output_directory_path.joinpath(
+            "melting_octadecane/third_order/simple_resistance/" 
+            + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
+            + "_s" + str(s) + "_D" + str(D) + "_tf" + str(endtime) + "/")
+            
+        model.run(endtime = endtime, plot = True)
     
     
 def test__melting_octadecane_benchmark__simple_resistance__validation__second_order():
     
     endtime = 80.
     
-    s = 1./100.
+    s = 1./200.
     
     nx = 64
     
