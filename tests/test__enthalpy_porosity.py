@@ -204,6 +204,65 @@ def test__long__melting_octadecane_benchmark__heat_flux__validation__second_orde
         model.run(endtime = endtime, plot = True)
         
         
+def test__regression__melting_octadecane_benchmark__heat_flux__validation__second_order():
+    
+    endtime = 80.
+    
+    topwall_heatflux_switchtime = 40.
+    
+    q = -0.02
+    
+    
+    s = 1./64.
+    
+    nx = 32
+    
+    Delta_t = 10.
+    
+    D = 1.e12
+    
+    
+    expected_liquid_area = 0.64
+    
+    tolerance = 0.01
+    
+    
+    model = SecondOrderSimpleResistanceModel(meshsize = nx)
+    
+    model.timestep_size.assign(Delta_t)
+    
+    model.smoothing.assign(s)
+    
+    model.darcy_resistance_factor.assign(D)
+    
+    model.topwall_heatflux_switchtime =  topwall_heatflux_switchtime +  \
+        2.*model.time_tolerance
+    
+    model.topwall_heatflux_postswitch = q
+    
+    model.output_directory_path = model.output_directory_path.joinpath(
+        "melting_octadecane/heatflux_switchtime" 
+        + str(topwall_heatflux_switchtime)
+        + "_tf" + str(endtime) + "/"
+        + "q" + str(q) + "/"
+        + "second_order_"
+        + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
+        + "_s" + str(s) + "_D" + str(D) + "/")
+        
+    model.run(endtime = endtime, plot = False)
+    
+        
+    p, u, T = model.solution.split()
+    
+    phil = model.porosity(T)
+    
+    liquid_area = fe.assemble(phil*fe.dx)
+    
+    print("Liquid area = " + str(liquid_area))
+    
+    assert(abs(liquid_area - expected_liquid_area) < tolerance)
+        
+        
 def test__long__melting_octadecane_benchmark__simple_resistance__validation__third_order():
     
     endtime = 80.
