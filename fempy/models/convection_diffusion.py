@@ -5,11 +5,13 @@ import fempy.model
     
 class Model(fempy.model.Model):
     
-    def __init__(self):
+    def __init__(self, quadrature_degree, spatial_order):
     
         self.kinematic_viscosity = fe.Constant(1.)
     
-        super().__init__()
+        super().__init__(
+            quadrature_degree = quadrature_degree,
+            spatial_order = spatial_order)
         
     def init_element(self):
     
