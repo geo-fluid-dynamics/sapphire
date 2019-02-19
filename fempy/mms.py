@@ -92,7 +92,8 @@ def verify_spatial_order_of_accuracy(
         endtime = None,
         starttime = 0.,
         plot_errors = False,
-        plot_solution = False):
+        plot_solution = False,
+        report = False):
     
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
@@ -124,7 +125,7 @@ def verify_spatial_order_of_accuracy(
             
             model.timestep_size.assign(timestep_size)
             
-            model.run(endtime = endtime, plot = plot_solution)
+            model.run(endtime = endtime, plot = plot_solution, report = report)
         
         else:
         
@@ -186,7 +187,8 @@ def verify_temporal_order_of_accuracy(
         parameters = {},
         starttime = 0.,
         plot_errors = False,
-        plot_solution = False):
+        plot_solution = False,
+        report = False):
     
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
@@ -236,7 +238,7 @@ def verify_temporal_order_of_accuracy(
             
             model.solution.assign(model.initial_values)
         
-        model.run(endtime = endtime, plot = plot_solution)
+        model.run(endtime = endtime, plot = plot_solution, report = report)
             
         table.append({
             "Delta_t": timestep_size,
