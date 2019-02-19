@@ -7,7 +7,7 @@ import fempy.autosmooth
 
 class Model(fempy.unsteady_model.Model):
     
-    def __init__(self):
+    def __init__(self, quadrature_degree, spatial_order, temporal_order):
     
         self.liquid_dynamic_viscosity = fe.Constant(1.)
         
@@ -37,7 +37,10 @@ class Model(fempy.unsteady_model.Model):
         
         self.autosmooth_maxcount = 32
         
-        super().__init__()
+        super().__init__(
+            quadrature_degree = quadrature_degree,
+            spatial_order = spatial_order,
+            temporal_order = temporal_order)
         
         self.backup_solution = fe.Function(self.solution)
         
@@ -46,11 +49,13 @@ class Model(fempy.unsteady_model.Model):
         self.liquid_area = None
         
     def init_element(self):
-    
+        
+        rx = self.spatial_order
+        
         self.element = fe.MixedElement(
-            fe.FiniteElement("P", self.mesh.ufl_cell(), 1),
-            fe.VectorElement("P", self.mesh.ufl_cell(), 2),
-            fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
+            fe.FiniteElement("P", self.mesh.ufl_cell(), rx - 1),
+            fe.VectorElement("P", self.mesh.ufl_cell(), rx),
+            fe.FiniteElement("P", self.mesh.ufl_cell(), rx - 1))
     
     def porosity(self, T):
         """ Regularization from @cite{zimmerman2018monolithic} """
@@ -89,22 +94,21 @@ class Model(fempy.unsteady_model.Model):
         return mu_s + (mu_l - mu_s)*phil
         
     def init_time_discrete_terms(self):
-        """ Implicit Euler finite difference scheme """
-        p, u, T = fe.split(self.solution)
         
-        p_n, u_n, T_n = fe.split(self.initial_values)
+        super().init_time_discrete_terms()
         
-        Delta_t = self.timestep_size
+        solutions = [fe.split(self.solution)]
         
-        u_t = (u - u_n)/Delta_t
+        for iv in self.initial_values:
         
-        T_t = (T - T_n)/Delta_t
+            solutions.append(fe.split(iv))
+            
+        phil_t = fempy.time_discretization.bdf(
+            [self.porosity(T) for T in solutions[:][2]],
+            order = self.temporal_order,
+            timestep_size = self.timestep_size)
         
-        phil = self.porosity
-        
-        phil_t = (phil(T) - phil(T_n))/Delta_t
-        
-        self.time_discrete_terms = u_t, T_t, phil_t
+        self.time_discrete_terms.append(phil_t)
         
     def mass(self):
         
@@ -166,11 +170,7 @@ class Model(fempy.unsteady_model.Model):
         enthalpy = self.enthalpy()
         
         self.weak_form_residual = mass + momentum + enthalpy
-
-    def init_integration_measure(self):
-
-        self.integration_measure = fe.dx(degree = 4)
-        
+    
     def solve(self):
         
         if self.autosmooth_enable:
@@ -247,118 +247,20 @@ class Model(fempy.unsteady_model.Model):
             plt.savefig(str(filepath))
             
             plt.close()
-            
-            
-class SecondOrderModel(Model):
 
-    def init_initial_values(self):
-        
-        self.initial_values = [fe.Function(self.function_space)
-            for i in range(2)]
-
-    def init_time_discrete_terms(self):
-    
-        Delta_t = self.timestep_size
-        
-        def bdf2(ys):
-            
-            k = 2
-            
-            assert(len(ys) == (k + 1))
-            
-            alphas = (3./2., -2., 1./2.)
-            
-            y_t = alphas[-1]*ys[-1]
-            
-            for alpha, y in zip(alphas[:-1], ys[:-1]):
-            
-                y_t += alpha*y
-            
-            y_t /= Delta_t
-            
-            return y_t
-            
-        p_np1, u_np1, T_np1 = fe.split(self.solution)
-        
-        p_n, u_n, T_n = fe.split(self.initial_values[0])
-        
-        p_nm1, u_nm1, T_nm1 = fe.split(self.initial_values[1])
-        
-        u_t = bdf2((u_np1, u_n, u_nm1))
-        
-        T_t = bdf2((T_np1, T_n, T_nm1))
-        
-        phil = self.porosity
-        
-        phil_t = bdf2((phil(T_np1), phil(T_n), phil(T_nm1)))
-        
-        self.time_discrete_terms = u_t, T_t, phil_t
-        
-        
-class ThirdOrderModel(Model):
-
-    def init_element(self):
-    
-        self.element = fe.MixedElement(
-            fe.FiniteElement("P", self.mesh.ufl_cell(), 2),
-            fe.VectorElement("P", self.mesh.ufl_cell(), 3),
-            fe.FiniteElement("P", self.mesh.ufl_cell(), 2))
-
-    def init_initial_values(self):
-        
-        self.initial_values = [fe.Function(self.function_space)
-            for i in range(3)]
-
-    def init_time_discrete_terms(self):
-    
-        Delta_t = self.timestep_size
-        
-        def bdf3(ys):
-            
-            k = 3
-            
-            assert(len(ys) == (k + 1))
-            
-            alphas = (11./6., -3., 3./2., -1./3.)
-            
-            y_t = alphas[-1]*ys[-1]
-            
-            for alpha, y in zip(alphas[:-1], ys[:-1]):
-            
-                y_t += alpha*y
-            
-            y_t /= Delta_t
-            
-            return y_t
-            
-        p_np1, u_np1, T_np1 = fe.split(self.solution)
-        
-        p_n, u_n, T_n = fe.split(self.initial_values[0])
-        
-        p_nm1, u_nm1, T_nm1 = fe.split(self.initial_values[1])
-        
-        p_nm2, u_nm2, T_nm2 = fe.split(self.initial_values[2])
-        
-        u_t = bdf3((u_np1, u_n, u_nm1, u_nm2))
-        
-        T_t = bdf3((T_np1, T_n, T_nm1, T_nm2))
-        
-        phil = self.porosity
-        
-        phil_t = bdf3((phil(T_np1), phil(T_n), phil(T_nm1), phil(T_nm2)))
-        
-        self.time_discrete_terms = u_t, T_t, phil_t
-        
         
 class DarcyResistanceModel(Model):
 
-    def __init__(self):
+    def __init__(self, quadrature_degree, spatial_order, temporal_order):
         
         self.darcy_resistance_factor = fe.Constant(1.e6)
         
         self.small_number_to_avoid_division_by_zero = fe.Constant(1.e-8)
         
-        super().__init__()
+        super().__init__(
+            quadrature_degree = quadrature_degree,
+            spatial_order = spatial_order,
+            temporal_order = temporal_order)
         
         delattr(self, "solid_dynamic_viscosity")
         
@@ -392,89 +294,4 @@ class DarcyResistanceModel(Model):
         
         return super().momentum() + dot(psi_u, d*u)
         
-        
-class SecondOrderDarcyResistanceModel(SecondOrderModel):
-
-    def __init__(self):
-        
-        self.darcy_resistance_factor = fe.Constant(1.e6)
-        
-        self.small_number_to_avoid_division_by_zero = fe.Constant(1.e-8)
-        
-        super().__init__()
-        
-        delattr(self, "solid_dynamic_viscosity")
-        
-    def darcy_resistance(self, T):
-        """ Resistance to flow based on permeability of the porous media """
-        D = self.darcy_resistance_factor
-        
-        epsilon = self.small_number_to_avoid_division_by_zero
-        
-        phil = self.porosity(T)
-        
-        return D*(1. - phil)**2/(phil**3 + epsilon)
-        
-    def dynamic_viscosity(self):
-        
-        return self.liquid_dynamic_viscosity
-        
-    def momentum(self):
-        
-        _, u, T = fe.split(self.solution)
-        
-        u_t, _, _ = self.time_discrete_terms
-        
-        b = self.buoyancy(T)
-        
-        d = self.darcy_resistance(T)
-        
-        _, psi_u, _ = fe.TestFunctions(self.function_space)
-        
-        dot = fe.dot
-        
-        return super().momentum() + dot(psi_u, d*u)
-        
-        
-class ThirdOrderDarcyResistanceModel(ThirdOrderModel):
-
-    def __init__(self):
-        
-        self.darcy_resistance_factor = fe.Constant(1.e6)
-        
-        self.small_number_to_avoid_division_by_zero = fe.Constant(1.e-8)
-        
-        super().__init__()
-        
-        delattr(self, "solid_dynamic_viscosity")
-        
-    def darcy_resistance(self, T):
-        """ Resistance to flow based on permeability of the porous media """
-        D = self.darcy_resistance_factor
-        
-        epsilon = self.small_number_to_avoid_division_by_zero
-        
-        phil = self.porosity(T)
-        
-        return D*(1. - phil)**2/(phil**3 + epsilon)
-        
-    def dynamic_viscosity(self):
-        
-        return self.liquid_dynamic_viscosity
-        
-    def momentum(self):
-        
-        _, u, T = fe.split(self.solution)
-        
-        u_t, _, _ = self.time_discrete_terms
-        
-        b = self.buoyancy(T)
-        
-        d = self.darcy_resistance(T)
-        
-        _, psi_u, _ = fe.TestFunctions(self.function_space)
-        
-        dot = fe.dot
-        
-        return super().momentum() + dot(psi_u, d*u)
         
