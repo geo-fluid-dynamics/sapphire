@@ -249,7 +249,7 @@ def test__regression__melting_octadecane_benchmark__heat_flux__validation__secon
         + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
         + "_s" + str(s) + "_D" + str(D) + "/")
         
-    model.run(endtime = endtime, plot = False)
+    model.run(endtime = endtime, plot = False, report = False)
     
         
     p, u, T = model.solution.split()
@@ -339,7 +339,7 @@ def test__melting_octadecane_benchmark__simple_resistance__regression():
         "melting_octadecane/simple_resistance_second_order/" + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
         + "_s" + str(s) + "_tf" + str(endtime) + "/")
         
-    model.run(endtime = endtime, plot = False)
+    model.run(endtime = endtime, plot = False, report = False)
     
     p, u, T = model.solution.split()
     
@@ -380,7 +380,7 @@ def test__melting_octadecane_benchmark__viscosity__regression():
         "melting_octadecane/viscosity/" + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
         + "_s" + str(s) + "_tf" + str(endtime) + "/")
         
-    model.run(endtime = endtime, plot = False)
+    model.run(endtime = endtime, plot = False, report = False)
     
     p, u, T = model.solution.split()
     
@@ -418,7 +418,7 @@ def test__melting_octadecane_benchmark__darcy__regression():
     model.output_directory_path = model.output_directory_path.joinpath(
         "melting_octadecane_with_darcy_resistance/D" + str(D) + "/")
         
-    model.run(endtime = endtime, plot = False)
+    model.run(endtime = endtime, plot = False, report = False)
     
     p, u, T = model.solution.split()
     
@@ -456,8 +456,6 @@ class SecondOrderVerifiableModel(fempy.models.enthalpy_porosity.SecondOrderModel
         self.integration_measure = fe.dx(degree = 4)
         
     def strong_form_residual(self, solution):
-        
-        gamma = self.pressure_penalty_factor
         
         mu_s = self.solid_dynamic_viscosity
         
@@ -541,8 +539,6 @@ class ThirdOrderVerifiableModel(fempy.models.enthalpy_porosity.ThirdOrderModel):
         self.integration_measure = fe.dx(degree = 8)
         
     def strong_form_residual(self, solution):
-        
-        gamma = self.pressure_penalty_factor
         
         mu_s = self.solid_dynamic_viscosity
         
@@ -628,7 +624,8 @@ def test__verify_spatial_convergence_order_via_mms__second_order(
         timestep_size = timestep_size,
         endtime = 0.5,
         plot_solution = False,
-        plot_errors = True)
+        plot_errors = False,
+        report = False)
         
         
 def test__verify_temporal_convergence_order_via_mms__second_order(
@@ -650,7 +647,8 @@ def test__verify_temporal_convergence_order_via_mms__second_order(
         timestep_sizes = timestep_sizes,
         endtime = 0.5,
         plot_solution = False,
-        plot_errors = True)
+        plot_errors = False,
+        report = False)
         
         
         
@@ -673,7 +671,8 @@ def test__verify_spatial_convergence_order_via_mms__third_order(
         timestep_size = timestep_size,
         endtime = 0.5,
         plot_solution = False,
-        plot_errors = True)
+        plot_errors = False,
+        report = False)
         
         
 def test__verify_temporal_convergence_order_via_mms__third_order(
@@ -695,5 +694,6 @@ def test__verify_temporal_convergence_order_via_mms__third_order(
         timestep_sizes = timestep_sizes,
         endtime = 0.5,
         plot_solution = False,
-        plot_errors = True)
+        plot_errors = False,
+        report = False)
         
