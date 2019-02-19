@@ -229,11 +229,12 @@ def verify_temporal_order_of_accuracy(
             for i, iv in enumerate(model.initial_values):
             
                 iv.assign(initial_values[i])
-        else:
-        
-            model.initial_values.assign(initial_values[0])
+                
+            model.solution.assign(model.initial_values[0])
             
-        model.solution.assign(model.initial_values[0])
+        else:
+            
+            model.solution.assign(model.initial_values)
         
         model.run(endtime = endtime, plot = plot_solution)
             

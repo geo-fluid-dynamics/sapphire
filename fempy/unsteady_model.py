@@ -62,6 +62,9 @@ class Model(fempy.model.Model):
             
     def run(self, endtime, report = True, plot = False):
         
+        self.output_directory_path.mkdir(
+            parents = True, exist_ok = True)
+            
         if report:
             
             self.report(write_header = True)
@@ -96,9 +99,6 @@ class Model(fempy.model.Model):
                 print("Solved at time t = " + str(self.time.__float__()))
             
     def report(self, write_header = True):
-    
-        self.output_directory_path.mkdir(
-            parents = True, exist_ok = True)
         
         repvars = vars(self).copy()
         
@@ -108,8 +108,8 @@ class Model(fempy.model.Model):
             
                 repvars[key] = repvars[key].__float__()
         
-        with open(self.output_directory_path.joinpath(
-                    "report").with_suffix(".csv"), "a+") as csv_file:
+        with self.output_directory_path.joinpath(
+                    "report").with_suffix(".csv").open("a+") as csv_file:
             
             writer = csv.DictWriter(csv_file, fieldnames = repvars.keys())
             

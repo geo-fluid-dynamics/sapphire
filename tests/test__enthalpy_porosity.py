@@ -4,7 +4,7 @@ import fempy.models.enthalpy_porosity
 import fempy.benchmarks.melting_octadecane
 
 
-def test__melting_octadecane_benchmark__viscosity__validation__second_order():
+def test__long__melting_octadecane_benchmark__viscosity__validation__second_order():
     
     endtime = 80.
     
@@ -32,7 +32,7 @@ def test__melting_octadecane_benchmark__viscosity__validation__second_order():
         model.run(endtime = endtime, plot = True)
 
     
-def test__melting_octadecane_benchmark__darcy__validation__second_order():
+def test__long__melting_octadecane_benchmark__darcy__validation__second_order():
     
     endtime = 80.
     
@@ -60,7 +60,7 @@ def test__melting_octadecane_benchmark__darcy__validation__second_order():
         model.run(endtime = endtime, plot = True)
 
 
-def test__melting_octadecane_benchmark__viscosity__validation__third_order():
+def test__long__melting_octadecane_benchmark__viscosity__validation__third_order():
     
     endtime = 80.
     
@@ -88,7 +88,7 @@ def test__melting_octadecane_benchmark__viscosity__validation__third_order():
         model.run(endtime = endtime, plot = True)
 
     
-def test__melting_octadecane_benchmark__darcy__validation__third_order():
+def test__long__melting_octadecane_benchmark__darcy__validation__third_order():
     
     endtime = 80.
     
@@ -163,7 +163,7 @@ class SecondOrderSimpleResistanceModel(
         super().solve()
 
         
-def test__melting_octadecane_benchmark__heat_flux__validation__second_order():
+def test__long__melting_octadecane_benchmark__heat_flux__validation__second_order():
     
     endtime = 80.
     
@@ -204,7 +204,7 @@ def test__melting_octadecane_benchmark__heat_flux__validation__second_order():
         model.run(endtime = endtime, plot = True)
         
         
-def test__melting_octadecane_benchmark__simple_resistance__validation__third_order():
+def test__long__melting_octadecane_benchmark__simple_resistance__validation__third_order():
     
     endtime = 80.
     
@@ -232,7 +232,7 @@ def test__melting_octadecane_benchmark__simple_resistance__validation__third_ord
         model.run(endtime = endtime, plot = True)
     
     
-def test__melting_octadecane_benchmark__simple_resistance__validation__second_order():
+def test__long__melting_octadecane_benchmark__simple_resistance__validation__second_order():
     
     endtime = 80.
     
@@ -307,7 +307,7 @@ def test__melting_octadecane_benchmark__darcy__regression():
     
     D = 1.e12
     
-    model = fempy.benchmarks.melting_octadecane.ModelWithDarcyResistance(meshsize = 32)
+    model = fempy.benchmarks.melting_octadecane.DarcyResistanceModel(meshsize = 32)
     
     model.timestep_size.assign(10.)
     
