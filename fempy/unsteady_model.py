@@ -3,6 +3,7 @@ with auxiliary data for unsteady simulations.
 """
 import firedrake as fe
 import fempy.model
+import fempy.time_discretization
 import matplotlib.pyplot as plt
 import csv
 
@@ -11,7 +12,7 @@ class Model(fempy.model.Model):
     """ An abstract class on which to base finite element models
         with auxiliary data for unsteady (i.e. time-dependent) simulations.
     """
-    def __init__(self):
+    def __init__(self, quadrature_degree, spatial_order, temporal_order):
         
         self.time = fe.Constant(0.)
         
@@ -19,13 +20,18 @@ class Model(fempy.model.Model):
         
         self.time_tolerance = 1.e-8
         
-        super().__init__()
+        self.temporal_order = temporal_order
+        
+        super().__init__(
+            quadrature_degree = quadrature_degree,
+            spatial_order = spatial_order)
         
         self.solution_file = None
         
     def init_initial_values(self):
         
-        self.initial_values = fe.Function(self.function_space)
+        self.initial_values = [fe.Function(self.function_space)
+            for i in range(self.temporal_order)]
         
     def init_solution(self):
     
@@ -33,32 +39,41 @@ class Model(fempy.model.Model):
         
         self.init_initial_values()
         
-        if ((type(self.initial_values) == type((0,))) 
-                or (type(self.initial_values) == type([0,]))):
-        
-            self.solution.assign(self.initial_values[0])
-            
-        else:
-            
-            self.solution.assign(self.initial_values)
+        self.solution.assign(self.initial_values[0])
         
         self.init_time_discrete_terms()
         
-    def push_back_initial_values(self):
+    def init_time_discrete_terms(self):
         
-        if not((type(self.initial_values) == type((0,))) 
-                or (type(self.initial_values) == type([0,]))):
+        solutions = [fe.split(self.solution)]
         
-            self.initial_values.assign(self.solution)
-
+        for iv in self.initial_values:
+        
+            solutions.append(fe.split(iv))
+        
+        time_discrete_terms = [
+            fempy.time_discretization.bdf(
+                [solutions[n][i] for n in range(len(solutions))],
+                order = self.temporal_order,
+                timestep_size = self.timestep_size)
+            for i in range(len(solutions[0]))]
+            
+        if len(time_discrete_terms) == 1:
+        
+            self.time_discrete_terms = time_discrete_terms[0]
+            
         else:
         
-            for i in range(len(self.initial_values) - 1):
+            self.time_discrete_terms = time_discrete_terms
+        
+    def push_back_initial_values(self):
+        
+        for i in range(len(self.initial_values) - 1):
+        
+            self.initial_values[-i - 1].assign(
+                self.initial_values[-i - 2])
             
-                self.initial_values[-i - 1].assign(
-                    self.initial_values[-i - 2])
-                
-            self.initial_values[0].assign(self.solution)
+        self.initial_values[0].assign(self.solution)
             
     def run(self, endtime, report = True, plot = False):
         

@@ -50,6 +50,24 @@ def make_mms_verification_model_class(Model):
                 fe.DirichletBC(V, g, "on_boundary") 
                 for V, g in zip(W, u_m)]
                 
+        def update_initial_values(self):
+        
+            initial_values = fe.Function(self.function_space)
+            
+            if (type(self.manufactured_solution) is not type([0,])) \
+                    and (type(self.manufactured_solution) is not type((0,))):
+            
+                self.manufactured_solution = (self.manufactured_solution,)
+                    
+            for u_m, V in zip(
+                    self.manufactured_solution, self.function_space):
+                
+                initial_values.assign(fe.interpolate(u_m, V))
+            
+            for iv in self.initial_values:
+            
+                iv.assign(initial_values)
+                
         def L2_error(self):
             
             dx = self.integration_measure
@@ -87,6 +105,7 @@ def verify_spatial_order_of_accuracy(
         expected_order,
         mesh_sizes,
         tolerance,
+        constructor_kwargs = {},
         parameters = {},
         timestep_size = None,
         endtime = None,
@@ -103,7 +122,7 @@ def verify_spatial_order_of_accuracy(
     
     for meshsize in mesh_sizes:
         
-        model = MMSVerificationModel(meshsize = meshsize)
+        model = MMSVerificationModel(**constructor_kwargs, meshsize = meshsize)
         
         model.output_directory_path = model.output_directory_path.joinpath(
             "mms_space_p" + str(expected_order) + "/")
@@ -184,6 +203,7 @@ def verify_temporal_order_of_accuracy(
         timestep_sizes,
         endtime,
         tolerance,
+        constructor_kwargs = {},
         parameters = {},
         starttime = 0.,
         plot_errors = False,
@@ -194,7 +214,7 @@ def verify_temporal_order_of_accuracy(
     
     table = fempy.table.Table(("Delta_t", "L2_error", "temporal_order"))
     
-    model = MMSVerificationModel(meshsize = meshsize)
+    model = MMSVerificationModel(**constructor_kwargs, meshsize = meshsize)
     
     basepath = model.output_directory_path
     

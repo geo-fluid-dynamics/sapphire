@@ -7,7 +7,8 @@ class Model(fempy.model.Model):
     
     def init_element(self):
     
-        self.element = fe.FiniteElement("P", self.mesh.ufl_cell(), 1)
+        self.element = fe.FiniteElement(
+            "P", self.mesh.ufl_cell(), self.spatial_order - 1)
     
     def init_weak_form_residual(self):
         

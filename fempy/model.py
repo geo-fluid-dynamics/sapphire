@@ -6,7 +6,11 @@ import matplotlib.pyplot as plt
 
 class Model(object):
     """ A class on which to base finite element models. """
-    def __init__(self):
+    def __init__(self, quadrature_degree, spatial_order):
+        
+        self.quadrature_degree = quadrature_degree
+        
+        self.spatial_order = spatial_order
         
         self.init_mesh()
         
@@ -65,7 +69,7 @@ class Model(object):
         
     def init_integration_measure(self):
 
-        self.integration_measure = fe.dx
+        self.integration_measure = fe.dx(degree = self.quadrature_degree)
         
     def init_problem(self):
     

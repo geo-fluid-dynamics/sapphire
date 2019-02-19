@@ -15,13 +15,13 @@ class VerifiableModel(fempy.models.laplace.Model):
         
 class OneDimMMSModel(VerifiableModel):
     
-    def __init__(self, meshsize):
+    def __init__(self, quadrature_degree, spatial_order, meshsize):
         
         self.meshsize = meshsize
         
-        super().__init__()
-        
-        self.integration_measure = fe.dx(degree = 2)
+        super().__init__(
+            quadrature_degree = quadrature_degree,
+            spatial_order = spatial_order)
         
     def init_mesh(self):
         
@@ -37,9 +37,10 @@ class OneDimMMSModel(VerifiableModel):
 
         
 def test__verify_convergence_order_via_mms(
-        mesh_sizes = (16, 32), tolerance = 0.1):
+        mesh_sizes = (8, 16, 32), tolerance = 0.1):
     
     fempy.mms.verify_spatial_order_of_accuracy(
+        constructor_kwargs = {"quadrature_degree": 2, "spatial_order": 2},
         Model = OneDimMMSModel,
         expected_order = 2,
         mesh_sizes = mesh_sizes,
