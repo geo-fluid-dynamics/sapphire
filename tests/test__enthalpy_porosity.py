@@ -260,6 +260,47 @@ def test__long__melting_octadecane_benchmark__simple_resistance__validation__sec
     model.run(endtime = endtime, plot = True)
         
         
+def test__melting_octadecane_benchmark__simple_resistance__regression():
+    
+    endtime, expected_liquid_area, tolerance = 30., 0.22, 0.01
+    
+    nx = 32
+    
+    Delta_t = 10.
+    
+    model = SecondOrderSimpleResistanceModel(meshsize = nx)
+    
+    model.timestep_size.assign(Delta_t)
+    
+    s = 1./256.
+    
+    model.smoothing.assign(s)
+    
+    model.output_directory_path = model.output_directory_path.joinpath(
+        "melting_octadecane/simple_resistance_second_order/" + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
+        + "_s" + str(s) + "_tf" + str(endtime) + "/")
+        
+    model.run(endtime = endtime, plot = False)
+    
+    p, u, T = model.solution.split()
+    
+    phil = model.porosity(T)
+    
+    liquid_area = fe.assemble(phil*fe.dx)
+    
+    print("Liquid area = " + str(liquid_area))
+    
+    assert(abs(liquid_area - expected_liquid_area) < tolerance)
+    
+    phil_h = fe.interpolate(phil, model.function_space.sub(2))
+    
+    max_phil = phil_h.vector().max()
+    
+    print("Maximum phil = " + str(max_phil))
+    
+    assert(abs(max_phil - 1.) < tolerance)
+        
+        
 def test__melting_octadecane_benchmark__viscosity__regression():
     
     endtime, expected_liquid_area, tolerance = 30., 0.24, 0.01
