@@ -5,26 +5,27 @@ import fempy.model
     
 class Model(fempy.model.Model):
     
-    def __init__(self):
-    
-        self.dynamic_viscosity = fe.Constant(1.)
+    def __init__(self, quadrature_degree, spatial_order):
         
         self.grashof_number = fe.Constant(1.)
         
         self.prandtl_number = fe.Constant(1.)
         
-        super().__init__()
+        super().__init__(
+            quadrature_degree = quadrature_degree,
+            spatial_order = spatial_order)
         
     def init_element(self):
     
         self.element = fe.MixedElement(
-            fe.FiniteElement("P", self.mesh.ufl_cell(), 1),
-            fe.VectorElement("P", self.mesh.ufl_cell(), 2),
-            fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
+            fe.FiniteElement(
+                "P", self.mesh.ufl_cell(), self.spatial_order - 1),
+            fe.VectorElement(
+                "P", self.mesh.ufl_cell(), self.spatial_order),
+            fe.FiniteElement(
+                "P", self.mesh.ufl_cell(), self.spatial_order - 1))
     
     def init_weak_form_residual(self):
-
-        mu = self.dynamic_viscosity
         
         Gr = self.grashof_number
         
@@ -46,7 +47,7 @@ class Model(fempy.model.Model):
         mass = psi_p*div(u)
         
         momentum = dot(psi_u, grad(u)*u + Gr*T*ghat) \
-            - div(psi_u)*p + 2.*mu*inner(sym(grad(psi_u)), sym(grad(u)))
+            - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), sym(grad(u)))
         
         energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))
         
