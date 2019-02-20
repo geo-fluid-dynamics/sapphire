@@ -28,35 +28,42 @@ class Model(fempy.model.Model):
         
         self.solution_file = None
         
-    def init_initial_values(self):
-        
-        self.initial_values = [fe.Function(self.function_space)
-            for i in range(self.temporal_order)]
-        
-    def init_solution(self):
+    def init_solutions(self):
     
-        super().init_solution()
+        super().init_solutions()
         
-        self.init_initial_values()
+        for i in range(self.temporal_order):
         
-        self.solution.assign(self.initial_values[0])
-        
+            self.solutions.append(fe.Function(self.function_space))
+            
         self.init_time_discrete_terms()
         
+        self.update_initial_values()
+        
+    def update_initial_values(self):
+    
+        initial_values = self.initial_values()
+        
+        for solution in self.solutions:
+        
+            solution.assign(initial_values)
+        
+    def initial_values(self):
+        """ Redefine this to return a fe.Function(self.function_space) 
+        with the initial values.
+        """
+        assert(False)
+    
     def init_time_discrete_terms(self):
         
-        solutions = [fe.split(self.solution)]
-        
-        for iv in self.initial_values:
-        
-            solutions.append(fe.split(iv))
+        solutions = self.solutions
         
         time_discrete_terms = [
             fempy.time_discretization.bdf(
-                [solutions[n][i] for n in range(len(solutions))],
+                [fe.split(solutions[n])[i] for n in range(len(solutions))],
                 order = self.temporal_order,
                 timestep_size = self.timestep_size)
-            for i in range(len(solutions[0]))]
+            for i in range(len(fe.split(solutions[0])))]
             
         if len(time_discrete_terms) == 1:
         
@@ -66,14 +73,12 @@ class Model(fempy.model.Model):
         
             self.time_discrete_terms = time_discrete_terms
         
-    def push_back_initial_values(self):
+    def push_back_solutions(self):
         
-        for i in range(len(self.initial_values) - 1):
+        for i in range(len(self.solutions[1:])):
         
-            self.initial_values[-i - 1].assign(
-                self.initial_values[-i - 2])
-            
-        self.initial_values[0].assign(self.solution)
+            self.solutions[-(i + 1)].assign(
+                self.solutions[-(i + 2)])
             
     def run(self, endtime, report = True, plot = False):
         
@@ -107,7 +112,7 @@ class Model(fempy.model.Model):
                 self.solution_file.write(
                     *self.solution.split(), time = self.time.__float__())
             
-            self.push_back_initial_values()
+            self.push_back_solutions()
             
             if not self.quiet:
             

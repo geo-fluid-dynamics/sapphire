@@ -18,7 +18,7 @@ class Model(object):
         
         self.init_function_space()
         
-        self.init_solution()
+        self.init_solutions()
         
         self.init_integration_measure()
         
@@ -57,9 +57,11 @@ class Model(object):
     
         self.function_space = fe.FunctionSpace(self.mesh, self.element)
     
-    def init_solution(self):
+    def init_solutions(self):
     
-        self.solution = fe.Function(self.function_space)
+        self.solutions = [fe.Function(self.function_space)]
+        
+        self.solution = self.solutions[0]
     
     def init_dirichlet_boundary_conditions(self):
         """ Optionallay redefine this 
