@@ -32,8 +32,6 @@ class Model(fempy.models.enthalpy_porosity.Model):
         self.stefan_number.assign(0.045)
         
         self.liquidus_temperature.assign(0.)
-
-        self.update_initial_values()
         
     def init_mesh(self):
     
@@ -48,20 +46,14 @@ class Model(fempy.models.enthalpy_porosity.Model):
             fe.DirichletBC(W.sub(2), self.hot_wall_temperature, 1),
             fe.DirichletBC(W.sub(2), self.cold_wall_temperature, 2)]
             
-    def update_initial_values(self):
+    def initial_values(self):
         
-        initial_values = fe.interpolate(
+        return fe.interpolate(
             fe.Expression(
                 (0., 0., 0., self.cold_wall_temperature.__float__()),
                 element = self.element),
             self.function_space)
-            
-        for iv in self.initial_values:
         
-            iv.assign(initial_values)
-            
-        self.solution.assign(initial_values)
-
         
 class DarcyResistanceModel(
         fempy.models.enthalpy_porosity.DarcyResistanceModel):
@@ -114,13 +106,11 @@ class DarcyResistanceModel(
             fe.DirichletBC(W.sub(2), self.hot_wall_temperature, 1),
             fe.DirichletBC(W.sub(2), self.cold_wall_temperature, 2)]
             
-    def update_initial_values(self):
+    def initial_values(self):
         
-        initial_values = fe.interpolate(
+        return fe.interpolate(
             fe.Expression(
                 (0., 0., 0., self.cold_wall_temperature.__float__()),
                 element = self.element),
             self.function_space)
             
-        self.initial_values.assign(initial_values)
-        

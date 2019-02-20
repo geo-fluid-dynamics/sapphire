@@ -44,8 +44,7 @@ class Model(fempy.unsteady_model.Model):
         
         self.backup_solution = fe.Function(self.solution)
         
-        
-        # Add some attributes for reporting
+        # Initialize some attributes to be reported
         self.liquid_area = None
         
     def init_element(self):
@@ -97,14 +96,14 @@ class Model(fempy.unsteady_model.Model):
         
         super().init_time_discrete_terms()
         
-        solutions = [fe.split(self.solution)]
+        temperature_solutions = []
         
-        for iv in self.initial_values:
+        for solution in self.solutions:
         
-            solutions.append(fe.split(iv))
-            
+            temperature_solutions.append(fe.split(solution)[2])
+        
         phil_t = fempy.time_discretization.bdf(
-            [self.porosity(T) for T in solutions[:][2]],
+            [self.porosity(T) for T in temperature_solutions],
             order = self.temporal_order,
             timestep_size = self.timestep_size)
         
@@ -130,7 +129,7 @@ class Model(fempy.unsteady_model.Model):
         
         p, u, T = fe.split(self.solution)
         
-        u_t, _, _ = self.time_discrete_terms
+        _, u_t, _, _ = self.time_discrete_terms
         
         b = self.buoyancy(T)
         
@@ -152,7 +151,7 @@ class Model(fempy.unsteady_model.Model):
         
         _, u, T = fe.split(self.solution)
         
-        _, T_t, phil_t = self.time_discrete_terms
+        _, _, T_t, phil_t = self.time_discrete_terms
         
         _, _, psi_T = fe.TestFunctions(self.function_space)
         
@@ -282,7 +281,7 @@ class DarcyResistanceModel(Model):
         
         _, u, T = fe.split(self.solution)
         
-        u_t, _, _ = self.time_discrete_terms
+        _, u_t, _, _ = self.time_discrete_terms
         
         b = self.buoyancy(T)
         

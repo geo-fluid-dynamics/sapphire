@@ -7,12 +7,9 @@ import fempy.benchmarks.melting_octadecane
 class SimpleResistanceModel(
         fempy.benchmarks.melting_octadecane.DarcyResistanceModel):
         
-    def __init__(self, spatial_order, temporal_order, meshsize):
+    def __init__(self, *args, **kwargs):
     
-        super().__init__(
-            spatial_order = spatial_order, 
-            temporal_order = temporal_order, 
-            meshsize = meshsize)
+        super().__init__(*args, **kwargs)
         
         self.topwall_heatflux_postswitch = 0.
         
@@ -77,8 +74,8 @@ def test__regression__melting_octadecane_benchmark__heat_flux__validation__secon
     tolerance = 0.01
     
     
-    model = SecondOrderSimpleResistanceModel(
-        spatial_order = 2, temporal_order = 2, meshsize = nx)
+    model = SimpleResistanceModel(
+        quadrature_degree = 4, spatial_order = 2, temporal_order = 2, meshsize = nx)
     
     model.timestep_size.assign(Delta_t)
     
@@ -122,8 +119,8 @@ def test__melting_octadecane_benchmark__simple_resistance__second_order__regress
     
     Delta_t = 10.
     
-    model = SecondOrderSimpleResistanceModel(
-        spatial_order = 2, temporal_order = 2, meshsize = nx)
+    model = SimpleResistanceModel(
+        quadrature_degree = 4, spatial_order = 2, temporal_order = 2, meshsize = nx)
     
     model.timestep_size.assign(Delta_t)
     
@@ -158,14 +155,14 @@ def test__melting_octadecane_benchmark__simple_resistance__second_order__regress
         
 def test__melting_octadecane_benchmark__viscosity__second_order__regression():
     
-    endtime, expected_liquid_area, tolerance = 30., 0.24, 0.01
+    endtime, expected_liquid_area, tolerance = 30., 0.21, 0.01
     
     nx = 32
     
     Delta_t = 10.
     
     model = fempy.benchmarks.melting_octadecane.Model(
-        spatial_order = 2, temporal_order = 2, meshsize = nx)
+        quadrature_degree = 4, spatial_order = 2, temporal_order = 2, meshsize = nx)
     
     model.timestep_size.assign(Delta_t)
     
@@ -200,12 +197,12 @@ def test__melting_octadecane_benchmark__viscosity__second_order__regression():
     
 def test__melting_octadecane_benchmark__darcy__second_order__regression():
     
-    endtime, expected_liquid_area, tolerance = 30., 0.24, 0.01
+    endtime, expected_liquid_area, tolerance = 30., 0.21, 0.01
     
     D = 1.e12
     
     model = fempy.benchmarks.melting_octadecane.DarcyResistanceModel(
-        spatial_order = 2, temporal_order = 2, meshsize = 32)
+        quadrature_degree = 4, spatial_order = 2, temporal_order = 2, meshsize = 32)
     
     model.timestep_size.assign(10.)
     

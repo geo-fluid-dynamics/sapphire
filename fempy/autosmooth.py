@@ -87,7 +87,7 @@ def solve(
                 
                 new_ss = (s_to_insert,) + ss
                 
-                model.solution.assign(model.initial_values[0])
+                model.solution.assign(model.solutions[-1])
             
             else:
             
