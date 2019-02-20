@@ -309,18 +309,18 @@ class VerifiableModel(fempy.models.enthalpy_porosity.Model):
         self.manufactured_solution = p, u, T
         
         
-def test__long__verify_spatial_convergence_order_via_mms__second_order(
+def test__verify_spatial_convergence_order_via_mms__second_order(
         constructor_kwargs = {
             "quadrature_degree": 4,
             "spatial_order": 2,
-            "temporal_order": 2},
+            "temporal_order": 4},
         parameters = {
             "grashof_number": 2.,
             "prandtl_number": 5.,
             "stefan_number": 0.2,
             "smoothing": 1./16.},
         mesh_sizes = (5, 10, 20),
-        timestep_size = 1./200.,
+        timestep_size = 1./128.,
         tolerance = 0.4):
     
     fempy.mms.verify_spatial_order_of_accuracy(
