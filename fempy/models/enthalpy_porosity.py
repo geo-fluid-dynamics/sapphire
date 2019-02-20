@@ -29,7 +29,7 @@ class Model(fempy.unsteady_model.Model):
         
         self.autosmooth_maxval = 4.
         
-        self.autosmooth_firstval = 1./4.
+        self.autosmooth_firstval = None
         
         self.autosmooth_maxcount = 32
         
