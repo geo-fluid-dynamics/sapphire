@@ -12,14 +12,18 @@ def make_mms_verification_model_class(Model):
 
     class MMSVerificationModel(Model):
         
-        def init_mesh(self):
+        def __init__(self, *args, **kwargs):
         
-            super().init_mesh()
-            
-            self.init_manufactured_solution()
+            super().__init__(*args, **kwargs)
             
             self._L2_error = None
             
+        def init_solutions(self):
+        
+            self.init_manufactured_solution()
+            
+            super().init_solutions()
+        
         def init_weak_form_residual(self):
         
             super().init_weak_form_residual()
@@ -50,24 +54,26 @@ def make_mms_verification_model_class(Model):
                 fe.DirichletBC(V, g, "on_boundary") 
                 for V, g in zip(W, u_m)]
                 
-        def update_initial_values(self):
+        def initial_values(self):
         
             initial_values = fe.Function(self.function_space)
             
             if (type(self.manufactured_solution) is not type([0,])) \
                     and (type(self.manufactured_solution) is not type((0,))):
             
-                self.manufactured_solution = (self.manufactured_solution,)
+                w_m = (self.manufactured_solution,)
+                
+            else:
+            
+                w_m = self.manufactured_solution
                     
             for u_m, V in zip(
-                    self.manufactured_solution, self.function_space):
+                    w_m, self.function_space):
                 
                 initial_values.assign(fe.interpolate(u_m, V))
-            
-            for iv in self.initial_values:
-            
-                iv.assign(initial_values)
                 
+            return initial_values
+            
         def L2_error(self):
             
             dx = self.integration_measure
@@ -220,14 +226,6 @@ def verify_temporal_order_of_accuracy(
     
     model.assign_parameters(parameters)
     
-    u_m = model.initial_values
-    
-    if not ((type(u_m) == type((0,))) or (type(u_m) == type([0,]))):
-    
-        u_m = (u_m),
-    
-    initial_values = [fe.Function(iv) for iv in u_m]
-    
     print("")
     
     for timestep_size in timestep_sizes:
@@ -245,18 +243,7 @@ def verify_temporal_order_of_accuracy(
         
         model.time.assign(starttime)
         
-        if (type(model.initial_values) == type((0,)) or
-                (type(model.initial_values) == type([0,]))):
-        
-            for i, iv in enumerate(model.initial_values):
-            
-                iv.assign(initial_values[i])
-                
-            model.solution.assign(model.initial_values[0])
-            
-        else:
-            
-            model.solution.assign(model.initial_values)
+        model.update_initial_values()
         
         model.run(endtime = endtime, plot = plot_solution, report = report)
             
