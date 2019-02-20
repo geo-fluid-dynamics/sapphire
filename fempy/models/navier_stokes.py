@@ -5,15 +5,19 @@ import fempy.model
     
 class Model(fempy.model.Model):
     
-    def __init__(self):
+    def __init__(self, quadrature_degree, spatial_order):
     
-        super().__init__()
+        super().__init__(
+            quadrature_degree = quadrature_degree,
+            spatial_order = spatial_order)
         
     def init_element(self):
     
         self.element = fe.MixedElement(
-            fe.VectorElement('P', self.mesh.ufl_cell(), 2),
-            fe.FiniteElement('P', self.mesh.ufl_cell(), 1))
+            fe.VectorElement(
+                'P', self.mesh.ufl_cell(), self.spatial_order),
+            fe.FiniteElement(
+                'P', self.mesh.ufl_cell(), self.spatial_order - 1))
     
     def init_weak_form_residual(self):
 
