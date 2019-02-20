@@ -8,20 +8,10 @@ class Model(fempy.unsteady_model.Model):
     def init_element(self):
     
         self.element = fe.MixedElement(
-            fe.VectorElement('P', self.mesh.ufl_cell(), 2),
-            fe.FiniteElement('P', self.mesh.ufl_cell(), 1))
-    
-    def init_time_discrete_terms(self):
-        """ Implicit Euler finite difference scheme """
-        u, p = fe.split(self.solution)
-        
-        u_n, p_n = fe.split(self.initial_values)
-        
-        Delta_t = self.timestep_size
-        
-        u_t = (u - u_n)/Delta_t
-        
-        self.time_discrete_terms = u_t
+            fe.VectorElement(
+                'P', self.mesh.ufl_cell(), self.spatial_order),
+            fe.FiniteElement(
+                'P', self.mesh.ufl_cell(), self.spatial_order - 1))
     
     def init_weak_form_residual(self):
 
@@ -30,7 +20,7 @@ class Model(fempy.unsteady_model.Model):
         
         u, p = fe.split(self.solution)
         
-        u_t = self.time_discrete_terms
+        u_t, _ = self.time_discrete_terms
         
         psi_u, psi_p = fe.TestFunctions(self.solution.function_space())
         
