@@ -37,14 +37,8 @@ class Model(fempy.unsteady_model.Model):
         
         super().init_time_discrete_terms()
         
-        solutions = [self.solution]
-        
-        for iv in self.initial_values:
-        
-            solutions.append(iv)
-            
         phil_t = fempy.time_discretization.bdf(
-            [self.porosity(T_n) for T_n in solutions],
+            [self.porosity(T_n) for T_n in self.solutions],
             order = self.temporal_order,
             timestep_size = self.timestep_size)
         

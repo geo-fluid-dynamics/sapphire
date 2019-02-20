@@ -96,8 +96,8 @@ def test__verify_temporal_convergence_order_via_mms(
 
     
 def test__verify_temporal_convergence__second_order__via_mms(
-        meshsize = 256,
-        timestep_sizes = (1./16., 1./32., 1./64.),
+        meshsize = 128,
+        timestep_sizes = (1./64., 1./128., 1./256.),
         tolerance = 0.3,
         plot_errors = False,
         plot_solution = False):
@@ -106,7 +106,7 @@ def test__verify_temporal_convergence__second_order__via_mms(
         Model = VerifiableModel,
         constructor_kwargs = {
             "quadrature_degree": None,
-            "spatial_order": 2,
+            "spatial_order": 3,
             "temporal_order": 2},
         parameters = {
             "stefan_number": 0.1,
