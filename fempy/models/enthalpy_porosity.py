@@ -103,7 +103,7 @@ class Model(fempy.unsteady_model.Model):
         
     def mass(self):
         
-        p, u, _ = fe.split(self.solution)
+        _, u, _ = fe.split(self.solution)
         
         psi_p, _, _ = fe.TestFunctions(self.function_space)
         
@@ -111,11 +111,7 @@ class Model(fempy.unsteady_model.Model):
         
         mass = psi_p*div(u)
         
-        gamma = self.pressure_penalty_factor
-        
-        stabilization = gamma*psi_p*p
-        
-        return mass + stabilization
+        return mass
         
     def momentum(self):
         
@@ -152,6 +148,16 @@ class Model(fempy.unsteady_model.Model):
         return psi_T*(T_t + 1./Ste*phil_t) \
             + dot(grad(psi_T), 1./Pr*grad(T) - T*u)
         
+    def stabilization(self):
+    
+        p, _, _ = fe.split(self.solution)
+        
+        psi_p, _, _ = fe.TestFunctions(self.function_space)
+        
+        gamma = self.pressure_penalty_factor
+        
+        return gamma*psi_p*p
+        
     def init_weak_form_residual(self):
         """ Weak form from @cite{zimmerman2018monolithic} """
         mass = self.mass()
@@ -160,7 +166,9 @@ class Model(fempy.unsteady_model.Model):
         
         enthalpy = self.enthalpy()
         
-        self.weak_form_residual = mass + momentum + enthalpy
+        stabilization = self.stabilization()
+        
+        self.weak_form_residual = mass + momentum + enthalpy + stabilization
     
     def solve(self):
         
