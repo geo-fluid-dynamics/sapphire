@@ -2,7 +2,7 @@ import firedrake as fe
 import fempy.models.heat
 
 
-class Model(fempy.models.heat.Model):
+class VerifiableModel(fempy.models.heat.Model):
     
     def __init__(self,
             quadrature_degree,
@@ -16,8 +16,6 @@ class Model(fempy.models.heat.Model):
             quadrature_degree = quadrature_degree,
             spatial_order = spatial_order,
             temporal_order = temporal_order)
-        
-        self.update_initial_values()
         
     def init_mesh(self):
     
@@ -42,7 +40,7 @@ class Model(fempy.models.heat.Model):
         sin, pi, exp = fe.sin, fe.pi, fe.exp
         
         self.manufactured_solution = sin(2.*pi*x)*exp(-pow(t, 2))
-    
+        
     def init_solver(self, solver_parameters = {"ksp_type": "cg"}):
         
         self.solver = fe.NonlinearVariationalSolver(
@@ -55,7 +53,7 @@ def test__verify_spatial_convergence__second_order__via_mms(
         tolerance = 0.1):
     
     fempy.mms.verify_spatial_order_of_accuracy(
-        Model = Model,
+        Model = VerifiableModel,
         constructor_kwargs = {
             "quadrature_degree": None, "spatial_order": 2, "temporal_order": 1},
         expected_order = 2,
@@ -73,7 +71,7 @@ def test__verify_temporal_convergence__first_order__via_mms(
         tolerance = 0.1):
     
     fempy.mms.verify_temporal_order_of_accuracy(
-        Model = Model,
+        Model = VerifiableModel,
         constructor_kwargs = {
             "quadrature_degree": None, "spatial_order": 2, "temporal_order": 1},
         expected_order = 1,
@@ -92,7 +90,7 @@ def test__verify_temporal_convergence__second_order__via_mms(
         tolerance = 0.1):
     
     fempy.mms.verify_temporal_order_of_accuracy(
-        Model = Model,
+        Model = VerifiableModel,
         constructor_kwargs = {
             "quadrature_degree": None, "spatial_order": 3, "temporal_order": 2},
         expected_order = 2,
@@ -110,7 +108,7 @@ def test__verify_temporal_convergence__third_order__via_mms(
         tolerance = 0.1):
     
     fempy.mms.verify_temporal_order_of_accuracy(
-        Model = Model,
+        Model = VerifiableModel,
         constructor_kwargs = {
             "quadrature_degree": None, "spatial_order": 3, "temporal_order": 3},
         expected_order = 3,
@@ -120,36 +118,4 @@ def test__verify_temporal_convergence__third_order__via_mms(
         tolerance = tolerance,
         plot_solution = False,
         report = False)
-        
-        
-class ModelWithWave(Model):
-    
-    def init_manufactured_solution(self):
-        
-        x = fe.SpatialCoordinate(self.mesh)[0]
-        
-        t = self.time
-        
-        sin, pi, exp = fe.sin, fe.pi, fe.exp
-        
-        self.manufactured_solution = 0.5*sin(2.*pi*x - pi/4.*(2.*t + 1.))
-        
-        
-def __fails__test_verify_spatial_convergence_order_via_mms_with_wave_solution(
-        mesh_sizes = (4, 8, 16, 32),
-        timestep_size = 1./64.,
-        tolerance = 0.1):
-    
-    fempy.mms.verify_spatial_order_of_accuracy(
-        Model = ModelWithWave,
-        constructor_kwargs = {
-            "quadrature_degree": None, "spatial_order": 2, "temporal_order": 1},
-        expected_order = 2,
-        mesh_sizes = mesh_sizes,
-        tolerance = tolerance,
-        timestep_size = timestep_size,
-        endtime = 1.,
-        plot_errors = True,
-        plot_solution = True,
-        report = True)
         
