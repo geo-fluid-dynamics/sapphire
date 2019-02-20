@@ -8,10 +8,6 @@ import fempy.autosmooth
 class Model(fempy.unsteady_model.Model):
     
     def __init__(self, quadrature_degree, spatial_order, temporal_order):
-    
-        self.liquid_dynamic_viscosity = fe.Constant(1.)
-        
-        self.solid_dynamic_viscosity = fe.Constant(1.e8)
         
         self.grashof_number = fe.Constant(1.)
         
@@ -23,7 +19,7 @@ class Model(fempy.unsteady_model.Model):
         
         self.liquidus_temperature = fe.Constant(0.)
         
-        self.liquidus_temperature_offset = fe.Constant(0.)
+        self.solid_velocity_relaxation_factor = fe.Constant(1.e-12)
         
         self.smoothing = fe.Constant(1./256.)
         
@@ -60,13 +56,11 @@ class Model(fempy.unsteady_model.Model):
         """ Regularization from @cite{zimmerman2018monolithic} """
         T_L = self.liquidus_temperature
         
-        delta_T_L = self.liquidus_temperature_offset
-        
         s = self.smoothing
         
         tanh = fe.tanh
         
-        return 0.5*(1. + tanh((T - (T_L + delta_T_L))/s))
+        return 0.5*(1. + tanh((T - T_L)/s))
         
     def buoyancy(self, T):
         """ Boussinesq buoyancy """
@@ -80,17 +74,15 @@ class Model(fempy.unsteady_model.Model):
         
         return Gr*T*ghat
         
-    def dynamic_viscosity(self):
-        
-        _, _, T = fe.split(self.solution)
-        
-        mu_s = self.solid_dynamic_viscosity
-        
-        mu_l = self.liquid_dynamic_viscosity
+    def solid_velocity_relaxation(self, T):
         
         phil = self.porosity(T)
         
-        return mu_s + (mu_l - mu_s)*phil
+        phis = 1. - phil
+        
+        tau = self.solid_velocity_relaxation_factor
+        
+        return 1./tau*phis
         
     def init_time_discrete_terms(self):
         
@@ -133,15 +125,15 @@ class Model(fempy.unsteady_model.Model):
         
         b = self.buoyancy(T)
         
-        mu = self.dynamic_viscosity()
+        d = self.solid_velocity_relaxation(T)
         
         _, psi_u, _ = fe.TestFunctions(self.function_space)
         
         inner, dot, grad, div, sym = \
             fe.inner, fe.dot, fe.grad, fe.div, fe.sym
             
-        return dot(psi_u, u_t + grad(u)*u + b) \
-            - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), mu*sym(grad(u)))
+        return dot(psi_u, u_t + grad(u)*u + b + d*u) \
+            - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), sym(grad(u)))
         
     def enthalpy(self):
         
@@ -246,51 +238,3 @@ class Model(fempy.unsteady_model.Model):
             plt.savefig(str(filepath))
             
             plt.close()
-
-        
-class DarcyResistanceModel(Model):
-
-    def __init__(self, quadrature_degree, spatial_order, temporal_order):
-        
-        self.darcy_resistance_factor = fe.Constant(1.e6)
-        
-        self.small_number_to_avoid_division_by_zero = fe.Constant(1.e-8)
-        
-        super().__init__(
-            quadrature_degree = quadrature_degree,
-            spatial_order = spatial_order,
-            temporal_order = temporal_order)
-        
-        delattr(self, "solid_dynamic_viscosity")
-        
-    def darcy_resistance(self, T):
-        """ Resistance to flow based on permeability of the porous media """
-        D = self.darcy_resistance_factor
-        
-        epsilon = self.small_number_to_avoid_division_by_zero
-        
-        phil = self.porosity(T)
-        
-        return D*(1. - phil)**2/(phil**3 + epsilon)
-        
-    def dynamic_viscosity(self):
-        
-        return self.liquid_dynamic_viscosity
-        
-    def momentum(self):
-        
-        _, u, T = fe.split(self.solution)
-        
-        _, u_t, _, _ = self.time_discrete_terms
-        
-        b = self.buoyancy(T)
-        
-        d = self.darcy_resistance(T)
-        
-        _, psi_u, _ = fe.TestFunctions(self.function_space)
-        
-        dot = fe.dot
-        
-        return super().momentum() + dot(psi_u, d*u)
-        
-        
