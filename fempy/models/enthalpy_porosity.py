@@ -49,7 +49,7 @@ class Model(fempy.unsteady_model.Model):
         
         self.element = fe.MixedElement(
             fe.FiniteElement("P", self.mesh.ufl_cell(), rx - 1),
-            fe.VectorElement("P", self.mesh.ufl_cell(), rx),
+            fe.VectorElement("P", self.mesh.ufl_cell(), rx - 1),
             fe.FiniteElement("P", self.mesh.ufl_cell(), rx - 1))
     
     def porosity(self, T):

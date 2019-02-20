@@ -21,7 +21,7 @@ def test__regression__validate__melting_octadecane_with_heat_flux():
     tau = 1.e-12
     
     
-    expected_liquid_area = 0.64
+    expected_liquid_area = 0.61
     
     tolerance = 0.01
     
@@ -68,7 +68,7 @@ def test__regression__validate__melting_octadecane_with_heat_flux():
 
 def test__regression__validate__melting_octadecane_without_heat_flux():
     
-    endtime, expected_liquid_area, tolerance = 30., 0.22, 0.01
+    endtime, expected_liquid_area, tolerance = 30., 0.21, 0.01
     
     nx = 32
     

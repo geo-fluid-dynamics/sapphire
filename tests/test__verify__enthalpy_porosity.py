@@ -120,19 +120,18 @@ def test__verify__second_order_temporal_convergence__via_mms(
         report = False)
 
         
-def test__long__verify__third_order_spatial_convergence__via_mms(
+def test__verify__third_order_spatial_convergence__via_mms(
         constructor_kwargs = {
-            "quadrature_degree": 8,
+            "quadrature_degree": 2,
             "spatial_order": 3,
-            "temporal_order": 6},
+            "temporal_order": 3},
         parameters = {
             "grashof_number": 2.,
             "prandtl_number": 5.,
             "stefan_number": 0.2,
-            "smoothing": 1./16.,
-            "autosmooth_firstval": 1./16.},
-        mesh_sizes = (4, 8, 16, 32),
-        timestep_size = 1./256.,
+            "smoothing": 1./16.},
+        mesh_sizes = (3, 6, 12, 24),
+        timestep_size = 1./64.,
         tolerance = 0.4):
     
     fempy.mms.verify_spatial_order_of_accuracy(
