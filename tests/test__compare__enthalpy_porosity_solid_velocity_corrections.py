@@ -1,7 +1,7 @@
 import firedrake as fe 
 import fempy.mms
 import fempy.models.enthalpy_porosity
-import fempy.benchmarks.melting_octadecane
+import fempy.benchmarks.melt_octadecane
 
 
 class GeneralSolidVelocityCorrectionsModel(fempy.models.enthalpy_porosity.Model):
@@ -276,7 +276,7 @@ def test__verify__kozeny_carman__second_order_temporal_convergence__via_mms(
         
         
 class GeneralSolidVelocityCorrectionsMeltingOctadecaneModel(
-        fempy.benchmarks.melting_octadecane.Model):
+        fempy.benchmarks.melt_octadecane.Model):
     
     def __init__(self, *args, **kwargs):
     
@@ -343,7 +343,7 @@ class SolidViscosityMeltingOctadecaneModel(
         self.solid_velocity_relaxation_factor.assign(1.e32)
         
         
-def test__regression__validate__solid_viscosity__melting_octadecane():
+def test__regression__validate__solid_viscosity__melt_octadecane():
     
     endtime, expected_liquid_area, tolerance = 30., 0.21, 0.01
     
@@ -361,7 +361,7 @@ def test__regression__validate__solid_viscosity__melting_octadecane():
     model.smoothing.assign(s)
     
     model.output_directory_path = model.output_directory_path.joinpath(
-        "melting_octadecane/solid_viscosity/second_order/" 
+        "melt_octadecane/solid_viscosity/second_order/" 
         + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
         + "_s" + str(s) + "_tf" + str(endtime) + "/")
         
@@ -410,7 +410,7 @@ class KozenyCarmanMeltingOctadecaneModel(
         return self.liquid_dynamic_viscosity
         
     
-def test__regression__validate__kozeny_carman__melting_octadecane():
+def test__regression__validate__kozeny_carman__melt_octadecane():
     
     endtime, expected_liquid_area, tolerance = 30., 0.21, 0.01
     
@@ -428,7 +428,7 @@ def test__regression__validate__kozeny_carman__melting_octadecane():
     model.smoothing.assign(s)
     
     model.output_directory_path = model.output_directory_path.joinpath(
-        "melting_octadecane/kozeny_carman/second_order/" 
+        "melt_octadecane/kozeny_carman/second_order/" 
         + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
         + "_s" + str(s) + "_tf" + str(endtime) + "/")
         

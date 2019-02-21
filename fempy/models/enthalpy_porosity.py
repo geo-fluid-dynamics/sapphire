@@ -2,7 +2,7 @@
 import firedrake as fe
 import fempy.unsteady_model
 import matplotlib.pyplot as plt
-import fempy.autosmooth
+import fempy.continuation
 
 
 class Model(fempy.unsteady_model.Model):
@@ -32,8 +32,6 @@ class Model(fempy.unsteady_model.Model):
         self.autosmooth_enable = True
         
         self.autosmooth_maxval = 4.
-        
-        self.autosmooth_firstval = None
         
         self.autosmooth_maxcount = 32
         
@@ -196,9 +194,13 @@ class Model(fempy.unsteady_model.Model):
         
         if self.autosmooth_enable:
             
-            fempy.autosmooth.solve(self,
-                firstval = self.autosmooth_firstval,
-                maxval = self.autosmooth_maxval,
+            fempy.continuation.solve(
+                model = self,
+                solver = self.solver,
+                continuation_parameter = self.smoothing,
+                continuation_sequence = self.smoothing_sequence,
+                leftval = self.autosmooth_maxval,
+                rightval = self.smoothing.__float__(),
                 maxcount = self.autosmooth_maxcount)
             
         elif self.smoothing_sequence == None:

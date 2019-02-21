@@ -1,9 +1,10 @@
 import firedrake as fe 
 import fempy.mms
-import fempy.benchmarks.melting_octadecane
+import fempy.benchmarks.melt_octadecane
+import fempy.benchmarks.freeze_water
 
 
-def test__regression__validate__melting_octadecane_with_heat_flux():
+def test__regression__validate__melt_octadecane_with_heat_flux():
     
     endtime = 80.
     
@@ -26,7 +27,7 @@ def test__regression__validate__melting_octadecane_with_heat_flux():
     tolerance = 0.01
     
     
-    model = fempy.benchmarks.melting_octadecane.Model(
+    model = fempy.benchmarks.melt_octadecane.Model(
         quadrature_degree = 4,
         spatial_order = 2,
         temporal_order = 2,
@@ -44,7 +45,7 @@ def test__regression__validate__melting_octadecane_with_heat_flux():
     model.topwall_heatflux_postswitch = q
     
     model.output_directory_path = model.output_directory_path.joinpath(
-        "melting_octadecane/with_heatflux/switchtime" 
+        "melt_octadecane/with_heatflux/switchtime" 
         + str(topwall_heatflux_switchtime)
         + "_tf" + str(endtime) + "/"
         + "q" + str(q) + "/"
@@ -66,7 +67,7 @@ def test__regression__validate__melting_octadecane_with_heat_flux():
     assert(abs(liquid_area - expected_liquid_area) < tolerance)
 
 
-def test__regression__validate__melting_octadecane_without_heat_flux():
+def test__regression__validate__melt_octadecane_without_heat_flux():
     
     endtime, expected_liquid_area, tolerance = 30., 0.21, 0.01
     
@@ -76,7 +77,7 @@ def test__regression__validate__melting_octadecane_without_heat_flux():
     
     tau = 1.e-12
     
-    model = fempy.benchmarks.melting_octadecane.Model(
+    model = fempy.benchmarks.melt_octadecane.Model(
         quadrature_degree = 4,
         spatial_order = 2,
         temporal_order = 2,
@@ -91,7 +92,7 @@ def test__regression__validate__melting_octadecane_without_heat_flux():
     model.smoothing.assign(s)
     
     model.output_directory_path = model.output_directory_path.joinpath(
-        "melting_octadecane/without_heat_flux/second_order/" 
+        "melt_octadecane/without_heat_flux/second_order/" 
         + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
         + "_s" + str(s) + "_tau" + str(tau) + "/tf" + str(endtime) + "/")
         
@@ -114,4 +115,64 @@ def test__regression__validate__melting_octadecane_without_heat_flux():
     print("Maximum phil = " + str(max_phil))
     
     assert(abs(max_phil - 1.) < tolerance)
+    
+    
+def test__long__validate__freeze_water():
+    
+    mu_l__SI = 8.90e-4  # [Pa s]
+    
+    rho_l__SI = 999.84  # [kg / m^3]
+    
+    nu_l__SI = mu_l__SI/rho_l__SI  # [m^2 / s]
+    
+    t_f__SI = 2340.  # [s]
+    
+    L__SI = 0.038  # [m]
+    
+    Tau = pow(L__SI, 2)/nu_l__SI
+    
+    t_f = t_f__SI/Tau
+    
+    endtime = t_f
+    
+    """ For Kowalewski's water freezing experiment,
+    at t_f__SI 2340 s, t_f = 1.44.
+    """
+    
+    
+    s = 1./200.
+    
+    tau = 1.e-12
+    
+    
+    rx = 2
+    
+    nx = 64
+    
+    
+    rt = 2
+    
+    nt = 64
+    
+    
+    q = 8
+    
+    
+    model = fempy.benchmarks.freeze_water.Model(
+        quadrature_degree = q,
+        spatial_order = rx,
+        temporal_order = rt,
+        meshsize = nx)
+    
+    model.timestep_size.assign(t_f/float(nt))
+    
+    model.solid_velocity_relaxation_factor.assign(tau)
+    
+    model.smoothing.assign(s)
+    
+    model.output_directory_path = model.output_directory_path.joinpath(
+        "freeze_water/s{0}_tau{1}/rx{2}_nx{3}_rt{4}_nt{5}/q{6}/tf{7}/".format(
+            s, tau, rx, nx, rt, nt, q, t_f))
+        
+    model.run(endtime = endtime, plot = True, report = True)
     

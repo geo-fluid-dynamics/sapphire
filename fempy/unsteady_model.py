@@ -38,8 +38,6 @@ class Model(fempy.model.Model):
             
         self.init_time_discrete_terms()
         
-        self.update_initial_values()
-        
     def update_initial_values(self):
     
         initial_values = self.initial_values()
@@ -80,10 +78,18 @@ class Model(fempy.model.Model):
             self.solutions[-(i + 1)].assign(
                 self.solutions[-(i + 2)])
             
-    def run(self, endtime, report = True, plot = False):
+    def run(self,
+            endtime,
+            report = True,
+            plot = False,
+            update_initial_values = True):
         
         self.output_directory_path.mkdir(
             parents = True, exist_ok = True)
+            
+        if update_initial_values:
+        
+            self.update_initial_values()
             
         if report:
             
