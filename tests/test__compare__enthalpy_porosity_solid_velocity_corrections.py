@@ -28,9 +28,7 @@ class GeneralSolidVelocityCorrectionsModel(fempy.models.enthalpy_porosity.Model)
         
         return 0.5*(1. + tanh((T - (T_L + delta_T_L))/s))
         
-    def dynamic_viscosity(self):
-        
-        _, _, T = fe.split(self.solution)
+    def dynamic_viscosity(self, T):
         
         mu_s = self.solid_dynamic_viscosity
         
@@ -48,9 +46,9 @@ class GeneralSolidVelocityCorrectionsModel(fempy.models.enthalpy_porosity.Model)
         
         b = self.buoyancy(T)
         
-        mu = self.dynamic_viscosity()
+        mu = self.dynamic_viscosity(T)
         
-        d = self.solid_velocity_relaxation()
+        d = self.solid_velocity_relaxation(T)
         
         _, psi_u, _ = fe.TestFunctions(self.function_space)
         
@@ -103,7 +101,7 @@ class VerifiableGeneralSolidVelocityCorrectionsModel(
         r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(mu*sym(grad(u))) \
             + b + d*u
         
-        r_T = diff(T + 1./Ste*phil, t) + div(T*u) - 1./Pr*div(grad(T))
+        r_T = diff(T + 1./Ste*phil, t) + dot(u, grad(T)) - 1./Pr*div(grad(T))
         
         return r_p, r_u, r_T
         
@@ -138,7 +136,7 @@ class VerifiableSolidViscosityModel(
         
         self.solid_dynamic_viscosity.assign(1.e8)
         
-        self.solid_velocity_relaxation.assign(1.e32)
+        self.solid_velocity_relaxation_factor.assign(1.e32)
 
         
 def test__verify__solid_viscosity__second_order_spatial_convergence__via_mms(
@@ -153,7 +151,7 @@ def test__verify__solid_viscosity__second_order_spatial_convergence__via_mms(
             "smoothing": 1./16.},
         mesh_sizes = (5, 10, 20),
         timestep_size = 1./128.,
-        tolerance = 0.4):
+        tolerance = 0.06):
     
     fempy.mms.verify_spatial_order_of_accuracy(
         Model = VerifiableSolidViscosityModel,
@@ -216,7 +214,7 @@ class VerifiableKozenyCarmanModel(
         
         return 1./tau*(1. - phil)**2/(phil**3 + epsilon)
         
-    def dynamic_viscosity(self):
+    def dynamic_viscosity(self, T):
         
         return self.liquid_dynamic_viscosity
 
@@ -261,7 +259,7 @@ def test__verify__kozeny_carman__second_order_temporal_convergence__via_mms(
             "smoothing": 1./16.},
         meshsize = 20,
         timestep_sizes = (1./8., 1./16., 1./32.),
-        tolerance = 0.4):
+        tolerance = 0.02):
     
     fempy.mms.verify_temporal_order_of_accuracy(
         Model = VerifiableKozenyCarmanModel,
@@ -302,9 +300,7 @@ class GeneralSolidVelocityCorrectionsMeltingOctadecaneModel(
         
         return 0.5*(1. + tanh((T - (T_L + delta_T_L))/s))
         
-    def dynamic_viscosity(self):
-        
-        _, _, T = fe.split(self.solution)
+    def dynamic_viscosity(self, T):
         
         mu_s = self.solid_dynamic_viscosity
         
@@ -322,9 +318,9 @@ class GeneralSolidVelocityCorrectionsMeltingOctadecaneModel(
         
         b = self.buoyancy(T)
         
-        mu = self.dynamic_viscosity()
+        mu = self.dynamic_viscosity(T)
         
-        d = self.solid_velocity_relaxation()
+        d = self.solid_velocity_relaxation(T)
         
         _, psi_u, _ = fe.TestFunctions(self.function_space)
         
@@ -344,7 +340,7 @@ class SolidViscosityMeltingOctadecaneModel(
         
         self.solid_dynamic_viscosity.assign(1.e8)
         
-        self.solid_velocity_relaxation.assign(1.e32)
+        self.solid_velocity_relaxation_factor.assign(1.e32)
         
         
 def test__regression__validate__solid_viscosity__melting_octadecane():
@@ -409,7 +405,7 @@ class KozenyCarmanMeltingOctadecaneModel(
         
         return 1./tau*(1. - phil)**2/(phil**3 + epsilon)
         
-    def dynamic_viscosity(self):
+    def dynamic_viscosity(self, T):
         
         return self.liquid_dynamic_viscosity
         
