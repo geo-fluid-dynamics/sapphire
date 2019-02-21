@@ -145,8 +145,8 @@ class Model(fempy.unsteady_model.Model):
         
         dot, grad = fe.dot, fe.grad
         
-        return psi_T*(T_t + 1./Ste*phil_t) \
-            + dot(grad(psi_T), 1./Pr*grad(T) - T*u)
+        return psi_T*(T_t + dot(u, grad(T)) + 1./Ste*phil_t) \
+            + dot(grad(psi_T), 1./Pr*grad(T))
         
     def stabilization(self):
     
