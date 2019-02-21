@@ -38,7 +38,7 @@ class VerifiableModel(fempy.models.enthalpy_porosity.Model):
         r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(sym(grad(u))) \
             + b + d*u
         
-        r_T = diff(T + 1./Ste*phil, t) + div(T*u) - 1./Pr*div(grad(T))
+        r_T = diff(T + 1./Ste*phil, t) + dot(u, grad(T)) - 1./Pr*div(grad(T))
         
         return r_p, r_u, r_T
         
@@ -76,7 +76,7 @@ def test__verify__second_order_spatial_convergence__via_mms(
             "smoothing": 1./16.},
         mesh_sizes = (5, 10, 20),
         timestep_size = 1./128.,
-        tolerance = 0.4):
+        tolerance = 0.23):
     
     fempy.mms.verify_spatial_order_of_accuracy(
         Model = VerifiableModel,
@@ -104,7 +104,7 @@ def test__verify__second_order_temporal_convergence__via_mms(
             "smoothing": 1./16.},
         meshsize = 20,
         timestep_sizes = (1./8., 1./16., 1./32.),
-        tolerance = 0.4):
+        tolerance = 0.34):
     
     fempy.mms.verify_temporal_order_of_accuracy(
         Model = VerifiableModel,
@@ -132,7 +132,7 @@ def test__verify__third_order_spatial_convergence__via_mms(
             "smoothing": 1./16.},
         mesh_sizes = (3, 6, 12, 24),
         timestep_size = 1./64.,
-        tolerance = 0.4):
+        tolerance = 0.32):
     
     fempy.mms.verify_spatial_order_of_accuracy(
         Model = VerifiableModel,
@@ -142,7 +142,7 @@ def test__verify__third_order_spatial_convergence__via_mms(
         mesh_sizes = mesh_sizes,
         tolerance = tolerance,
         timestep_size = timestep_size,
-        endtime = 0.5,
+        endtime = 0.32,
         plot_solution = False,
         plot_errors = False,
         report = False)
@@ -160,7 +160,7 @@ def test__verify__third_order_temporal_convergence__via_mms(
             "smoothing": 1./16.},
         meshsize = 16,
         timestep_sizes = (1./2., 1./4., 1./8., 1./16.),
-        tolerance = 0.4):
+        tolerance = 0.02):
     
     fempy.mms.verify_temporal_order_of_accuracy(
         Model = VerifiableModel,
