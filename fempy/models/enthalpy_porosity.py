@@ -19,6 +19,10 @@ class Model(fempy.unsteady_model.Model):
         
         self.liquidus_temperature = fe.Constant(0.)
         
+        self.heat_capacity_solid_to_liquid_ratio = fe.Constant(1.)
+        
+        self.thermal_conductivity_solid_to_liquid_ratio = fe.Constant(1.)
+        
         self.solid_velocity_relaxation_factor = fe.Constant(1.e-12)
         
         self.smoothing = fe.Constant(1./256.)
@@ -61,6 +65,16 @@ class Model(fempy.unsteady_model.Model):
         tanh = fe.tanh
         
         return 0.5*(1. + tanh((T - T_L)/s))
+        
+    def phase_dependent_material_property(self, solid_to_liquid_ratio):
+    
+        a_s = solid_to_liquid_ratio
+        
+        def a(phil):
+        
+            return a_s + (1. - a_s)*phil
+        
+        return a
         
     def buoyancy(self, T):
         """ Boussinesq buoyancy """
@@ -139,14 +153,22 @@ class Model(fempy.unsteady_model.Model):
         
         _, u, T = fe.split(self.solution)
         
+        phil = self.porosity(T)
+        
+        cp = self.phase_dependent_material_property(
+            self.heat_capacity_solid_to_liquid_ratio)(phil)
+        
+        k = self.phase_dependent_material_property(
+            self.thermal_conductivity_solid_to_liquid_ratio)(phil)
+        
         _, _, T_t, phil_t = self.time_discrete_terms
         
         _, _, psi_T = fe.TestFunctions(self.function_space)
         
         dot, grad = fe.dot, fe.grad
         
-        return psi_T*(T_t + dot(u, grad(T)) + 1./Ste*phil_t) \
-            + dot(grad(psi_T), 1./Pr*grad(T))
+        return psi_T*(cp*(T_t + dot(u, grad(T))) + 1./Ste*phil_t) \
+            + dot(grad(psi_T), k/Pr*grad(T))
         
     def stabilization(self):
     

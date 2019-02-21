@@ -33,12 +33,19 @@ class VerifiableModel(fempy.models.enthalpy_porosity.Model):
         
         phil = self.porosity(T)
         
+        cp = self.phase_dependent_material_property(
+            self.heat_capacity_solid_to_liquid_ratio)(phil)
+        
+        k = self.phase_dependent_material_property(
+            self.thermal_conductivity_solid_to_liquid_ratio)(phil)
+            
         r_p = div(u)
         
         r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(sym(grad(u))) \
             + b + d*u
         
-        r_T = diff(T + 1./Ste*phil, t) + dot(u, grad(T)) - 1./Pr*div(grad(T))
+        r_T = cp*(diff(T, t) + dot(u, grad(T))) \
+            - 1./Pr*div(k*grad(T)) + 1./Ste*diff(phil, t)
         
         return r_p, r_u, r_T
         
