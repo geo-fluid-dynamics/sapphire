@@ -80,6 +80,8 @@ def test__verify__second_order_spatial_convergence__via_mms(
             "grashof_number": 2.,
             "prandtl_number": 5.,
             "stefan_number": 0.2,
+            "heat_capacity_solid_to_liquid_ratio": 0.500,
+            "thermal_conductivity_solid_to_liquid_ratio": 2.14/0.561,
             "smoothing": 1./16.},
         mesh_sizes = (5, 10, 20),
         timestep_size = 1./128.,
@@ -108,10 +110,12 @@ def test__verify__second_order_temporal_convergence__via_mms(
             "grashof_number": 2.,
             "prandtl_number": 5.,
             "stefan_number": 0.2,
+            "heat_capacity_solid_to_liquid_ratio": 0.500,
+            "thermal_conductivity_solid_to_liquid_ratio": 2.14/0.561,
             "smoothing": 1./16.},
         meshsize = 20,
         timestep_sizes = (1./8., 1./16., 1./32.),
-        tolerance = 0.34):
+        tolerance = 0.4):
     
     fempy.mms.verify_temporal_order_of_accuracy(
         Model = VerifiableModel,
@@ -136,6 +140,8 @@ def test__verify__third_order_spatial_convergence__via_mms(
             "grashof_number": 2.,
             "prandtl_number": 5.,
             "stefan_number": 0.2,
+            "heat_capacity_solid_to_liquid_ratio": 0.500,
+            "thermal_conductivity_solid_to_liquid_ratio": 2.14/0.561,
             "smoothing": 1./16.},
         mesh_sizes = (3, 6, 12, 24),
         timestep_size = 1./64.,
@@ -164,10 +170,12 @@ def test__verify__third_order_temporal_convergence__via_mms(
             "grashof_number": 2.,
             "prandtl_number": 5.,
             "stefan_number": 0.2,
+            "heat_capacity_solid_to_liquid_ratio": 0.500,
+            "thermal_conductivity_solid_to_liquid_ratio": 2.14/0.561,
             "smoothing": 1./16.},
         meshsize = 16,
         timestep_sizes = (1./2., 1./4., 1./8., 1./16.),
-        tolerance = 0.02):
+        tolerance = 0.13):
     
     fempy.mms.verify_temporal_order_of_accuracy(
         Model = VerifiableModel,
