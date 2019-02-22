@@ -35,6 +35,10 @@ class Model(fempy.models.enthalpy_porosity.Model):
         self.stefan_number.assign(0.125)
         
         self.liquidus_temperature.assign(0.)
+        
+        self.heat_capacity_solid_to_liquid_ratio.assign(0.500)
+        
+        self.thermal_conductivity_solid_to_liquid_ratio.assign(2.14/0.561)
 
     def buoyancy(self, T):
         """ Eq. (25) from @cite{danaila2014newton} """

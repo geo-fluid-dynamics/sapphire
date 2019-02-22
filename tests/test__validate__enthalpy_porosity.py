@@ -133,8 +133,6 @@ def test__long__validate__freeze_water():
     
     t_f = t_f__SI/Tau
     
-    endtime = t_f
-    
     """ For Kowalewski's water freezing experiment,
     at t_f__SI 2340 s, t_f = 1.44.
     """
@@ -147,15 +145,15 @@ def test__long__validate__freeze_water():
     
     rx = 2
     
-    nx = 64
+    nx = 32
     
     
     rt = 2
     
-    nt = 64
+    nt = 4
     
     
-    q = 8
+    q = 4
     
     
     model = fempy.benchmarks.freeze_water.Model(
@@ -174,5 +172,5 @@ def test__long__validate__freeze_water():
         "freeze_water/s{0}_tau{1}/rx{2}_nx{3}_rt{4}_nt{5}/q{6}/tf{7}/".format(
             s, tau, rx, nx, rt, nt, q, t_f))
         
-    model.run(endtime = endtime, plot = True, report = True)
+    model.run(endtime = t_f, plot = True, report = True)
     
