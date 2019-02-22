@@ -44,8 +44,8 @@ class VerifiableModel(fempy.models.enthalpy_porosity.Model):
         r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(sym(grad(u))) \
             + b + d*u
         
-        r_T = cp*(diff(T, t) + dot(u, grad(T))) \
-            - 1./Pr*div(k*grad(T)) + 1./Ste*diff(phil, t)
+        r_T = diff(cp*T, t) + dot(u, grad(cp*T)) \
+            - 1./Pr*div(k*grad(T)) + 1./Ste*diff(cp*phil, t)
         
         return r_p, r_u, r_T
         
@@ -75,7 +75,7 @@ def test__verify__second_order_spatial_convergence__via_mms(
         constructor_kwargs = {
             "quadrature_degree": 4,
             "spatial_order": 2,
-            "temporal_order": 4},
+            "temporal_order": 2},
         parameters = {
             "grashof_number": 2.,
             "prandtl_number": 5.,
@@ -83,9 +83,9 @@ def test__verify__second_order_spatial_convergence__via_mms(
             "heat_capacity_solid_to_liquid_ratio": 0.500,
             "thermal_conductivity_solid_to_liquid_ratio": 2.14/0.561,
             "smoothing": 1./16.},
-        mesh_sizes = (5, 10, 20),
+        mesh_sizes = (2, 4, 8),
         timestep_size = 1./128.,
-        tolerance = 0.23):
+        tolerance = 0.02):
     
     fempy.mms.verify_spatial_order_of_accuracy(
         Model = VerifiableModel,
@@ -113,7 +113,7 @@ def test__verify__second_order_temporal_convergence__via_mms(
             "heat_capacity_solid_to_liquid_ratio": 0.500,
             "thermal_conductivity_solid_to_liquid_ratio": 2.14/0.561,
             "smoothing": 1./16.},
-        meshsize = 20,
+        meshsize = 24,
         timestep_sizes = (1./8., 1./16., 1./32.),
         tolerance = 0.4):
     

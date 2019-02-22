@@ -106,12 +106,24 @@ class Model(fempy.unsteady_model.Model):
         
             temperature_solutions.append(fe.split(solution)[2])
         
-        phil_t = fempy.time_discretization.bdf(
-            [self.porosity(T) for T in temperature_solutions],
+        phil = self.porosity
+        
+        cp = self.phase_dependent_material_property(
+            self.heat_capacity_solid_to_liquid_ratio)
+            
+        cpT_t = fempy.time_discretization.bdf(
+            [cp(phil(T))*T for T in temperature_solutions],
             order = self.temporal_order,
             timestep_size = self.timestep_size)
         
-        self.time_discrete_terms.append(phil_t)
+        cpphil_t = fempy.time_discretization.bdf(
+            [cp(phil(T))*self.porosity(T) for T in temperature_solutions],
+            order = self.temporal_order,
+            timestep_size = self.timestep_size)
+        
+        for w_i_t in (cpT_t, cpphil_t):
+        
+            self.time_discrete_terms.append(w_i_t)
         
     def mass(self):
         
@@ -129,7 +141,7 @@ class Model(fempy.unsteady_model.Model):
         
         p, u, T = fe.split(self.solution)
         
-        _, u_t, _, _ = self.time_discrete_terms
+        _, u_t, _, _, _ = self.time_discrete_terms
         
         b = self.buoyancy(T)
         
@@ -159,13 +171,13 @@ class Model(fempy.unsteady_model.Model):
         k = self.phase_dependent_material_property(
             self.thermal_conductivity_solid_to_liquid_ratio)(phil)
         
-        _, _, T_t, phil_t = self.time_discrete_terms
+        _, _, _, cpT_t, cpphil_t = self.time_discrete_terms
         
         _, _, psi_T = fe.TestFunctions(self.function_space)
         
         dot, grad = fe.dot, fe.grad
         
-        return psi_T*(cp*(T_t + dot(u, grad(T))) + 1./Ste*phil_t) \
+        return psi_T*(cpT_t + dot(u, cp*grad(T)) + 1./Ste*cpphil_t) \
             + dot(grad(psi_T), k/Pr*grad(T))
         
     def stabilization(self):
