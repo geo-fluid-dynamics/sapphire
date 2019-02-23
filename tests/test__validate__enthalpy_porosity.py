@@ -136,6 +136,11 @@ def test__long__validate__freeze_water():
     """ For Kowalewski's water freezing experiment,
     at t_f__SI 2340 s, t_f = 1.44.
     """
+    plot = True
+    
+    write_solution = True
+    
+    spatial_dimensions = 2
     
     
     s = 1./200.
@@ -145,21 +150,22 @@ def test__long__validate__freeze_water():
     
     rx = 2
     
-    nx = 32
+    nx = 128
     
     
     rt = 2
     
-    nt = 4
+    nt = 128
     
     
-    q = 4
+    q = 8
     
     
     model = fempy.benchmarks.freeze_water.Model(
         quadrature_degree = q,
         spatial_order = rx,
         temporal_order = rt,
+        spatial_dimensions = spatial_dimensions,
         meshsize = nx)
     
     model.timestep_size.assign(t_f/float(nt))
@@ -169,8 +175,13 @@ def test__long__validate__freeze_water():
     model.smoothing.assign(s)
     
     model.output_directory_path = model.output_directory_path.joinpath(
-        "freeze_water/s{0}_tau{1}/rx{2}_nx{3}_rt{4}_nt{5}/q{6}/tf{7}/".format(
-            s, tau, rx, nx, rt, nt, q, t_f))
+        "freeze_water/" +
+        "s{0}_tau{1}/rx{2}_nx{3}_rt{4}_nt{5}/q{6}/tf{7}/dim{8}/".format(
+            s, tau, rx, nx, rt, nt, q, t_f, spatial_dimensions))
         
-    model.run(endtime = t_f, plot = True, report = True)
+    model.run(
+        endtime = t_f,
+        write_solution = write_solution,
+        plot = plot,
+        report = True)
     

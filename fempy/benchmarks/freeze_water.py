@@ -5,7 +5,9 @@ import numpy
 
 class Model(fempy.models.enthalpy_porosity.Model):
 
-    def __init__(self, *args, meshsize, **kwargs):
+    def __init__(self, *args, spatial_dimensions, meshsize, **kwargs):
+        
+        self.spatial_dimensions = spatial_dimensions
         
         self.meshsize = meshsize
         
@@ -72,15 +74,21 @@ class Model(fempy.models.enthalpy_porosity.Model):
         
         _, _, T = fe.split(self.solution)
         
-        _, jhat = self.unit_vectors()
-        
-        ghat = fe.Constant(-jhat)
+        ghat = fe.Constant(-self.unit_vectors()[1])
         
         return Gr/(beta*M)*(rho(T_L) - rho(T))/rho(T_L)*ghat
         
     def init_mesh(self):
+        
+        if self.spatial_dimensions == 2:
     
-        self.mesh = fe.UnitSquareMesh(self.meshsize, self.meshsize)
+            Mesh = fe.UnitSquareMesh
+            
+        elif self.spatial_dimensions == 3:
+        
+            Mesh = fe.UnitCubeMesh
+        
+        self.mesh = Mesh(*(self.meshsize,)*self.spatial_dimensions)
         
     def initial_values(self):
         
@@ -109,9 +117,11 @@ class Model(fempy.models.enthalpy_porosity.Model):
         
         T_c = self.cold_wall_temperature_before_freezing.__float__()
         
+        dim = self.mesh.geometric_dimension()
+        
         u.assign(fe.interpolate(
             fe.Expression(
-                (0., 0., 0., T_c),
+                (0.,) + (0.,)*dim + (T_c,),
                 element = self.element),
             self.function_space))
             
@@ -139,8 +149,11 @@ class Model(fempy.models.enthalpy_porosity.Model):
     
         W = self.function_space
         
+        dim = self.mesh.geometric_dimension()
+        
         self.dirichlet_boundary_conditions = [
-            fe.DirichletBC(W.sub(1), (0., 0.), "on_boundary"),
+            fe.DirichletBC(
+                W.sub(1), (0.,)*dim, "on_boundary"),
             fe.DirichletBC(W.sub(2), self.hot_wall_temperature, 1),
             fe.DirichletBC(W.sub(2), self.cold_wall_temperature, 2)]
             

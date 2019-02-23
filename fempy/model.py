@@ -119,6 +119,10 @@ class Model(object):
         
         return tuple([fe.unit_vector(i, dim) for i in range(dim)])
         
+    def write_solution(self, file):
+        
+        file.write(*self.solution.split(), time = self.time)
+        
     def plot(self):
         
         for i, f in enumerate(self.solution.split()):

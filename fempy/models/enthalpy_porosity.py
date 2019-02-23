@@ -7,7 +7,7 @@ import fempy.continuation
 
 class Model(fempy.unsteady_model.Model):
     
-    def __init__(self, quadrature_degree, spatial_order, temporal_order):
+    def __init__(self, *args, **kwargs):
         
         self.grashof_number = fe.Constant(1.)
         
@@ -35,10 +35,7 @@ class Model(fempy.unsteady_model.Model):
         
         self.autosmooth_maxcount = 32
         
-        super().__init__(
-            quadrature_degree = quadrature_degree,
-            spatial_order = spatial_order,
-            temporal_order = temporal_order)
+        super().__init__(*args, **kwargs)
         
         self.backup_solution = fe.Function(self.solution)
         
@@ -80,9 +77,7 @@ class Model(fempy.unsteady_model.Model):
         
         Gr = self.grashof_number
         
-        _, jhat = self.unit_vectors()
-        
-        ghat = fe.Constant(-jhat)
+        ghat = fe.Constant(-self.unit_vectors()[1])
         
         return Gr*T*ghat
         

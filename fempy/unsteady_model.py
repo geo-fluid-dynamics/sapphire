@@ -81,6 +81,7 @@ class Model(fempy.model.Model):
     def run(self,
             endtime,
             report = True,
+            write_solution = False,
             plot = False,
             update_initial_values = True):
         
@@ -95,6 +96,14 @@ class Model(fempy.model.Model):
             
             self.report(write_header = True)
         
+        solution_filepath = self.output_directory_path.joinpath("solutions/")
+        
+        solution_file = fe.File(self.output_directory_path.joinpath("solution").with_suffix(".pvd"))
+    
+        if write_solution:
+        
+            self.write_solution(solution_file)
+        
         if plot:
             
             self.plot()
@@ -108,6 +117,10 @@ class Model(fempy.model.Model):
             if report:
             
                 self.report(write_header = False)
+                
+            if write_solution:
+        
+                self.write_solution(solution_file)
                 
             if plot:
                 
