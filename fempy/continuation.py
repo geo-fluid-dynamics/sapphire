@@ -110,6 +110,6 @@ def solve(
     
     assert(continuation_parameter.__float__() ==
         my_continuation_sequence[-1])
-        
-    continuation_sequence = my_continuation_sequence
+    
+    return my_continuation_sequence
     

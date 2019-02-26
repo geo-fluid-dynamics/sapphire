@@ -201,7 +201,7 @@ class Model(fempy.unsteady_model.Model):
         
         if self.autosmooth_enable:
             
-            fempy.continuation.solve(
+            self.smoothing_sequence = fempy.continuation.solve(
                 model = self,
                 solver = self.solver,
                 continuation_parameter = self.smoothing,
