@@ -87,7 +87,11 @@ class Model(fempy.model.Model):
         
         self.output_directory_path.mkdir(
             parents = True, exist_ok = True)
-            
+        
+        solution_filepath = self.output_directory_path.joinpath("solution").with_suffix(".pvd")
+        
+        solution_file = fe.File(str(solution_filepath))
+        
         if update_initial_values:
         
             self.update_initial_values()
@@ -96,10 +100,6 @@ class Model(fempy.model.Model):
             
             self.report(write_header = True)
         
-        solution_filepath = self.output_directory_path.joinpath("solutions/")
-        
-        solution_file = fe.File(self.output_directory_path.joinpath("solution").with_suffix(".pvd"))
-    
         if write_solution:
         
             self.write_solution(solution_file)
