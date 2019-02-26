@@ -42,7 +42,7 @@ class GeneralSolidVelocityCorrectionsModel(fempy.models.enthalpy_porosity.Model)
         
         p, u, T = fe.split(self.solution)
         
-        _, u_t, _, _ = self.time_discrete_terms
+        _, u_t, _, _, _ = self.time_discrete_terms
         
         b = self.buoyancy(T)
         
@@ -170,7 +170,7 @@ def test__verify__solid_viscosity__second_order_spatial_convergence__via_mms(
 def test__verify__solid_viscosity__second_order_temporal_convergence__via_mms(
         constructor_kwargs = {
             "quadrature_degree": 4,
-            "spatial_order": 2,
+            "spatial_order": 4,
             "temporal_order": 2},
         parameters = {
             "grashof_number": 2.,
@@ -178,7 +178,7 @@ def test__verify__solid_viscosity__second_order_temporal_convergence__via_mms(
             "stefan_number": 0.2,
             "smoothing": 1./16.},
         meshsize = 20,
-        timestep_sizes = (1./8., 1./16., 1./32.),
+        timestep_sizes = (1./4., 1./8., 1./16., 1./32.),
         tolerance = 0.4):
     
     fempy.mms.verify_temporal_order_of_accuracy(
@@ -229,7 +229,7 @@ def test__verify__kozeny_carman__second_order_spatial_convergence__via_mms(
             "prandtl_number": 5.,
             "stefan_number": 0.2,
             "smoothing": 1./16.},
-        mesh_sizes = (5, 10, 20),
+        mesh_sizes = (2, 4, 8, 16, 32),
         timestep_size = 1./128.,
         tolerance = 0.4):
     
@@ -314,7 +314,7 @@ class GeneralSolidVelocityCorrectionsMeltingOctadecaneModel(
         
         p, u, T = fe.split(self.solution)
         
-        _, u_t, _, _ = self.time_discrete_terms
+        _, u_t, _, _, _ = self.time_discrete_terms
         
         b = self.buoyancy(T)
         

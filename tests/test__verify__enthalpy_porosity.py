@@ -175,7 +175,7 @@ def test__verify__third_order_temporal_convergence__via_mms(
             "smoothing": 1./16.},
         meshsize = 16,
         timestep_sizes = (1./2., 1./4., 1./8., 1./16.),
-        tolerance = 0.13):
+        tolerance = 0.15):
     
     fempy.mms.verify_temporal_order_of_accuracy(
         Model = VerifiableModel,
