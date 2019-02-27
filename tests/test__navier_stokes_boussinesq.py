@@ -6,19 +6,17 @@ import fempy.benchmarks.heat_driven_cavity
 
 class VerifiableModel(fempy.models.navier_stokes_boussinesq.Model):
     
-        def __init__(self, meshsize):
+        def __init__(self, quadrature_degree, spatial_order, meshsize):
         
             self.meshsize = meshsize
             
-            super().__init__()
+            super().__init__(
+                quadrature_degree = quadrature_degree,
+                spatial_order = spatial_order)
             
         def init_mesh(self):
         
             self.mesh = fe.UnitSquareMesh(self.meshsize, self.meshsize)
-            
-        def init_integration_measure(self):
-
-            self.integration_measure = fe.dx(degree = 4)
             
         def init_manufactured_solution(self):
             
@@ -42,8 +40,6 @@ class VerifiableModel(fempy.models.navier_stokes_boussinesq.Model):
             
         def strong_form_residual(self, solution):
             
-            mu = self.dynamic_viscosity
-            
             Gr = self.grashof_number
             
             Pr = self.prandtl_number
@@ -56,7 +52,7 @@ class VerifiableModel(fempy.models.navier_stokes_boussinesq.Model):
             
             r_p = div(u)
             
-            r_u = grad(u)*u + grad(p) - 2.*div(mu*sym(grad(u))) + Gr*T*ghat
+            r_u = grad(u)*u + grad(p) - 2.*div(sym(grad(u))) + Gr*T*ghat
             
             r_T = dot(u, grad(T)) - 1./Pr*div(grad(T))
             
@@ -75,8 +71,9 @@ def test__verify_convergence_order_via_mms(
     
     fempy.mms.verify_spatial_order_of_accuracy(
         Model = VerifiableModel,
+        constructor_kwargs = {
+            "quadrature_degree": 4, "spatial_order": 2},
         parameters = {
-            "dynamic_viscosity": 0.1, 
             "grashof_number": Ra/Pr,
             "prandtl_number": Pr},
         expected_order = 2,
@@ -156,7 +153,8 @@ def unsteadiness(model):
             
 def test__verify_against_heat_driven_cavity_benchmark():
 
-    model = fempy.benchmarks.heat_driven_cavity.Model(meshsize = 40)
+    model = fempy.benchmarks.heat_driven_cavity.Model(
+        quadrature_degree = 4, spatial_order = 2, meshsize = 40)
     
     model.solver.solve()
     

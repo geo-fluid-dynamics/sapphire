@@ -4,22 +4,20 @@ import fempy.models.unsteady_navier_stokes
 
 class Model(fempy.models.unsteady_navier_stokes.Model):
     
-    def __init__(self, meshsize):
+    def __init__(self,
+            quadrature_degree, spatial_order, temporal_order, meshsize):
         
         self.meshsize = meshsize
         
-        super().__init__()
-        
-        self.update_initial_values()
+        super().__init__(
+            quadrature_degree = quadrature_degree,
+            spatial_order = spatial_order,
+            temporal_order = temporal_order)
         
     def init_mesh(self):
         
         self.mesh = fe.UnitSquareMesh(self.meshsize, self.meshsize)
     
-    def init_integration_measure(self):
-
-        self.integration_measure = fe.dx(degree = 4)
-        
     def init_manufactured_solution(self):
         
         exp, sin, pi = fe.exp, fe.sin, fe.pi
@@ -50,22 +48,17 @@ class Model(fempy.models.unsteady_navier_stokes.Model):
         r_p = div(u)
         
         return r_u, r_p
-        
-    def update_initial_values(self):
-        
-        for u_m, V in zip(
-                self.manufactured_solution, self.function_space):
-        
-            self.initial_values.assign(fe.interpolate(u_m, V))
 
         
 def test__verify_spatial_convergence_order_via_mms(
-        mesh_sizes = (4, 8, 16, 32),
-        timestep_size = 1./64.,
-        tolerance = 0.2):
+        mesh_sizes = (3, 6, 12, 24),
+        timestep_size = 1./32.,
+        tolerance = 0.3):
     
     fempy.mms.verify_spatial_order_of_accuracy(
         Model = Model,
+        constructor_kwargs = {
+            "quadrature_degree": 4, "spatial_order": 2, "temporal_order": 1},
         expected_order = 2,
         mesh_sizes = mesh_sizes,
         tolerance = tolerance,
@@ -75,11 +68,13 @@ def test__verify_spatial_convergence_order_via_mms(
  
 def test__verify_temporal_convergence_order_via_mms(
         meshsize = 32,
-        timestep_sizes = (1., 1./2., 1./4., 1./8.),
+        timestep_sizes = (1./2., 1./4., 1./8.),
         tolerance = 0.1):
     
     fempy.mms.verify_temporal_order_of_accuracy(
         Model = Model,
+        constructor_kwargs = {
+            "quadrature_degree": 4, "spatial_order": 2, "temporal_order": 1},
         expected_order = 1,
         meshsize = meshsize,
         endtime = 1.,

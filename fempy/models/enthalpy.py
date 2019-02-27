@@ -5,7 +5,7 @@ import fempy.unsteady_model
     
 class Model(fempy.unsteady_model.Model):
     
-    def __init__(self):
+    def __init__(self, quadrature_degree, spatial_order, temporal_order):
         
         self.stefan_number = fe.Constant(1.)
         
@@ -13,11 +13,15 @@ class Model(fempy.unsteady_model.Model):
         
         self.smoothing = fe.Constant(1./32.)
         
-        super().__init__()
+        super().__init__(
+            quadrature_degree = quadrature_degree,
+            spatial_order = spatial_order,
+            temporal_order = temporal_order)
         
     def init_element(self):
     
-        self.element = fe.FiniteElement("P", self.mesh.ufl_cell(), 1)
+        self.element = fe.FiniteElement(
+            "P", self.mesh.ufl_cell(), self.spatial_order - 1)
         
     def porosity(self, T):
         
@@ -30,20 +34,15 @@ class Model(fempy.unsteady_model.Model):
         return 0.5*(1. + tanh((T - T_L)/s))
     
     def init_time_discrete_terms(self):
-        """ Implicit Euler finite difference scheme """
-        T = self.solution
         
-        T_n = self.initial_values
+        super().init_time_discrete_terms()
         
-        Delta_t = self.timestep_size
+        phil_t = fempy.time_discretization.bdf(
+            [self.porosity(T_n) for T_n in self.solutions],
+            order = self.temporal_order,
+            timestep_size = self.timestep_size)
         
-        T_t = (T - T_n)/Delta_t
-        
-        phil = self.porosity
-        
-        phil_t = (phil(T) - phil(T_n))/Delta_t
-        
-        self.time_discrete_terms = T_t, phil_t
+        self.time_discrete_terms = (self.time_discrete_terms, phil_t)
     
     def init_weak_form_residual(self):
         

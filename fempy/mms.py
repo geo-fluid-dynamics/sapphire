@@ -12,12 +12,18 @@ def make_mms_verification_model_class(Model):
 
     class MMSVerificationModel(Model):
         
-        def init_mesh(self):
+        def __init__(self, *args, **kwargs):
         
-            super().init_mesh()
+            super().__init__(*args, **kwargs)
             
+            self._L2_error = None
+            
+        def init_solutions(self):
+        
             self.init_manufactured_solution()
             
+            super().init_solutions()
+        
         def init_weak_form_residual(self):
         
             super().init_weak_form_residual()
@@ -48,6 +54,26 @@ def make_mms_verification_model_class(Model):
                 fe.DirichletBC(V, g, "on_boundary") 
                 for V, g in zip(W, u_m)]
                 
+        def initial_values(self):
+        
+            initial_values = fe.Function(self.function_space)
+            
+            if (type(self.manufactured_solution) is not type([0,])) \
+                    and (type(self.manufactured_solution) is not type((0,))):
+            
+                w_m = (self.manufactured_solution,)
+                
+            else:
+            
+                w_m = self.manufactured_solution
+                    
+            for u_m, V in zip(
+                    w_m, self.function_space):
+                
+                initial_values.assign(fe.interpolate(u_m, V))
+                
+            return initial_values
+            
         def L2_error(self):
             
             dx = self.integration_measure
@@ -71,6 +97,12 @@ def make_mms_verification_model_class(Model):
                 
             return e
             
+        def report(self, write_header = True):
+            
+            self._L2_error = self.L2_error()
+            
+            super().report(write_header = write_header)
+            
     return MMSVerificationModel
     
     
@@ -79,12 +111,14 @@ def verify_spatial_order_of_accuracy(
         expected_order,
         mesh_sizes,
         tolerance,
+        constructor_kwargs = {},
         parameters = {},
         timestep_size = None,
         endtime = None,
         starttime = 0.,
         plot_errors = False,
-        plot_solution = False):
+        plot_solution = False,
+        report = False):
     
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
@@ -94,10 +128,10 @@ def verify_spatial_order_of_accuracy(
     
     for meshsize in mesh_sizes:
         
-        model = MMSVerificationModel(meshsize = meshsize)
+        model = MMSVerificationModel(**constructor_kwargs, meshsize = meshsize)
         
         model.output_directory_path = model.output_directory_path.joinpath(
-            "mms_space")
+            "mms_space_p" + str(expected_order) + "/")
             
         if timestep_size is not None:
             
@@ -116,7 +150,7 @@ def verify_spatial_order_of_accuracy(
             
             model.timestep_size.assign(timestep_size)
             
-            model.run(endtime = endtime, plot = plot_solution)
+            model.run(endtime = endtime, plot = plot_solution, report = report)
         
         else:
         
@@ -156,11 +190,8 @@ def verify_spatial_order_of_accuracy(
         
         plt.grid(True)
         
-        outdir_path = pathlib.Path("output/mms/")
-        
-        outdir_path.mkdir(parents = True, exist_ok = True)
-        
-        filepath = outdir_path.joinpath("e_vs_h").with_suffix(".png")
+        filepath = model.output_directory_path.joinpath(
+            "e_vs_h").with_suffix(".png")
         
         print("Writing plot to " + str(filepath))
         
@@ -178,28 +209,22 @@ def verify_temporal_order_of_accuracy(
         timestep_sizes,
         endtime,
         tolerance,
+        constructor_kwargs = {},
         parameters = {},
         starttime = 0.,
         plot_errors = False,
-        plot_solution = False):
+        plot_solution = False,
+        report = False):
     
     MMSVerificationModel = make_mms_verification_model_class(Model)
     
     table = fempy.table.Table(("Delta_t", "L2_error", "temporal_order"))
     
-    model = MMSVerificationModel(meshsize = meshsize)
+    model = MMSVerificationModel(**constructor_kwargs, meshsize = meshsize)
     
     basepath = model.output_directory_path
     
     model.assign_parameters(parameters)
-    
-    u_m = model.initial_values
-    
-    if not ((type(u_m) == type((0,))) or (type(u_m) == type([0,]))):
-    
-        u_m = (u_m),
-    
-    initial_values = [fe.Function(iv) for iv in u_m]
     
     print("")
     
@@ -207,7 +232,8 @@ def verify_temporal_order_of_accuracy(
         
         model.timestep_size.assign(timestep_size)
         
-        model.output_directory_path = basepath.joinpath("mms_time")
+        model.output_directory_path = basepath.joinpath(
+            "mms_time_q" + str(expected_order) + "/")
         
         model.output_directory_path = model.output_directory_path.joinpath(
             "m" + str(meshsize))
@@ -217,19 +243,9 @@ def verify_temporal_order_of_accuracy(
         
         model.time.assign(starttime)
         
-        if (type(model.initial_values) == type((0,)) or
-                (type(model.initial_values) == type([0,]))):
+        model.update_initial_values()
         
-            for i, iv in enumerate(model.initial_values):
-            
-                iv.assign(initial_values[i])
-        else:
-        
-            model.initial_values.assign(initial_values[0])
-            
-        model.solution.assign(model.initial_values[0])
-        
-        model.run(endtime = endtime, plot = plot_solution)
+        model.run(endtime = endtime, plot = plot_solution, report = report)
             
         table.append({
             "Delta_t": timestep_size,
@@ -265,11 +281,8 @@ def verify_temporal_order_of_accuracy(
         
         plt.grid(True)
         
-        outdir_path = pathlib.Path("output/mms/")
-        
-        outdir_path.mkdir(parents = True, exist_ok = True)
-        
-        filepath = outdir_path.joinpath("e_vs_Delta_t").with_suffix(".png")
+        filepath = model.output_directory_path.joinpath(
+            "e_vs_Delta_t").with_suffix(".png")
         
         print("Writing plot to " + str(filepath))
         

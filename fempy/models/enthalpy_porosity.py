@@ -2,16 +2,12 @@
 import firedrake as fe
 import fempy.unsteady_model
 import matplotlib.pyplot as plt
-import fempy.autosmooth
+import fempy.continuation
 
 
 class Model(fempy.unsteady_model.Model):
     
-    def __init__(self):
-    
-        self.liquid_dynamic_viscosity = fe.Constant(1.)
-        
-        self.solid_dynamic_viscosity = fe.Constant(1.e8)
+    def __init__(self, *args, **kwargs):
         
         self.grashof_number = fe.Constant(1.)
         
@@ -23,28 +19,39 @@ class Model(fempy.unsteady_model.Model):
         
         self.liquidus_temperature = fe.Constant(0.)
         
+        self.heat_capacity_solid_to_liquid_ratio = fe.Constant(1.)
+        
+        self.thermal_conductivity_solid_to_liquid_ratio = fe.Constant(1.)
+        
+        self.solid_velocity_relaxation_factor = fe.Constant(1.e-12)
+        
         self.smoothing = fe.Constant(1./256.)
         
         self.smoothing_sequence = None
+        
+        self.save_smoothing_sequence = False
         
         self.autosmooth_enable = True
         
         self.autosmooth_maxval = 4.
         
-        self.autosmooth_firstval = 1./4.
-        
         self.autosmooth_maxcount = 32
         
-        super().__init__()
+        super().__init__(*args, **kwargs)
         
         self.backup_solution = fe.Function(self.solution)
         
+        # Initialize some attributes to be reported
+        self.liquid_area = None
+        
     def init_element(self):
-    
+        
+        rx = self.spatial_order
+        
         self.element = fe.MixedElement(
-            fe.FiniteElement("P", self.mesh.ufl_cell(), 1),
-            fe.VectorElement("P", self.mesh.ufl_cell(), 2),
-            fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
+            fe.FiniteElement("P", self.mesh.ufl_cell(), rx - 1),
+            fe.VectorElement("P", self.mesh.ufl_cell(), rx - 1),
+            fe.FiniteElement("P", self.mesh.ufl_cell(), rx - 1))
     
     def porosity(self, T):
         """ Regularization from @cite{zimmerman2018monolithic} """
@@ -56,51 +63,68 @@ class Model(fempy.unsteady_model.Model):
         
         return 0.5*(1. + tanh((T - T_L)/s))
         
+    def phase_dependent_material_property(self, solid_to_liquid_ratio):
+    
+        a_s = solid_to_liquid_ratio
+        
+        def a(phil):
+        
+            return a_s + (1. - a_s)*phil
+        
+        return a
+        
     def buoyancy(self, T):
         """ Boussinesq buoyancy """
         _, _, T = fe.split(self.solution)
         
         Gr = self.grashof_number
         
-        _, jhat = self.unit_vectors()
-        
-        ghat = fe.Constant(-jhat)
+        ghat = fe.Constant(-self.unit_vectors()[1])
         
         return Gr*T*ghat
         
-    def dynamic_viscosity(self):
-        
-        _, _, T = fe.split(self.solution)
-        
-        mu_s = self.solid_dynamic_viscosity
-        
-        mu_l = self.liquid_dynamic_viscosity
+    def solid_velocity_relaxation(self, T):
         
         phil = self.porosity(T)
         
-        return mu_s + (mu_l - mu_s)*phil
+        phis = 1. - phil
+        
+        tau = self.solid_velocity_relaxation_factor
+        
+        return 1./tau*phis
         
     def init_time_discrete_terms(self):
-        """ Implicit Euler finite difference scheme """
-        p, u, T = fe.split(self.solution)
         
-        p_n, u_n, T_n = fe.split(self.initial_values)
+        super().init_time_discrete_terms()
         
-        Delta_t = self.timestep_size
+        temperature_solutions = []
         
-        u_t = (u - u_n)/Delta_t
+        for solution in self.solutions:
         
-        T_t = (T - T_n)/Delta_t
+            temperature_solutions.append(fe.split(solution)[2])
         
         phil = self.porosity
         
-        phil_t = (phil(T) - phil(T_n))/Delta_t
+        cp = self.phase_dependent_material_property(
+            self.heat_capacity_solid_to_liquid_ratio)
+            
+        cpT_t = fempy.time_discretization.bdf(
+            [cp(phil(T))*T for T in temperature_solutions],
+            order = self.temporal_order,
+            timestep_size = self.timestep_size)
         
-        self.time_discrete_terms = u_t, T_t, phil_t
+        cpphil_t = fempy.time_discretization.bdf(
+            [cp(phil(T))*self.porosity(T) for T in temperature_solutions],
+            order = self.temporal_order,
+            timestep_size = self.timestep_size)
+        
+        for w_i_t in (cpT_t, cpphil_t):
+        
+            self.time_discrete_terms.append(w_i_t)
         
     def mass(self):
         
-        p, u, _ = fe.split(self.solution)
+        _, u, _ = fe.split(self.solution)
         
         psi_p, _, _ = fe.TestFunctions(self.function_space)
         
@@ -108,29 +132,25 @@ class Model(fempy.unsteady_model.Model):
         
         mass = psi_p*div(u)
         
-        gamma = self.pressure_penalty_factor
-        
-        stabilization = gamma*psi_p*p
-        
-        return mass + stabilization
+        return mass
         
     def momentum(self):
         
         p, u, T = fe.split(self.solution)
         
-        u_t, _, _ = self.time_discrete_terms
+        _, u_t, _, _, _ = self.time_discrete_terms
         
         b = self.buoyancy(T)
         
-        mu = self.dynamic_viscosity()
+        d = self.solid_velocity_relaxation(T)
         
         _, psi_u, _ = fe.TestFunctions(self.function_space)
         
         inner, dot, grad, div, sym = \
             fe.inner, fe.dot, fe.grad, fe.div, fe.sym
             
-        return dot(psi_u, u_t + grad(u)*u + b) \
-            - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), mu*sym(grad(u)))
+        return dot(psi_u, u_t + grad(u)*u + b + d*u) \
+            - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), sym(grad(u)))
         
     def enthalpy(self):
         
@@ -140,14 +160,32 @@ class Model(fempy.unsteady_model.Model):
         
         _, u, T = fe.split(self.solution)
         
-        _, T_t, phil_t = self.time_discrete_terms
+        phil = self.porosity(T)
+        
+        cp = self.phase_dependent_material_property(
+            self.heat_capacity_solid_to_liquid_ratio)(phil)
+        
+        k = self.phase_dependent_material_property(
+            self.thermal_conductivity_solid_to_liquid_ratio)(phil)
+        
+        _, _, _, cpT_t, cpphil_t = self.time_discrete_terms
         
         _, _, psi_T = fe.TestFunctions(self.function_space)
         
         dot, grad = fe.dot, fe.grad
         
-        return psi_T*(T_t + 1./Ste*phil_t) \
-            + dot(grad(psi_T), 1./Pr*grad(T) - T*u)
+        return psi_T*(cpT_t + dot(u, cp*grad(T)) + 1./Ste*cpphil_t) \
+            + dot(grad(psi_T), k/Pr*grad(T))
+        
+    def stabilization(self):
+    
+        p, _, _ = fe.split(self.solution)
+        
+        psi_p, _, _ = fe.TestFunctions(self.function_space)
+        
+        gamma = self.pressure_penalty_factor
+        
+        return gamma*psi_p*p
         
     def init_weak_form_residual(self):
         """ Weak form from @cite{zimmerman2018monolithic} """
@@ -157,24 +195,31 @@ class Model(fempy.unsteady_model.Model):
         
         enthalpy = self.enthalpy()
         
-        self.weak_form_residual = mass + momentum + enthalpy
-
-    def init_integration_measure(self):
-
-        self.integration_measure = fe.dx(degree = 4)
+        stabilization = self.stabilization()
         
+        self.weak_form_residual = mass + momentum + enthalpy + stabilization
+    
     def solve(self):
         
         if self.autosmooth_enable:
             
-            fempy.autosmooth.solve(self,
-                firstval = self.autosmooth_firstval,
-                maxval = self.autosmooth_maxval,
+            smoothing_sequence = fempy.continuation.solve(
+                model = self,
+                solver = self.solver,
+                continuation_parameter = self.smoothing,
+                continuation_sequence = self.smoothing_sequence,
+                leftval = self.autosmooth_maxval,
+                rightval = self.smoothing.__float__(),
+                startleft = True,
                 maxcount = self.autosmooth_maxcount)
+                
+            if self.save_smoothing_sequence:
+            
+                self.smoothing_sequence = smoothing_sequence
             
         elif self.smoothing_sequence == None:
         
-            self.solver.solve()
+            super().solve()
            
         else:
         
@@ -185,11 +230,21 @@ class Model(fempy.unsteady_model.Model):
             
                 self.smoothing.assign(s)
                 
-                self.solver.solve()
+                super().solve()
                 
                 if not self.quiet:
                     
                     print("Solved with s = " + str(s))
+    
+    def report(self, write_header):
+        
+        p, u, T = self.solution.split()
+    
+        phil = self.porosity(T)
+        
+        self.liquid_area = fe.assemble(phil*self.integration_measure)
+        
+        super().report(write_header = write_header)
     
     def plot(self):
     
@@ -203,9 +258,9 @@ class Model(fempy.unsteady_model.Model):
         timestr = str(self.time.__float__())
         
         for f, label, filename in zip(
-                (self.mesh, p, u, T, phil),
-                ("\\Omega_h", "p", "\\mathbf{u}", "T", "\\phi_l"),
-                ("mesh", "p", "u", "T", "phil")):
+                (p, u, T, phil),
+                ("p", "\\mathbf{u}", "T", "\\phi_l"),
+                ("p", "u", "T", "phil")):
             
             fe.plot(f)
             
@@ -229,80 +284,3 @@ class Model(fempy.unsteady_model.Model):
             plt.savefig(str(filepath))
             
             plt.close()
-            
-            
-class ModelWithBDF2(Model):
-
-    def init_initial_values(self):
-        
-        self.initial_values = [fe.Function(self.function_space)
-            for i in range(2)]
-
-    def init_time_discrete_terms(self):
-    
-        Delta_t = self.timestep_size
-        
-        def bdf2(u_np1, u_n, u_nm1):
-        
-            return (3.*u_np1 - 4.*u_n + u_nm1)/(2.*Delta_t)
-            
-        p_np1, u_np1, T_np1 = fe.split(self.solution)
-        
-        p_n, u_n, T_n = fe.split(self.initial_values[0])
-        
-        p_nm1, u_nm1, T_nm1 = fe.split(self.initial_values[1])
-        
-        u_t = bdf2(u_np1, u_n, u_nm1)
-        
-        T_t = bdf2(T_np1, T_n, T_nm1)
-        
-        phil = self.porosity
-        
-        phil_t = bdf2(phil(T_np1), phil(T_n), phil(T_nm1))
-        
-        self.time_discrete_terms = u_t, T_t, phil_t
-        
-        
-class ModelWithDarcyResistance(Model):
-
-    def __init__(self):
-        
-        self.darcy_resistance_factor = fe.Constant(1.e6)
-        
-        self.small_number_to_avoid_division_by_zero = fe.Constant(1.e-8)
-        
-        super().__init__()
-        
-        delattr(self, "solid_dynamic_viscosity")
-        
-    def darcy_resistance(self, T):
-        """ Resistance to flow based on permeability of the porous media """
-        D = self.darcy_resistance_factor
-        
-        epsilon = self.small_number_to_avoid_division_by_zero
-        
-        phil = self.porosity(T)
-        
-        return D*(1. - phil)**2/(phil**3 + epsilon)
-        
-    def dynamic_viscosity(self):
-        
-        return self.liquid_dynamic_viscosity
-        
-    def momentum(self):
-        
-        _, u, T = fe.split(self.solution)
-        
-        u_t, _, _ = self.time_discrete_terms
-        
-        b = self.buoyancy(T)
-        
-        d = self.darcy_resistance(T)
-        
-        _, psi_u, _ = fe.TestFunctions(self.function_space)
-        
-        dot = fe.dot
-        
-        return super().momentum() + dot(psi_u, d*u)
-        
-        

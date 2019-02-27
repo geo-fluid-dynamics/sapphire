@@ -1,13 +1,16 @@
 """ An abstract class on which to base finite element models """
 import firedrake as fe
-import abc
 import pathlib
 import matplotlib.pyplot as plt
 
 
-class Model(metaclass = abc.ABCMeta):
-    """ An abstract class on which to base finite element models. """
-    def __init__(self):
+class Model(object):
+    """ A class on which to base finite element models. """
+    def __init__(self, quadrature_degree, spatial_order):
+        
+        self.quadrature_degree = quadrature_degree
+        
+        self.spatial_order = spatial_order
         
         self.init_mesh()
         
@@ -15,7 +18,7 @@ class Model(metaclass = abc.ABCMeta):
         
         self.init_function_space()
         
-        self.init_solution()
+        self.init_solutions()
         
         self.init_integration_measure()
         
@@ -31,30 +34,34 @@ class Model(metaclass = abc.ABCMeta):
         
         self.output_directory_path = pathlib.Path("output/")
         
-    @abc.abstractmethod
+        self.snes_iteration_counter = 0
+        
     def init_mesh(self):
         """ Redefine this to set `self.mesh` to a `fe.Mesh`.
         """
+        assert(False)
     
-    @abc.abstractmethod
     def init_element(self):
         """ Redefine this to set `self.element` 
         to a  `fe.FiniteElement` or `fe.MixedElement`.
         """
+        assert(False)
         
-    @abc.abstractmethod
     def init_weak_form_residual(self):
         """ Redefine this to set `self.weak_form_residual` 
         to a `fe.NonlinearVariationalForm`.
         """
+        assert(False)
     
     def init_function_space(self):
     
         self.function_space = fe.FunctionSpace(self.mesh, self.element)
     
-    def init_solution(self):
+    def init_solutions(self):
     
-        self.solution = fe.Function(self.function_space)
+        self.solutions = [fe.Function(self.function_space)]
+        
+        self.solution = self.solutions[0]
     
     def init_dirichlet_boundary_conditions(self):
         """ Optionallay redefine this 
@@ -64,7 +71,7 @@ class Model(metaclass = abc.ABCMeta):
         
     def init_integration_measure(self):
 
-        self.integration_measure = fe.dx
+        self.integration_measure = fe.dx(degree = self.quadrature_degree)
         
     def init_problem(self):
     
@@ -103,12 +110,18 @@ class Model(metaclass = abc.ABCMeta):
     def solve(self):
     
         self.solver.solve()
+        
+        self.snes_iteration_counter += self.solver.snes.getIterationNumber()
     
     def unit_vectors(self):
         
         dim = self.mesh.geometric_dimension()
         
         return tuple([fe.unit_vector(i, dim) for i in range(dim)])
+        
+    def write_solution(self, file):
+        
+        file.write(*self.solution.split(), time = self.time)
         
     def plot(self):
         

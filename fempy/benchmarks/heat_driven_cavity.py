@@ -4,7 +4,7 @@ import fempy.models.navier_stokes_boussinesq
 
 class Model(fempy.models.navier_stokes_boussinesq.Model):
     
-    def __init__(self, meshsize):
+    def __init__(self, quadrature_degree, spatial_order, meshsize):
         
         self.meshsize = meshsize
         
@@ -12,7 +12,9 @@ class Model(fempy.models.navier_stokes_boussinesq.Model):
     
         self.cold_wall_temperature = fe.Constant(-0.5)
         
-        super().__init__()
+        super().__init__(
+            quadrature_degree = quadrature_degree,
+            spatial_order = spatial_order)
         
         Ra = 1.e6
         

@@ -2,25 +2,20 @@ import firedrake as fe
 import fempy.models.navier_stokes
 
 
-def test__verify_convergence_order_via_MMS(
-        mesh_sizes = (16, 32), tolerance = 0.1):
-
-    class Model(fempy.models.navier_stokes.Model):
+class VerifiableModel(fempy.models.navier_stokes.Model):
     
-        def __init__(self, meshsize):
+        def __init__(self, quadrature_degree, spatial_order, meshsize):
             
             self.meshsize = meshsize
             
-            super().__init__()
+            super().__init__(
+                quadrature_degree = quadrature_degree,
+                spatial_order = spatial_order)
             
         def init_mesh(self):
             
             self.mesh = fe.UnitSquareMesh(self.meshsize, self.meshsize)
         
-        def init_integration_measure(self):
-
-            self.integration_measure = fe.dx(degree = 4)
-            
         def init_manufactured_solution(self):
             
             sin, pi = fe.sin, fe.pi
@@ -47,9 +42,14 @@ def test__verify_convergence_order_via_MMS(
             r_p = div(u)
             
             return r_u, r_p
-        
+            
+
+def test__verify_convergence_order_via_mms(
+        mesh_sizes = (16, 32), tolerance = 0.1):
+    
     fempy.mms.verify_spatial_order_of_accuracy(
-        Model = Model,
+        Model = VerifiableModel,
+        constructor_kwargs = {"quadrature_degree": 4, "spatial_order": 2},
         expected_order = 2,
         mesh_sizes = mesh_sizes,
         tolerance = tolerance)
