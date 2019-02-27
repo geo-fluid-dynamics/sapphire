@@ -1,6 +1,6 @@
 # FemPy
-FemPy is a Python package for constructing multi-physics models and simulations 
-based on mixed finite elements using Firedrake.
+FemPy is an engine for constructing simulations
+based on mixed finite element models using Firedrake.
 
 
 ## Setup
