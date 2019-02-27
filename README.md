@@ -2,6 +2,7 @@
 FemPy is an engine for constructing simulations
 based on mixed finite element models using Firedrake.
 
+[![DOI](https://zenodo.org/badge/157389237.svg)](https://zenodo.org/badge/latestdoi/157389237)
 
 ## Setup
 [Install Firedrake](https://www.firedrakeproject.org/download.html).
