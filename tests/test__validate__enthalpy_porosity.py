@@ -44,6 +44,8 @@ def test__regression__validate__melt_octadecane():
     
     model.topwall_heatflux_postswitch = q
     
+    model.save_smoothing_sequence = True
+    
     model.output_directory_path = model.output_directory_path.joinpath(
         "melt_octadecane/with_heatflux/switchtime" 
         + str(topwall_heatflux_switchtime)
