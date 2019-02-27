@@ -29,6 +29,8 @@ class Model(fempy.unsteady_model.Model):
         
         self.smoothing_sequence = None
         
+        self.save_smoothing_sequence = False
+        
         self.autosmooth_enable = True
         
         self.autosmooth_maxval = 4.
@@ -201,14 +203,19 @@ class Model(fempy.unsteady_model.Model):
         
         if self.autosmooth_enable:
             
-            self.smoothing_sequence = fempy.continuation.solve(
+            smoothing_sequence = fempy.continuation.solve(
                 model = self,
                 solver = self.solver,
                 continuation_parameter = self.smoothing,
                 continuation_sequence = self.smoothing_sequence,
                 leftval = self.autosmooth_maxval,
                 rightval = self.smoothing.__float__(),
+                startleft = True,
                 maxcount = self.autosmooth_maxcount)
+                
+            if self.save_smoothing_sequence:
+            
+                self.smoothing_sequence = smoothing_sequence
             
         elif self.smoothing_sequence == None:
         

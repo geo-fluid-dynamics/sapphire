@@ -4,7 +4,7 @@ import fempy.benchmarks.melt_octadecane
 import fempy.benchmarks.freeze_water
 
 
-def test__regression__validate__melt_octadecane_with_heat_flux():
+def test__regression__validate__melt_octadecane():
     
     endtime = 80.
     
@@ -53,7 +53,7 @@ def test__regression__validate__melt_octadecane_with_heat_flux():
         + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
         + "_s" + str(s) + "_tau" + str(tau) + "/" + "tf" + str(endtime) + "/")
         
-    model.run(endtime = endtime, plot = False, report = False)
+    model.run(endtime = endtime, plot = True, report = True)
     
         
     p, u, T = model.solution.split()
@@ -67,57 +67,7 @@ def test__regression__validate__melt_octadecane_with_heat_flux():
     assert(abs(liquid_area - expected_liquid_area) < tolerance)
 
 
-def test__regression__validate__melt_octadecane_without_heat_flux():
-    
-    endtime, expected_liquid_area, tolerance = 30., 0.21, 0.01
-    
-    nx = 32
-    
-    Delta_t = 10.
-    
-    tau = 1.e-12
-    
-    model = fempy.benchmarks.melt_octadecane.Model(
-        quadrature_degree = 4,
-        spatial_order = 2,
-        temporal_order = 2,
-        meshsize = nx)
-    
-    model.topwall_heatflux.assign(0.)
-    
-    model.timestep_size.assign(Delta_t)
-    
-    s = 1./256.
-    
-    model.smoothing.assign(s)
-    
-    model.output_directory_path = model.output_directory_path.joinpath(
-        "melt_octadecane/without_heat_flux/second_order/" 
-        + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
-        + "_s" + str(s) + "_tau" + str(tau) + "/tf" + str(endtime) + "/")
-        
-    model.run(endtime = endtime, plot = False, report = False)
-    
-    p, u, T = model.solution.split()
-    
-    phil = model.porosity(T)
-    
-    liquid_area = fe.assemble(phil*fe.dx)
-    
-    print("Liquid area = " + str(liquid_area))
-    
-    assert(abs(liquid_area - expected_liquid_area) < tolerance)
-    
-    phil_h = fe.interpolate(phil, model.function_space.sub(2))
-    
-    max_phil = phil_h.vector().max()
-    
-    print("Maximum phil = " + str(max_phil))
-    
-    assert(abs(max_phil - 1.) < tolerance)
-    
-    
-def test__long__validate__freeze_water():
+def test__regression__validate__freeze_water():
     
     mu_l__SI = 8.90e-4  # [Pa s]
     
@@ -136,9 +86,11 @@ def test__long__validate__freeze_water():
     """ For Kowalewski's water freezing experiment,
     at t_f__SI 2340 s, t_f = 1.44.
     """
-    plot = True
+    plot = False
     
-    write_solution = True
+    write_solution = False
+    
+    report = False
     
     spatial_dimensions = 2
     
@@ -150,15 +102,20 @@ def test__long__validate__freeze_water():
     
     rx = 2
     
-    nx = 128
+    nx = 32
     
     
     rt = 2
     
-    nt = 128
+    nt = 4
     
     
-    q = 8
+    q = 4
+    
+    
+    expected_liquid_area = 0.69
+    
+    tolerance = 0.01
     
     
     model = fempy.benchmarks.freeze_water.Model(
@@ -174,6 +131,8 @@ def test__long__validate__freeze_water():
     
     model.smoothing.assign(s)
     
+    model.save_smoothing_sequence = False
+    
     model.output_directory_path = model.output_directory_path.joinpath(
         "freeze_water/" +
         "s{0}_tau{1}/rx{2}_nx{3}_rt{4}_nt{5}/q{6}/tf{7}/dim{8}/".format(
@@ -183,5 +142,15 @@ def test__long__validate__freeze_water():
         endtime = t_f,
         write_solution = write_solution,
         plot = plot,
-        report = True)
+        report = report)
+    
+    p, u, T = model.solution.split()
+    
+    phil = model.porosity(T)
+    
+    liquid_area = fe.assemble(phil*fe.dx)
+    
+    print("Liquid area = " + str(liquid_area))
+    
+    assert(abs(liquid_area - expected_liquid_area) < tolerance)
     
