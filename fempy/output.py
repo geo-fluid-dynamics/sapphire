@@ -1,3 +1,4 @@
+import firedrake as fe
 import matplotlib.pyplot as plt
 import csv
 
@@ -23,7 +24,7 @@ def plot(model):
     
         time = model.time.__float__()
     
-    for f, label, name in model.plotvars():
+    for f, label, name in zip(*model.plotvars()):
         
         fe.plot(f)
         

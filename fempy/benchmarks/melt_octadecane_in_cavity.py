@@ -6,15 +6,16 @@ class Model(fempy.models.enthalpy_porosity.Model):
     
     def __init__(self, *args, meshsize, **kwargs):
         
-        self.meshsize = meshsize
-        
         self.hot_wall_temperature = fe.Constant(1.)
     
         self.cold_wall_temperature = fe.Constant(-0.01)
         
         self.topwall_heatflux = fe.Constant(0.)
         
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            *args,
+            mesh = fe.UnitSquareMesh(meshsize, meshsize),
+            **kwargs)
         
         Ra = 3.27e5
         
@@ -31,10 +32,6 @@ class Model(fempy.models.enthalpy_porosity.Model):
         self.topwall_heatflux_postswitch = 0.
         
         self.topwall_heatflux_switchtime = 40. + 2.*self.time_tolerance
-        
-    def init_mesh(self):
-    
-        self.mesh = fe.UnitSquareMesh(self.meshsize, self.meshsize)
         
     def init_dirichlet_boundary_conditions(self):
     

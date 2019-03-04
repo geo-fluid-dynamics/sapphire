@@ -7,10 +7,6 @@ class Model(fempy.models.enthalpy_porosity.Model):
 
     def __init__(self, *args, spatial_dimensions, meshsize, **kwargs):
         
-        self.spatial_dimensions = spatial_dimensions
-        
-        self.meshsize = meshsize
-        
         self.reference_temperature_range__degC = fe.Constant(10.)  # [deg C]
         
         self.hot_wall_temperature = fe.Constant(1.)
@@ -24,7 +20,18 @@ class Model(fempy.models.enthalpy_porosity.Model):
         self.cold_wall_temperature.assign(
             self.cold_wall_temperature_before_freezing)
         
-        super().__init__(*args, **kwargs)
+        if spatial_dimensions == 2:
+    
+            Mesh = fe.UnitSquareMesh
+            
+        elif spatial_dimensions == 3:
+        
+            Mesh = fe.UnitCubeMesh
+        
+        super().__init__(
+            *args, 
+            mesh = Mesh(*(meshsize,)*spatial_dimensions),
+            **kwargs)
         
         Ra = 2.518084e6
         
@@ -77,18 +84,6 @@ class Model(fempy.models.enthalpy_porosity.Model):
         ghat = fe.Constant(-self.unit_vectors()[1])
         
         return Gr/(beta*M)*(rho(T_L) - rho(T))/rho(T_L)*ghat
-        
-    def init_mesh(self):
-        
-        if self.spatial_dimensions == 2:
-    
-            Mesh = fe.UnitSquareMesh
-            
-        elif self.spatial_dimensions == 3:
-        
-            Mesh = fe.UnitCubeMesh
-        
-        self.mesh = Mesh(*(self.meshsize,)*self.spatial_dimensions)
         
     def initial_values(self):
         

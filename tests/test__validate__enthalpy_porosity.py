@@ -1,7 +1,7 @@
 import firedrake as fe 
 import fempy.mms
-import fempy.benchmarks.melt_octadecane
-import fempy.benchmarks.freeze_water
+import fempy.benchmarks.melt_octadecane_in_cavity
+import fempy.benchmarks.freeze_water_in_cavity
 
 
 def test__regression__validate__melt_octadecane():
@@ -27,10 +27,10 @@ def test__regression__validate__melt_octadecane():
     tolerance = 0.01
     
     
-    model = fempy.benchmarks.melt_octadecane.Model(
+    model = fempy.benchmarks.melt_octadecane_in_cavity.Model(
         quadrature_degree = 4,
-        spatial_order = 2,
-        temporal_order = 2,
+        element_degree = 1,
+        time_stencil_size = 3,
         meshsize = nx)
     
     model.timestep_size.assign(Delta_t)
@@ -55,9 +55,10 @@ def test__regression__validate__melt_octadecane():
         + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
         + "_s" + str(s) + "_tau" + str(tau) + "/" + "tf" + str(endtime) + "/")
         
-    model.run(endtime = endtime, plot = True, report = True)
+    simulation = fempy.simulation.Simulation(model)
     
-        
+    simulation.run(endtime = endtime, plot = True, report = True)
+    
     p, u, T = model.solution.split()
     
     phil = model.porosity(T)
@@ -120,10 +121,10 @@ def test__regression__validate__freeze_water():
     tolerance = 0.01
     
     
-    model = fempy.benchmarks.freeze_water.Model(
+    model = fempy.benchmarks.freeze_water_in_cavity.Model(
         quadrature_degree = q,
-        spatial_order = rx,
-        temporal_order = rt,
+        element_degree = rx - 1,
+        time_stencil_size = rt + 1,
         spatial_dimensions = spatial_dimensions,
         meshsize = nx)
     
@@ -140,7 +141,9 @@ def test__regression__validate__freeze_water():
         "s{0}_tau{1}/rx{2}_nx{3}_rt{4}_nt{5}/q{6}/tf{7}/dim{8}/".format(
             s, tau, rx, nx, rt, nt, q, t_f, spatial_dimensions))
         
-    model.run(
+    simulation = fempy.simulation.Simulation(model)
+        
+    simulation.run(
         endtime = t_f,
         write_solution = write_solution,
         plot = plot,
