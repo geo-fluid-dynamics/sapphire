@@ -3,66 +3,34 @@ import fempy.mms
 import fempy.models.enthalpy
 
 
-class VerifiableModel(fempy.models.enthalpy.Model):
+def manufactured_solution(model):
     
-    def __init__(self, 
-            quadrature_degree,
-            spatial_order,
-            temporal_order,
-            meshsize):
+    x = fe.SpatialCoordinate(model.mesh)[0]
     
-        self.meshsize = meshsize
-        
-        super().__init__(
-            quadrature_degree = quadrature_degree,
-            spatial_order = spatial_order,
-            temporal_order = temporal_order)
-        
-    def init_mesh(self):
+    t = model.time
     
-        self.mesh = fe.UnitIntervalMesh(self.meshsize)
-        
-    def strong_form_residual(self, solution):
-        
-        T = solution
-        
-        t = self.time
-        
-        Ste = self.stefan_number
-        
-        phil = self.porosity
-        
-        diff, div, grad = fe.diff, fe.div, fe.grad
-        
-        return diff(T, t) - div(grad(T)) + 1./Ste*diff(phil(T), t)
+    sin, pi, exp = fe.sin, fe.pi, fe.exp
     
-    def init_manufactured_solution(self):
-        
-        x = fe.SpatialCoordinate(self.mesh)[0]
-        
-        t = self.time
-        
-        sin, pi, exp = fe.sin, fe.pi, fe.exp
-        
-        self.manufactured_solution = 0.5*sin(2.*pi*x)*(1. - 2*exp(-3.*t**2))
+    return 0.5*sin(2.*pi*x)*(1. - 2*exp(-3.*t**2))
+
     
-    
-def test__verify_spatial_convergence_order_via_mms(
+def test__verify_spatial_convergence__second_order__via_mms(
         mesh_sizes = (4, 8, 16, 32),
         timestep_size = 1./256.,
         tolerance = 0.1):
     
     fempy.mms.verify_spatial_order_of_accuracy(
-        Model = VerifiableModel,
-        constructor_kwargs = {
+        Model = fempy.models.enthalpy.Model,
+        meshes = [fe.UnitIntervalMesh(size) for size in mesh_sizes],
+        model_constructor_kwargs = {
             "quadrature_degree": 4,
-            "spatial_order": 2,
-            "temporal_order": 1},
+            "element_degree": 1,
+            "time_stencil_size": 2},
         parameters = {
             "stefan_number": 0.1,
             "smoothing": 1./32.},
+        manufactured_solution = manufactured_solution,
         expected_order = 2,
-        mesh_sizes = mesh_sizes,
         timestep_size = timestep_size,
         endtime = 1.,
         tolerance = tolerance,
@@ -71,22 +39,23 @@ def test__verify_spatial_convergence_order_via_mms(
         report = False)
         
         
-def test__verify_temporal_convergence_order_via_mms(
+def test__verify_temporal_convergence__first_order__via_mms(
         meshsize = 256,
         timestep_sizes = (1./16., 1./32., 1./64., 1./128.),
         tolerance = 0.1):
     
     fempy.mms.verify_temporal_order_of_accuracy(
-        Model = VerifiableModel,
-        constructor_kwargs = {
+        Model = fempy.models.enthalpy.Model,
+        mesh = fe.UnitIntervalMesh(meshsize),
+        model_constructor_kwargs = {
             "quadrature_degree": 4,
-            "spatial_order": 2,
-            "temporal_order": 1},
+            "element_degree": 1,
+            "time_stencil_size": 2},
         parameters = {
             "stefan_number": 0.1,
             "smoothing": 1./32.},
+        manufactured_solution = manufactured_solution,
         expected_order = 1,
-        meshsize = meshsize,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
         tolerance = tolerance,
@@ -103,16 +72,17 @@ def test__verify_temporal_convergence__second_order__via_mms(
         plot_solution = False):
     
     fempy.mms.verify_temporal_order_of_accuracy(
-        Model = VerifiableModel,
-        constructor_kwargs = {
+        Model = fempy.models.enthalpy.Model,
+        mesh = fe.UnitIntervalMesh(meshsize),
+        model_constructor_kwargs = {
             "quadrature_degree": None,
-            "spatial_order": 3,
-            "temporal_order": 2},
+            "element_degree": 2,
+            "time_stencil_size": 3},
         parameters = {
             "stefan_number": 0.1,
             "smoothing": 1./32.},
+        manufactured_solution = manufactured_solution,
         expected_order = 2,
-        meshsize = meshsize,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
         tolerance = tolerance,

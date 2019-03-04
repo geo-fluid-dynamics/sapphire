@@ -1,34 +1,32 @@
-""" Verify via the Method of Manufactured Solution (MMS) """
+""" Verify a FEM model via the Method of Manufactured Solution (MMS).
+
+This module assumes that the FEM model is for a weak form
+which approximates a strong form PDE.
+We verify that the solved problem approximates the strong form.
+"""
 import firedrake as fe
+import fempy.simulation
 import fempy.table
 import math
 import matplotlib.pyplot as plt
 import pathlib
 
 
-TIME_EPSILON = 1.e-8
-
-def make_mms_verification_model_class(Model):
+def make_mms_verification_model_class(Model, manufactured_solution):
 
     class MMSVerificationModel(Model):
         
         def __init__(self, *args, **kwargs):
-        
+            
             super().__init__(*args, **kwargs)
             
             self._L2_error = None
             
-        def init_solutions(self):
-        
-            self.init_manufactured_solution()
-            
-            super().init_solutions()
-        
         def init_weak_form_residual(self):
-        
+            
             super().init_weak_form_residual()
             
-            s = self.strong_form_residual(self.manufactured_solution)
+            s = self.strong_form_residual(manufactured_solution(self))
             
             V = self.function_space
             
@@ -42,7 +40,7 @@ def make_mms_verification_model_class(Model):
                 
         def init_dirichlet_boundary_conditions(self):
             
-            u_m = self.manufactured_solution
+            u_m = manufactured_solution(self)
             
             W = self.function_space
             
@@ -58,15 +56,13 @@ def make_mms_verification_model_class(Model):
         
             initial_values = fe.Function(self.function_space)
             
-            if (type(self.manufactured_solution) is not type([0,])) \
-                    and (type(self.manufactured_solution) is not type((0,))):
+            w_m = manufactured_solution(self)
             
-                w_m = (self.manufactured_solution,)
+            if (type(w_m) is not type([0,])) \
+                    and (type(w_m) is not type((0,))):
+            
+                w_m = (w_m,)
                 
-            else:
-            
-                w_m = self.manufactured_solution
-                    
             for u_m, V in zip(
                     w_m, self.function_space):
                 
@@ -78,20 +74,22 @@ def make_mms_verification_model_class(Model):
             
             dx = self.integration_measure
             
+            w_m = manufactured_solution(self)
+            
             try:
             
                 e = 0.
             
                 for u_h, u_m in zip(
-                        self.solution.split(), self.manufactured_solution):
+                        self.solution.split(), w_m):
                     
                     e += fe.assemble(fe.inner(u_h - u_m, u_h - u_m)*dx)
 
                 e = math.sqrt(e)
                 
-            except NotImplementedError as error:
+            except NotImplementedError as error:  # There is probably a better exception to catch
             
-                u_h, u_m = self.solution, self.manufactured_solution
+                u_h, u_m = self.solution, w_m
                 
                 e = math.sqrt(fe.assemble(fe.inner(u_h - u_m, u_h - u_m)*dx))
                 
@@ -108,10 +106,11 @@ def make_mms_verification_model_class(Model):
     
 def verify_spatial_order_of_accuracy(
         Model,
+        manufactured_solution,
+        meshes,
         expected_order,
-        mesh_sizes,
         tolerance,
-        constructor_kwargs = {},
+        model_constructor_kwargs = {},
         parameters = {},
         timestep_size = None,
         endtime = None,
@@ -120,44 +119,49 @@ def verify_spatial_order_of_accuracy(
         plot_solution = False,
         report = False):
     
-    MMSVerificationModel = make_mms_verification_model_class(Model)
+    MMSVerificationModel = make_mms_verification_model_class(
+        Model, manufactured_solution)
     
     table = fempy.table.Table(("h", "L2_error", "spatial_order"))
     
     print("")
     
-    for meshsize in mesh_sizes:
+    for mesh in meshes:
         
-        model = MMSVerificationModel(**constructor_kwargs, meshsize = meshsize)
+        h = mesh.cell_sizes((0.,)*mesh.geometric_dimension())
+        
+        model = MMSVerificationModel(mesh = mesh, **model_constructor_kwargs)
         
         model.output_directory_path = model.output_directory_path.joinpath(
-            "mms_space_p" + str(expected_order) + "/")
+            "mms_space_p{0}/".format(expected_order))
             
         if timestep_size is not None:
             
             model.output_directory_path = \
                 model.output_directory_path.joinpath(
-                "Deltat" + str(timestep_size))
+                "Deltat{0}".format(timestep_size))
         
         model.output_directory_path = model.output_directory_path.joinpath(
-            "m" + str(meshsize) + "/")
+            "h{0}/".format(h))
         
         model.assign_parameters(parameters)
         
         if hasattr(model, "time"):
         
+            simulation = fempy.simulation.Simulation(model)
+        
             model.time.assign(starttime)
             
             model.timestep_size.assign(timestep_size)
             
-            model.run(endtime = endtime, plot = plot_solution, report = report)
+            simulation.run(endtime = endtime, plot = plot_solution, report = report)
         
         else:
         
             model.solve()
         
         table.append({
-            "h": 1./float(model.meshsize),
+            "h": h,
             "L2_error": model.L2_error()})
             
         if len(table) > 1:
@@ -174,7 +178,7 @@ def verify_spatial_order_of_accuracy(
         
         print(str(table))
     
-    print("Last observed spatial order of accuracy is " + str(order))
+    print("Last observed spatial order of accuracy is {0}".format(order))
     
     if plot_errors:
     
@@ -204,23 +208,30 @@ def verify_spatial_order_of_accuracy(
     
 def verify_temporal_order_of_accuracy(
         Model,
-        expected_order,
-        meshsize,
+        manufactured_solution,
+        mesh,
         timestep_sizes,
         endtime,
+        expected_order,
         tolerance,
-        constructor_kwargs = {},
+        model_constructor_kwargs = {},
         parameters = {},
         starttime = 0.,
         plot_errors = False,
         plot_solution = False,
         report = False):
     
-    MMSVerificationModel = make_mms_verification_model_class(Model)
+    h = mesh.cell_sizes((0.,)*mesh.geometric_dimension())
+    
+    MMSVerificationModel = make_mms_verification_model_class(
+        Model, manufactured_solution)
     
     table = fempy.table.Table(("Delta_t", "L2_error", "temporal_order"))
     
-    model = MMSVerificationModel(**constructor_kwargs, meshsize = meshsize)
+    model = MMSVerificationModel(
+        mesh = mesh, **model_constructor_kwargs)
+    
+    simulation = fempy.simulation.Simulation(model)
     
     basepath = model.output_directory_path
     
@@ -233,19 +244,19 @@ def verify_temporal_order_of_accuracy(
         model.timestep_size.assign(timestep_size)
         
         model.output_directory_path = basepath.joinpath(
-            "mms_time_q" + str(expected_order) + "/")
+            "mms_time_q{0}/".format(expected_order))
         
         model.output_directory_path = model.output_directory_path.joinpath(
-            "m" + str(meshsize))
+            "h{0}".format(h))
             
         model.output_directory_path = model.output_directory_path.joinpath(
-            "Deltat" + str(timestep_size))
+            "Deltat{0}".format(timestep_size))
         
         model.time.assign(starttime)
         
         model.update_initial_values()
         
-        model.run(endtime = endtime, plot = plot_solution, report = report)
+        simulation.run(endtime = endtime, plot = plot_solution, report = report)
             
         table.append({
             "Delta_t": timestep_size,
@@ -265,7 +276,7 @@ def verify_temporal_order_of_accuracy(
         
         print(str(table))
         
-    print("Last observed temporal order of accuracy is " + str(order))
+    print("Last observed temporal order of accuracy is {0}".format(order))
     
     if plot_errors:
     
@@ -291,29 +302,4 @@ def verify_temporal_order_of_accuracy(
         plt.close()
         
     assert(abs(order - expected_order) < tolerance)
-    
-    
-def plot_manufactured_solution(
-        Model,
-        meshsize = 128,
-        parameters = {},
-        time = None):
-        
-    MMSVerificationModel = make_mms_verification_model_class(Model)
-    
-    model = MMSVerificationModel(meshsize = meshsize)
-
-    model.init_manufactured_solution()
-    
-    if time is not None:
-    
-        model.time.assign(time)
-    
-    for u_m, V in zip(
-            model.manufactured_solution, model.function_space):
-
-        model.solution.assign(fe.interpolate(u_m, V))
-
-    model.plot()
-
     

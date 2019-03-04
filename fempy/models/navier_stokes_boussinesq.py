@@ -5,26 +5,20 @@ import fempy.model
     
 class Model(fempy.model.Model):
     
-    def __init__(self, quadrature_degree, spatial_order):
+    def __init__(self, *args, mesh, element_degree, **kwargs):
         
         self.grashof_number = fe.Constant(1.)
         
         self.prandtl_number = fe.Constant(1.)
         
-        super().__init__(
-            quadrature_degree = quadrature_degree,
-            spatial_order = spatial_order)
+        scalar = fe.FiniteElement("P", mesh.ufl_cell(), element_degree)
         
-    def init_element(self):
-    
-        self.element = fe.MixedElement(
-            fe.FiniteElement(
-                "P", self.mesh.ufl_cell(), self.spatial_order - 1),
-            fe.VectorElement(
-                "P", self.mesh.ufl_cell(), self.spatial_order),
-            fe.FiniteElement(
-                "P", self.mesh.ufl_cell(), self.spatial_order - 1))
-    
+        vector = fe.VectorElement("P", mesh.ufl_cell(), element_degree + 1)
+        
+        element = fe.MixedElement(scalar, vector, scalar)
+        
+        super().__init__(*args, mesh, element, **kwargs)
+        
     def init_weak_form_residual(self):
         
         Gr = self.grashof_number
@@ -52,3 +46,23 @@ class Model(fempy.model.Model):
         energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))
         
         self.weak_form_residual = mass + momentum + energy
+        
+    def strong_form_residual(self, solution):
+            
+            Gr = self.grashof_number
+            
+            Pr = self.prandtl_number
+            
+            ghat = self.gravity_direction
+            
+            grad, dot, div, sym = fe.grad, fe.dot, fe.div, fe.sym
+            
+            p, u, T = solution
+            
+            r_p = div(u)
+            
+            r_u = grad(u)*u + grad(p) - 2.*div(sym(grad(u))) + Gr*T*ghat
+            
+            r_T = dot(u, grad(T)) - 1./Pr*div(grad(T))
+            
+            return r_p, r_u, r_T

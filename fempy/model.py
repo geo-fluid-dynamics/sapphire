@@ -1,24 +1,29 @@
-""" An abstract class on which to base finite element models """
+""" Contains the Model class """
 import firedrake as fe
 import pathlib
 import matplotlib.pyplot as plt
 
 
+def unit_vectors(mesh):
+    
+    dim = mesh.geometric_dimension()
+    
+    return tuple([fe.unit_vector(i, dim) for i in range(dim)])
+        
+
 class Model(object):
-    """ A class on which to base finite element models. """
-    def __init__(self, quadrature_degree, spatial_order):
+    """ A class on which to base finite element models """
+    def __init__(self, mesh, element, quadrature_degree):
+        
+        self.mesh = mesh
+        
+        self.element = element
         
         self.quadrature_degree = quadrature_degree
         
-        self.spatial_order = spatial_order
-        
-        self.init_mesh()
-        
-        self.init_element()
-        
         self.init_function_space()
         
-        self.init_solutions()
+        self.init_solution()
         
         self.init_integration_measure()
         
@@ -35,18 +40,7 @@ class Model(object):
         self.output_directory_path = pathlib.Path("output/")
         
         self.snes_iteration_counter = 0
-        
-    def init_mesh(self):
-        """ Redefine this to set `self.mesh` to a `fe.Mesh`.
-        """
-        assert(False)
     
-    def init_element(self):
-        """ Redefine this to set `self.element` 
-        to a  `fe.FiniteElement` or `fe.MixedElement`.
-        """
-        assert(False)
-        
     def init_weak_form_residual(self):
         """ Redefine this to set `self.weak_form_residual` 
         to a `fe.NonlinearVariationalForm`.
@@ -57,12 +51,10 @@ class Model(object):
     
         self.function_space = fe.FunctionSpace(self.mesh, self.element)
     
-    def init_solutions(self):
+    def init_solution(self):
     
-        self.solutions = [fe.Function(self.function_space)]
+        self.solution = fe.Function(self.function_space)
         
-        self.solution = self.solutions[0]
-    
     def init_dirichlet_boundary_conditions(self):
         """ Optionallay redefine this 
         to set `self.dirichlet_boundary_conditions`
@@ -112,36 +104,18 @@ class Model(object):
         self.solver.solve()
         
         self.snes_iteration_counter += self.solver.snes.getIterationNumber()
-    
+        
     def unit_vectors(self):
+    
+        return unit_vectors(self.mesh)
         
-        dim = self.mesh.geometric_dimension()
+    def plotvars(self):
+    
+        subscripts, functions = enumerate(model.solution.split())
         
-        return tuple([fe.unit_vector(i, dim) for i in range(dim)])
+        labels = [r"$w_{0}$".format(i) for i in subscripts]
         
-    def write_solution(self, file):
+        filenames = ["w{0}".format(i) for i in subscripts]
         
-        file.write(*self.solution.split(), time = self.time)
-        
-    def plot(self):
-        
-        for i, f in enumerate(self.solution.split()):
-            
-            fe.plot(f)
-            
-            plt.axis("square")
-            
-            plt.title(r"$w_" + str(i) + "$")
-            
-            self.output_directory_path.mkdir(
-                parents = True, exist_ok = True)
-        
-            filepath = self.output_directory_path.joinpath(
-                "solution_" + str(i)).with_suffix(".png")
-            
-            print("Writing plot to " + str(filepath))
-            
-            plt.savefig(str(filepath))
-            
-            plt.close()
+        return functions, labels, filenames
         

@@ -3,9 +3,9 @@ import firedrake as fe
 import fempy.unsteady_model
 
     
-class Model(fempy.unsteady_model.Model):
+class Model(fempy.unsteady_model.UnsteadyModel):
     
-    def __init__(self, quadrature_degree, spatial_order, temporal_order):
+    def __init__(self, *args, mesh, element_degree, **kwargs):
         
         self.stefan_number = fe.Constant(1.)
         
@@ -13,15 +13,9 @@ class Model(fempy.unsteady_model.Model):
         
         self.smoothing = fe.Constant(1./32.)
         
-        super().__init__(
-            quadrature_degree = quadrature_degree,
-            spatial_order = spatial_order,
-            temporal_order = temporal_order)
+        element = fe.FiniteElement("P", mesh.ufl_cell(), element_degree)
         
-    def init_element(self):
-    
-        self.element = fe.FiniteElement(
-            "P", self.mesh.ufl_cell(), self.spatial_order - 1)
+        super().__init__(*args, mesh, element, **kwargs)
         
     def porosity(self, T):
         
@@ -39,7 +33,7 @@ class Model(fempy.unsteady_model.Model):
         
         phil_t = fempy.time_discretization.bdf(
             [self.porosity(T_n) for T_n in self.solutions],
-            order = self.temporal_order,
+            order = self.time_stencil_size - 1,
             timestep_size = self.timestep_size)
         
         self.time_discrete_terms = (self.time_discrete_terms, phil_t)
@@ -58,7 +52,21 @@ class Model(fempy.unsteady_model.Model):
         
         self.weak_form_residual = v*(T_t + 1./Ste*phil_t) +\
             dot(grad(v), grad(T))
+    
+    def strong_form_residual(self, solution):
         
+        T = solution
+        
+        t = self.time
+        
+        Ste = self.stefan_number
+        
+        phil = self.porosity
+        
+        diff, div, grad = fe.diff, fe.div, fe.grad
+        
+        return diff(T, t) - div(grad(T)) + 1./Ste*diff(phil(T), t)
+    
     def init_solver(self, solver_parameters = {"ksp_type": "cg"}):
         
         self.solver = fe.NonlinearVariationalSolver(

@@ -3,16 +3,18 @@ import firedrake as fe
 import fempy.unsteady_model
 
     
-class Model(fempy.unsteady_model.Model):
+class Model(fempy.unsteady_model.UnsteadyModel):
     
-    def init_element(self):
+    def __init__(self, *args, mesh, element_degree, **kwargs):
     
-        self.element = fe.MixedElement(
+        element = fe.MixedElement(
             fe.VectorElement(
-                'P', self.mesh.ufl_cell(), self.spatial_order),
+                "P", mesh.ufl_cell(), element_degree + 1),
             fe.FiniteElement(
-                'P', self.mesh.ufl_cell(), self.spatial_order - 1))
-    
+                "P", mesh.ufl_cell(), element_degree))
+        
+        super().__init__(*args, mesh, element, **kwargs)
+        
     def init_weak_form_residual(self):
 
         inner, dot, grad, div, sym = \
@@ -31,3 +33,17 @@ class Model(fempy.unsteady_model.Model):
         
         self.weak_form_residual = mass + momentum
     
+    def strong_form_residual(self, solution):
+    
+        diff, grad, div, sym = fe.diff, fe.grad, fe.div, fe.sym
+        
+        u, p = solution
+        
+        t = self.time
+        
+        r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(sym(grad(u)))
+        
+        r_p = div(u)
+        
+        return r_u, r_p
+        

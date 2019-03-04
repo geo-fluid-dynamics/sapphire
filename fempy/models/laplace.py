@@ -5,10 +5,11 @@ import fempy.model
     
 class Model(fempy.model.Model):
     
-    def init_element(self):
+    def __init__(self, *args, mesh, element_degree, **kwargs):
     
-        self.element = fe.FiniteElement(
-            "P", self.mesh.ufl_cell(), self.spatial_order - 1)
+        element = fe.FiniteElement("P", mesh.ufl_cell(), element_degree)
+        
+        super().__init__(*args, mesh, element, **kwargs)
     
     def init_weak_form_residual(self):
         
@@ -19,3 +20,12 @@ class Model(fempy.model.Model):
         dot, grad = fe.dot, fe.grad
         
         self.weak_form_residual = - dot(grad(v), grad(u))
+
+    def strong_form_residual(self, solution):
+    
+        div, grad, = fe.div, fe.grad
+        
+        u = solution
+        
+        return div(grad(u))
+        

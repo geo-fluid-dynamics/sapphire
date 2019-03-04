@@ -1,13 +1,12 @@
 """ A enthalpy-porosity model class for convection-coupled phase-change """
 import firedrake as fe
 import fempy.unsteady_model
-import matplotlib.pyplot as plt
 import fempy.continuation
 
 
-class Model(fempy.unsteady_model.Model):
+class Model(fempy.unsteady_model.UnsteadyModel):
     
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, mesh, element_degree, **kwargs):
         
         self.grashof_number = fe.Constant(1.)
         
@@ -37,22 +36,18 @@ class Model(fempy.unsteady_model.Model):
         
         self.autosmooth_maxcount = 32
         
-        super().__init__(*args, **kwargs)
+        scalar = fe.FiniteElement("P", mesh.ufl_cell(), element_degree)
+        
+        vector = fe.VectorElement("P", mesh.ufl_cell(), element_degree)
+        
+        element = fe.MixedElement(scalar, vector, scalar)
+            
+        super().__init__(*args, mesh = mesh, element = element, **kwargs)
         
         self.backup_solution = fe.Function(self.solution)
         
-        # Initialize some attributes to be reported
         self.liquid_area = None
         
-    def init_element(self):
-        
-        rx = self.spatial_order
-        
-        self.element = fe.MixedElement(
-            fe.FiniteElement("P", self.mesh.ufl_cell(), rx - 1),
-            fe.VectorElement("P", self.mesh.ufl_cell(), rx - 1),
-            fe.FiniteElement("P", self.mesh.ufl_cell(), rx - 1))
-    
     def porosity(self, T):
         """ Regularization from @cite{zimmerman2018monolithic} """
         T_L = self.liquidus_temperature
@@ -93,6 +88,42 @@ class Model(fempy.unsteady_model.Model):
         
         return 1./tau*phis
         
+    def strong_form_residual(self, solution):
+        """ This is the strong form of the PDE 
+        approximated by the weak form.
+        """
+        Pr = self.prandtl_number
+        
+        Ste = self.stefan_number
+        
+        t = self.time
+        
+        grad, dot, div, sym, diff = fe.grad, fe.dot, fe.div, fe.sym, fe.diff
+        
+        p, u, T = solution
+        
+        b = self.buoyancy(T)
+        
+        d = self.solid_velocity_relaxation(T)
+        
+        phil = self.porosity(T)
+        
+        cp = self.phase_dependent_material_property(
+            self.heat_capacity_solid_to_liquid_ratio)(phil)
+        
+        k = self.phase_dependent_material_property(
+            self.thermal_conductivity_solid_to_liquid_ratio)(phil)
+            
+        r_p = div(u)
+        
+        r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(sym(grad(u))) \
+            + b + d*u
+        
+        r_T = diff(cp*T, t) + dot(u, grad(cp*T)) \
+            - 1./Pr*div(k*grad(T)) + 1./Ste*diff(cp*phil, t)
+        
+        return r_p, r_u, r_T
+        
     def init_time_discrete_terms(self):
         
         super().init_time_discrete_terms()
@@ -110,18 +141,18 @@ class Model(fempy.unsteady_model.Model):
             
         cpT_t = fempy.time_discretization.bdf(
             [cp(phil(T))*T for T in temperature_solutions],
-            order = self.temporal_order,
+            order = self.time_stencil_size - 1,
             timestep_size = self.timestep_size)
         
         cpphil_t = fempy.time_discretization.bdf(
             [cp(phil(T))*self.porosity(T) for T in temperature_solutions],
-            order = self.temporal_order,
+            order = self.time_stencil_size - 1,
             timestep_size = self.timestep_size)
         
         for w_i_t in (cpT_t, cpphil_t):
         
             self.time_discrete_terms.append(w_i_t)
-        
+    
     def mass(self):
         
         _, u, _ = fe.split(self.solution)
@@ -236,7 +267,7 @@ class Model(fempy.unsteady_model.Model):
                     
                     print("Solved with s = " + str(s))
     
-    def report(self, write_header):
+    def postprocess(self):
         
         p, u, T = self.solution.split()
     
@@ -244,9 +275,7 @@ class Model(fempy.unsteady_model.Model):
         
         self.liquid_area = fe.assemble(phil*self.integration_measure)
         
-        super().report(write_header = write_header)
-    
-    def plot(self):
+    def plotvars(self):
     
         V = fe.FunctionSpace(
             self.mesh, fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
@@ -255,32 +284,6 @@ class Model(fempy.unsteady_model.Model):
         
         phil = fe.interpolate(self.porosity(T), V)
         
-        timestr = str(self.time.__float__())
-        
-        for f, label, filename in zip(
-                (p, u, T, phil),
-                ("p", "\\mathbf{u}", "T", "\\phi_l"),
-                ("p", "u", "T", "phil")):
-            
-            fe.plot(f)
-            
-            plt.axis("square")
-        
-            plt.xlabel(r"$x$")
-
-            plt.ylabel(r"$y$")
-
-            plt.title(r"$" + label + 
-                ", t = " + timestr + "$")
-            
-            self.output_directory_path.mkdir(
-                parents = True, exist_ok = True)
-        
-            filepath = self.output_directory_path.joinpath(filename + 
-                "_t" + timestr.replace(".", "p")).with_suffix(".png")
-            
-            print("Writing plot to " + str(filepath))
-            
-            plt.savefig(str(filepath))
-            
-            plt.close()
+        return (p, u, T, phil), \
+            ("p", "\\mathbf{u}", "T", "\\phi_l"), \
+            ("p", "u", "T", "phil")

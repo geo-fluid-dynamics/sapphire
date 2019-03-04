@@ -5,20 +5,16 @@ import fempy.model
     
 class Model(fempy.model.Model):
     
-    def __init__(self, quadrature_degree, spatial_order):
-    
-        super().__init__(
-            quadrature_degree = quadrature_degree,
-            spatial_order = spatial_order)
+    def __init__(self, *args, mesh, element_degree, **kwargs):
         
-    def init_element(self):
-    
-        self.element = fe.MixedElement(
+        element = fe.MixedElement(
             fe.VectorElement(
-                'P', self.mesh.ufl_cell(), self.spatial_order),
+                "P", mesh.ufl_cell(), element_degree + 1),
             fe.FiniteElement(
-                'P', self.mesh.ufl_cell(), self.spatial_order - 1))
-    
+                "P", mesh.ufl_cell(), element_degree))
+                
+        super().__init__(*args, mesh, element, **kwargs)
+        
     def init_weak_form_residual(self):
 
         inner, dot, grad, div, sym = \
@@ -35,3 +31,15 @@ class Model(fempy.model.Model):
         
         self.weak_form_residual = mass + momentum
     
+    def strong_form_residual(self, solution):
+    
+        grad, dot, div, sym = fe.grad, fe.dot, fe.div, fe.sym
+        
+        u, p = solution
+        
+        r_u = grad(u)*u + grad(p) - 2.*div(sym(grad(u)))
+        
+        r_p = div(u)
+        
+        return r_u, r_p
+        
