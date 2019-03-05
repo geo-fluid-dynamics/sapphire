@@ -13,9 +13,16 @@ default_solver_parameters = {
     "pc_type": "lu", 
     "mat_type": "aij",
     "pc_factor_mat_solver_type": "mumps"}
-
     
-""" Time dependence """
+    
+""" Helpers """
+def unit_vectors(mesh):
+    
+    dim = mesh.geometric_dimension()
+    
+    return tuple([fe.unit_vector(i, dim) for i in range(dim)])
+    
+    
 def time_discrete_terms(solutions, timestep_size):
     
     time_discrete_terms = [
@@ -35,15 +42,7 @@ def time_discrete_terms(solutions, timestep_size):
 
     return time_discrete_terms
     
-    
-""" Helpers """
-def unit_vectors(mesh):
-    
-    dim = mesh.geometric_dimension()
-    
-    return tuple([fe.unit_vector(i, dim) for i in range(dim)])
 
-    
 """ Output """    
 def plotvars(solution):
     
@@ -223,7 +222,8 @@ class Model(object):
                 setattr(self, key, value)
                 
         return self
-                
+        
+        
     def assign_initial_values_to_solutions(self):
     
         for solution in self.solutions:

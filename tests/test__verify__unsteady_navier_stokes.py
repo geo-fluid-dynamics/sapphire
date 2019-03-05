@@ -1,5 +1,6 @@
 import firedrake as fe 
-import fempy.models.unsteady_navier_stokes
+import fempy.mms
+from fempy.models import unsteady_navier_stokes as model_module
 
 
 def manufactured_solution(model):
@@ -26,11 +27,7 @@ def test__verify_spatial_convergence__second_order__via_mms(
         tolerance = 0.3):
     
     fempy.mms.verify_spatial_order_of_accuracy(
-        Model = fempy.models.unsteady_navier_stokes.Model,
-        weak_form_residual = \
-            fempy.models.unsteady_navier_stokes.variational_form_residual,
-        strong_form_residual = \
-            fempy.models.unsteady_navier_stokes.strong_form_residual,
+        model_module = model_module,
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
         model_constructor_kwargs = {
@@ -49,17 +46,13 @@ def test__verify_temporal_convergence__first_order__via_mms(
         tolerance = 0.1):
     
     fempy.mms.verify_temporal_order_of_accuracy(
-        Model = fempy.models.unsteady_navier_stokes.Model,
-        weak_form_residual = \
-            fempy.models.unsteady_navier_stokes.variational_form_residual,
-        strong_form_residual = \
-            fempy.models.unsteady_navier_stokes.strong_form_residual,
+        model_module = model_module,
+        manufactured_solution = manufactured_solution,
         mesh = fe.UnitSquareMesh(meshsize, meshsize),
         model_constructor_kwargs = {
             "quadrature_degree": 4,
             "element_degree": 1,
             "time_stencil_size": 2},
-        manufactured_solution = manufactured_solution,
         expected_order = 1,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
