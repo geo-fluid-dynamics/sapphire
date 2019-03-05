@@ -31,12 +31,12 @@ def test__verify_spatial_convergence__second_order__via_mms(
             fempy.models.unsteady_navier_stokes.variational_form_residual,
         strong_form_residual = \
             fempy.models.unsteady_navier_stokes.strong_form_residual,
+        manufactured_solution = manufactured_solution,
         meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
         model_constructor_kwargs = {
             "quadrature_degree": 4,
             "element_degree": 1,
             "time_stencil_size": 2},
-        manufactured_solution = manufactured_solution,
         expected_order = 2,
         tolerance = tolerance,
         timestep_size = timestep_size,

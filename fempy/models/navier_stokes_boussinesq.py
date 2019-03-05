@@ -6,7 +6,7 @@ import fempy.model
 inner, dot, grad, div, sym = \
         fe.inner, fe.dot, fe.grad, fe.div, fe.sym
         
-def _variational_form_residual(model, solution):
+def variational_form_residual(model, solution):
     
     Gr = model.grashof_number
     
@@ -32,7 +32,7 @@ def _variational_form_residual(model, solution):
     return mass + momentum + energy
     
     
-def _strong_form_residual(model, solution):
+def strong_form_residual(model, solution):
     
     Gr = model.grashof_number
     
@@ -51,7 +51,7 @@ def _strong_form_residual(model, solution):
     return r_p, r_u, r_T
     
     
-def _element(cell, degree):
+def element(cell, degree):
     
     scalar = fe.FiniteElement("P", cell, degree)
     
@@ -63,7 +63,7 @@ def _element(cell, degree):
 class Model(fempy.model.Model):
     
     def __init__(self, *args,
-            mesh, element_degree, variational_form_residual = _variational_form_residual,
+            mesh, element_degree,
             **kwargs):
         
         self.grashof_number = fe.Constant(1.)
@@ -72,7 +72,7 @@ class Model(fempy.model.Model):
         
         super().__init__(*args,
             mesh = mesh,
-            element = _element(cell = mesh.ufl_cell(), degree = element_degree),
+            element = element(cell = mesh.ufl_cell(), degree = element_degree),
             variational_form_residual = variational_form_residual,
             **kwargs)
             

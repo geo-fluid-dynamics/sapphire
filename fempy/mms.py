@@ -149,8 +149,8 @@ def verify_spatial_order_of_accuracy(
         tolerance,
         model_constructor_kwargs = {},
         parameters = {},
-        timestep_size = None,
-        endtime = None,
+        timestep_size = 1.e32,
+        endtime = 0.,
         starttime = 0.,
         plot_errors = False,
         plot_solution = False,
@@ -174,30 +174,24 @@ def verify_spatial_order_of_accuracy(
         
         model.output_directory_path = model.output_directory_path.joinpath(
             "mms_space_p{0}/".format(expected_order))
-            
-        if timestep_size is not None:
-            
-            model.output_directory_path = \
-                model.output_directory_path.joinpath(
-                "Deltat{0}".format(timestep_size))
+
+        model.output_directory_path = \
+            model.output_directory_path.joinpath(
+            "Deltat{0}".format(timestep_size))
         
         model.output_directory_path = model.output_directory_path.joinpath(
             "h{0}/".format(h))
         
         model = model.assign_parameters(parameters)
         
-        if hasattr(model, "time"):
-            
-            model.time = model.time.assign(starttime)
-            
-            model.timestep_size = model.timestep_size.assign(timestep_size)
-            
-            model.solutions, model.time = model.run(
-                endtime = endtime, plot = plot_solution, report = report)
+        model.time = model.time.assign(starttime)
         
-        else:
+        model.timestep_size = model.timestep_size.assign(timestep_size)
         
-            model.solution = model.solve()
+        model.solutions, model.time = model.run(
+            endtime = endtime, plot = plot_solution, report = report)
+
+        model.solution, _ = model.solve()
         
         model.L2_error = L2_error(
             solution = model.solution.split(),

@@ -14,7 +14,7 @@ def manufactured_solution(model):
     
     u1 = sin(pi*x[0])*sin(2.*pi*x[1])
     
-    ihat, jhat = model.unit_vectors()
+    ihat, jhat = fempy.model.unit_vectors(model.mesh)
     
     u = u0*ihat + u1*jhat
     
@@ -37,13 +37,17 @@ def test__verify_convergence_order_via_mms(
     
     fempy.mms.verify_spatial_order_of_accuracy(
         Model = fempy.models.navier_stokes_boussinesq.Model,
+        weak_form_residual = \
+            fempy.models.navier_stokes_boussinesq.variational_form_residual,
+        strong_form_residual = \
+            fempy.models.navier_stokes_boussinesq.strong_form_residual,
+        manufactured_solution = manufactured_solution,
         meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
         model_constructor_kwargs = {
             "quadrature_degree": 4, "element_degree": 1},
         parameters = {
             "grashof_number": Ra/Pr,
             "prandtl_number": Pr},
-        manufactured_solution = manufactured_solution,
         expected_order = 2,
         tolerance = tolerance,
         plot_errors = plot_errors,

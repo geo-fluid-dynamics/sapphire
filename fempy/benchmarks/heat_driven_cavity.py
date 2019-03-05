@@ -2,6 +2,10 @@ import firedrake as fe
 import fempy.models.navier_stokes_boussinesq
 
 
+def initial_values(model):
+
+    return model.solution
+
 def dirichlet_boundary_conditions(model):
     
     W = model.function_space
@@ -23,6 +27,7 @@ class Model(fempy.models.navier_stokes_boussinesq.Model):
         super().__init__(
             *args,
             mesh = fe.UnitSquareMesh(meshsize, meshsize),
+            initial_values = initial_values,
             dirichlet_boundary_conditions = dirichlet_boundary_conditions,
             **kwargs)
         
