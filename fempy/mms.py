@@ -107,9 +107,7 @@ def L2_error(solution, true_solution, integration_measure):
 
     
 def make_mms_verification_model_class(
-        Model,
-        weak_form_residual,
-        strong_form_residual,
+        model_module,
         manufactured_solution):
     
     def initial_values(model):
@@ -124,7 +122,7 @@ def make_mms_verification_model_class(
             model = model,
             manufactured_solution = manufactured_solution(model))
         
-    class MMSVerificationModel(Model):
+    class MMSVerificationModel(model_module.Model):
             
         def __init__(self, *args, **kwargs):
             
@@ -135,7 +133,7 @@ def make_mms_verification_model_class(
                 
             self.variational_form -= mms_source(
                     model = self,
-                    strong_form_residual = strong_form_residual,
+                    strong_form_residual = model_module.strong_form_residual,
                     manufactured_solution = manufactured_solution)\
                 *self.integration_measure
             
@@ -147,9 +145,7 @@ def make_mms_verification_model_class(
     
     
 def verify_spatial_order_of_accuracy(
-        Model,
-        weak_form_residual,
-        strong_form_residual,
+        model_module,
         manufactured_solution,
         meshes,
         expected_order,
@@ -164,9 +160,7 @@ def verify_spatial_order_of_accuracy(
         report = False):
     
     MMSVerificationModel = make_mms_verification_model_class(
-        Model = Model,
-        weak_form_residual = weak_form_residual,
-        strong_form_residual = strong_form_residual,
+        model_module = model_module,
         manufactured_solution = manufactured_solution)
     
     table = fempy.table.Table(("h", "L2_error", "spatial_order"))
@@ -197,8 +191,6 @@ def verify_spatial_order_of_accuracy(
         
         model.solutions, model.time = model.run(
             endtime = endtime, plot = plot_solution, report = report)
-
-        model.solution, _ = model.solve()
         
         model.L2_error = L2_error(
             solution = model.solution,
@@ -252,9 +244,7 @@ def verify_spatial_order_of_accuracy(
     
     
 def verify_temporal_order_of_accuracy(
-        Model,
-        weak_form_residual,
-        strong_form_residual,
+        model_module,
         manufactured_solution,
         mesh,
         timestep_sizes,
@@ -271,9 +261,7 @@ def verify_temporal_order_of_accuracy(
     h = mesh.cell_sizes((0.,)*mesh.geometric_dimension())
     
     MMSVerificationModel = make_mms_verification_model_class(
-        Model = Model,
-        weak_form_residual = weak_form_residual,
-        strong_form_residual = strong_form_residual,
+        model_module = model_module,
         manufactured_solution = manufactured_solution)
     
     table = fempy.table.Table(("Delta_t", "L2_error", "temporal_order"))
@@ -310,7 +298,7 @@ def verify_temporal_order_of_accuracy(
             endtime = endtime, plot = plot_solution, report = report)
             
         model.L2_error = L2_error(
-            solution = model.solution.split(),
+            solution = model.solution,
             true_solution = manufactured_solution(model),
             integration_measure = model.integration_measure)
             
