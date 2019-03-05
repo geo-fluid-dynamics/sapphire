@@ -17,28 +17,28 @@ def mms_source(
         strong_form_residual,
         manufactured_solution):
     
-    r = strong_form_residual(
-        model = model, solution = manufactured_solution(model))
-    
     V = model.solution.function_space()
     
-    if len(V) == 1:
-    
-        psi = fe.TestFunction(V)
+    _r = strong_form_residual(
+        model = model, solution = manufactured_solution(model))
         
-        s = psi*r
+    if type(model.element) is fe.FiniteElement:
     
+        r = (_r,)
+        
     else:
     
-        for i, psi, r_i in zip(range(len(V)), fe.TestFunctions(V), r):
+        r = _r
+    
+    psi = fe.TestFunctions(V)
+    
+    s = fe.inner(psi[0], r[0])
+    
+    if len(r) > 1:    
+    
+        for psi_i, r_i in zip(psi[1:], r[1:]):
             
-            if i == 0:
-            
-                s = -fe.inner(psi, r_i)
-                
-            else:
-            
-                s -= fe.inner(psi, r_i)
+            s += fe.inner(psi_i, r_i)
         
     return s
     
@@ -47,11 +47,13 @@ def mms_initial_values(model, manufactured_solution):
 
     initial_values = fe.Function(model.function_space)
     
-    w_m = manufactured_solution
+    if type(model.element) is fe.FiniteElement:
     
-    if len(w_m) == 1:
+        w_m = (manufactured_solution,)
+        
+    else:
     
-        w_m = (w_m,)
+        w_m = manufactured_solution
         
     for u_m, V in zip(
             w_m, model.function_space):
@@ -65,36 +67,41 @@ def mms_dirichlet_boundary_conditions(model, manufactured_solution):
     
     W = model.function_space
     
-    u = manufactured_solution
+    if type(model.element) is fe.FiniteElement:
     
-    if len(W) == 1:
+        w = (manufactured_solution,)
     
-        u = (u,)
+    else:
     
-    return [fe.DirichletBC(V, g, "on_boundary") for V, g in zip(W, u)]
+        w = manufactured_solution
+        
+    return [fe.DirichletBC(V, g, "on_boundary") for V, g in zip(W, w)]
     
     
 def L2_error(solution, true_solution, integration_measure):
     
     dx = integration_measure
     
-    try:
+    w_h = solution.split()
     
+    if len(w_h) == 1:
+        
+        u_h = w_h[0]
+        
+        u = true_solution
+        
+        e = math.sqrt(fe.assemble(fe.inner(u_h - u, u_h - u)*dx))
+        
+    else:
+        
         e = 0.
-    
+        
         for u_h, u in zip(
-                solution, true_solution):
+                w_h, true_solution):
             
             e += fe.assemble(fe.inner(u_h - u, u_h - u)*dx)
 
         e = math.sqrt(e)
-        
-    except NotImplementedError as error:
-        """ @todo There should be a better exception to catch,
-        or a way to handle this before raising an exception. """
-        u_h, u = solution, true_solution
-        
-        e = math.sqrt(fe.assemble(fe.inner(u_h - u, u_h - u)*dx))
         
     return e
 
@@ -126,7 +133,7 @@ def make_mms_verification_model_class(
                 dirichlet_boundary_conditions = dirichlet_boundary_conditions,
                 **kwargs)
                 
-            self.variational_form += mms_source(
+            self.variational_form -= mms_source(
                     model = self,
                     strong_form_residual = strong_form_residual,
                     manufactured_solution = manufactured_solution)\
@@ -194,7 +201,7 @@ def verify_spatial_order_of_accuracy(
         model.solution, _ = model.solve()
         
         model.L2_error = L2_error(
-            solution = model.solution.split(),
+            solution = model.solution,
             true_solution = manufactured_solution(model),
             integration_measure = model.integration_measure)
                 
