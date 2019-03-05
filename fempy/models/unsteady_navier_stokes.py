@@ -1,49 +1,61 @@
-""" An unsteady incompressible Navier-Stokes model class """
+""" Unsteady incompressible Navier-Stokes model """
 import firedrake as fe
-import fempy.unsteady_model
+import fempy.model
 
-    
-class Model(fempy.unsteady_model.UnsteadyModel):
-    
-    def __init__(self, *args, mesh, element_degree, **kwargs):
-    
-        element = fe.MixedElement(
-            fe.VectorElement(
-                "P", mesh.ufl_cell(), element_degree + 1),
-            fe.FiniteElement(
-                "P", mesh.ufl_cell(), element_degree))
-        
-        super().__init__(*args, mesh, element, **kwargs)
-        
-    def init_weak_form_residual(self):
 
-        inner, dot, grad, div, sym = \
-            fe.inner, fe.dot, fe.grad, fe.div, fe.sym
-        
-        u, p = fe.split(self.solution)
-        
-        u_t, _ = self.time_discrete_terms
-        
-        psi_u, psi_p = fe.TestFunctions(self.solution.function_space())
-        
-        mass = psi_p*div(u)
-        
-        momentum = dot(psi_u, u_t + grad(u)*u) - div(psi_u)*p + \
-            2.*inner(sym(grad(psi_u)), sym(grad(u)))
-        
-        self.weak_form_residual = mass + momentum
+diff, inner, dot, grad, div, sym = \
+    fe.diff, fe.inner, fe.dot, fe.grad, fe.div, fe.sym
     
-    def strong_form_residual(self, solution):
+def _variational_form_residual(model, solution):
     
-        diff, grad, div, sym = fe.diff, fe.grad, fe.div, fe.sym
+    u, p = fe.split(model.solution)
+    
+    u_t, _ = fempy.model.time_discrete_terms(
+        solutions = model.solutions, timestep_size = model.timestep_size)
+    
+    psi_u, psi_p = fe.TestFunctions(model.solution.function_space())
+    
+    mass = psi_p*div(u)
+    
+    momentum = dot(psi_u, u_t + grad(u)*u) - div(psi_u)*p + \
+        2.*inner(sym(grad(psi_u)), sym(grad(u)))
+    
+    return mass + momentum
+    
+    
+def _strong_form_residual(model, solution):
+    
+    u, p = solution
+    
+    t = model.time
+    
+    r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(sym(grad(u)))
+    
+    r_p = div(u)
+    
+    return r_u, r_p
+    
+    
+def _element(cell, degree):
+
+    vector = fe.VectorElement("P", cell, degree + 1)
+    
+    scalar = fe.FiniteElement("P", cell, degree)
+    
+    return fe.MixedElement(vector, scalar)
+    
+    
+class Model(fempy.model.Model):
+    
+    def __init__(self, *args,
+            mesh,
+            element_degree,
+            variational_form_residual = _variational_form_residual,
+            **kwargs):
         
-        u, p = solution
-        
-        t = self.time
-        
-        r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(sym(grad(u)))
-        
-        r_p = div(u)
-        
-        return r_u, r_p
-        
+        super().__init__(*args,
+            mesh = mesh,
+            element = _element(cell = mesh.ufl_cell(), degree = element_degree),
+            variational_form_residual = variational_form_residual,
+            **kwargs)
+            

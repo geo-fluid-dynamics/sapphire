@@ -1,5 +1,7 @@
 # FemPy
-FemPy is an engine for constructing simulations based on mixed finite element models using Firedrake.
+FemPy is an engine for constructing PDE-based simulations 
+discretized in space with mixed finite elements
+and in time using finite differences.
 
 [![DOI](https://zenodo.org/badge/157389237.svg)](https://zenodo.org/badge/latestdoi/157389237)
 

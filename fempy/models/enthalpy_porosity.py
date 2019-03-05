@@ -1,10 +1,10 @@
 """ A enthalpy-porosity model class for convection-coupled phase-change """
 import firedrake as fe
-import fempy.unsteady_model
+import fempy.model
 import fempy.continuation
 
 
-class Model(fempy.unsteady_model.UnsteadyModel):
+class Model(fempy.model.Model):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
         

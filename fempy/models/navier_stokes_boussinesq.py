@@ -2,67 +2,77 @@
 import firedrake as fe
 import fempy.model
 
+
+inner, dot, grad, div, sym = \
+        fe.inner, fe.dot, fe.grad, fe.div, fe.sym
+        
+def _variational_form_residual(model, solution):
+    
+    Gr = model.grashof_number
+    
+    Pr = model.prandtl_number
+    
+    ihat, jhat = fempy.model.unit_vectors(model.mesh)
+    
+    model.gravity_direction = fe.Constant(-jhat)
+    
+    ghat = model.gravity_direction
+    
+    p, u, T = fe.split(solution)
+    
+    psi_p, psi_u, psi_T = fe.TestFunctions(solution.function_space())
+    
+    mass = psi_p*div(u)
+    
+    momentum = dot(psi_u, grad(u)*u + Gr*T*ghat) \
+        - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), sym(grad(u)))
+    
+    energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))
+    
+    return mass + momentum + energy
+    
+    
+def _strong_form_residual(model, solution):
+    
+    Gr = model.grashof_number
+    
+    Pr = model.prandtl_number
+    
+    ghat = model.gravity_direction
+    
+    p, u, T = solution
+    
+    r_p = div(u)
+    
+    r_u = grad(u)*u + grad(p) - 2.*div(sym(grad(u))) + Gr*T*ghat
+    
+    r_T = dot(u, grad(T)) - 1./Pr*div(grad(T))
+    
+    return r_p, r_u, r_T
+    
+    
+def _element(cell, degree):
+    
+    scalar = fe.FiniteElement("P", cell, degree)
+    
+    vector = fe.VectorElement("P", cell, degree + 1)
+    
+    return fe.MixedElement(scalar, vector, scalar)
+    
     
 class Model(fempy.model.Model):
     
-    def __init__(self, *args, mesh, element_degree, **kwargs):
+    def __init__(self, *args,
+            mesh, element_degree, variational_form_residual = _variational_form_residual,
+            **kwargs):
         
         self.grashof_number = fe.Constant(1.)
         
         self.prandtl_number = fe.Constant(1.)
         
-        scalar = fe.FiniteElement("P", mesh.ufl_cell(), element_degree)
-        
-        vector = fe.VectorElement("P", mesh.ufl_cell(), element_degree + 1)
-        
-        element = fe.MixedElement(scalar, vector, scalar)
-        
-        super().__init__(*args, mesh, element, **kwargs)
-        
-    def init_weak_form_residual(self):
-        
-        Gr = self.grashof_number
-        
-        Pr = self.prandtl_number
-        
-        ihat, jhat = self.unit_vectors()
-        
-        self.gravity_direction = fe.Constant(-jhat)
-        
-        ghat = self.gravity_direction
-        
-        inner, dot, grad, div, sym = \
-            fe.inner, fe.dot, fe.grad, fe.div, fe.sym
-        
-        p, u, T = fe.split(self.solution)
-        
-        psi_p, psi_u, psi_T = fe.TestFunctions(self.solution.function_space())
-        
-        mass = psi_p*div(u)
-        
-        momentum = dot(psi_u, grad(u)*u + Gr*T*ghat) \
-            - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), sym(grad(u)))
-        
-        energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))
-        
-        self.weak_form_residual = mass + momentum + energy
-        
-    def strong_form_residual(self, solution):
+        super().__init__(*args,
+            mesh = mesh,
+            element = _element(cell = mesh.ufl_cell(), degree = element_degree),
+            variational_form_residual = variational_form_residual,
+            **kwargs)
             
-            Gr = self.grashof_number
-            
-            Pr = self.prandtl_number
-            
-            ghat = self.gravity_direction
-            
-            grad, dot, div, sym = fe.grad, fe.dot, fe.div, fe.sym
-            
-            p, u, T = solution
-            
-            r_p = div(u)
-            
-            r_u = grad(u)*u + grad(p) - 2.*div(sym(grad(u))) + Gr*T*ghat
-            
-            r_T = dot(u, grad(T)) - 1./Pr*div(grad(T))
-            
-            return r_p, r_u, r_T

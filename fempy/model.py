@@ -2,89 +2,202 @@
 import firedrake as fe
 import pathlib
 import matplotlib.pyplot as plt
+import fempy.time_discretization
+import fempy.output
 
 
+""" Defaults """
+_solver_parameters = {
+    "snes_type": "newtonls",
+    "snes_monitor": True,
+    "ksp_type": "preonly", 
+    "pc_type": "lu", 
+    "mat_type": "aij",
+    "pc_factor_mat_solver_type": "mumps"}
+
+    
+""" Time dependence """
+def time_discrete_terms(solutions, timestep_size):
+    
+    time_discrete_terms = [
+        fempy.time_discretization.bdf(
+            [fe.split(solutions[n])[i] for n in range(len(solutions))],
+            order = len(solutions) - 1,
+            timestep_size = timestep_size)
+        for i in range(len(fe.split(solutions[0])))]
+        
+    if len(time_discrete_terms) == 1:
+    
+        time_discrete_terms = time_discrete_terms[0]
+        
+    else:
+    
+        time_discrete_terms = time_discrete_terms
+
+    return time_discrete_terms
+    
+    
+""" Helpers """
 def unit_vectors(mesh):
     
     dim = mesh.geometric_dimension()
     
     return tuple([fe.unit_vector(i, dim) for i in range(dim)])
-        
 
+    
+""" Output """    
+def plotvars(solution):
+    
+    subscripts, functions = enumerate(solution.split())
+    
+    labels = [r"$w_{0}$".format(i) for i in subscripts]
+    
+    filenames = ["w{0}".format(i) for i in subscripts]
+    
+    return functions, labels, filenames
+    
+    
+""" The main class """    
 class Model(object):
     """ A class on which to base finite element models """
-    def __init__(self, mesh, element, quadrature_degree):
+    def __init__(self, 
+            mesh, 
+            element, 
+            variational_form_residual,
+            dirichlet_boundary_conditions,
+            initial_values,
+            solver_parameters = _solver_parameters,
+            time_stencil_size = 2,
+            quadrature_degree = None):
         
         self.mesh = mesh
         
         self.element = element
         
-        self.quadrature_degree = quadrature_degree
+        self.function_space = fe.FunctionSpace(mesh, element)
         
-        self.init_function_space()
+        self.integration_measure = fe.dx(degree = quadrature_degree)
         
-        self.init_solution()
+        """ Time dependence """
+        self.solutions = [fe.Function(self.function_space) 
+            for i in range(time_stencil_size)]
+            
+        self.solution = self.solutions[0]
         
-        self.init_integration_measure()
+        self.time = fe.Constant(0.)
         
-        self.init_weak_form_residual()
+        self.timestep_size = fe.Constant(1.)
         
-        self.init_dirichlet_boundary_conditions()
+        self.time_tolerance = 1.e-8
         
-        self.init_problem()
+        self.initial_values = initial_values(model = self)
         
-        self.init_solver()
+        self.assign_initial_values_to_solutions()
         
-        self.quiet = False
+        """ Construct the variational problem and solver """
+        self.variational_form = variational_form_residual(
+                model = self,
+                solution = self.solution)*self.integration_measure
+                
+        self.problem = fe.NonlinearVariationalProblem(
+            F = self.variational_form,
+            u = self.solution,
+            bcs = dirichlet_boundary_conditions(
+                model = self),
+            J = fe.derivative(self.variational_form, self.solution))
         
+        self.solver = fe.NonlinearVariationalSolver(
+            problem = self.problem, solver_parameters = solver_parameters)
+        
+        """ Output """
         self.output_directory_path = pathlib.Path("output/")
         
         self.snes_iteration_counter = 0
     
-    def init_weak_form_residual(self):
-        """ Redefine this to set `self.weak_form_residual` 
-        to a `fe.NonlinearVariationalForm`.
-        """
-        assert(False)
+    def solve(self):
     
-    def init_function_space(self):
-    
-        self.function_space = fe.FunctionSpace(self.mesh, self.element)
-    
-    def init_solution(self):
-    
-        self.solution = fe.Function(self.function_space)
+        self.solver.solve()
         
-    def init_dirichlet_boundary_conditions(self):
-        """ Optionallay redefine this 
-        to set `self.dirichlet_boundary_conditions`
-        to a tuple of `fe.DirichletBC` """
-        self.dirichlet_boundary_conditions = None
+        self.snes_iteration_counter += self.solver.snes.getIterationNumber()
         
-    def init_integration_measure(self):
+        return self.solution, self.snes_iteration_counter
+    
+    """ Time dependence """
+    def push_back_solutions(self):
+        
+        for i in range(len(self.solutions[1:])):
+        
+            self.solutions[-(i + 1)].assign(
+                self.solutions[-(i + 2)])
+                
+        return self.solutions
+        
+    def run(self,
+            endtime,
+            report = True,
+            write_solution = False,
+            plot = False,
+            assign_initial_values_to_solutions = True,
+            quiet = False):
+            
+        assert(len(self.solutions) > 1)
+        
+        self.output_directory_path.mkdir(
+            parents = True, exist_ok = True)
+        
+        solution_filepath = self.\
+            output_directory_path.joinpath("solution").with_suffix(".pvd")
+        
+        if write_solution:
+        
+            solution_file = fe.File(str(solution_filepath))
+        
+        if assign_initial_values_to_solutions:
+        
+            for solution in self.solutions:
+        
+                solution.assign(self.initial_values)
+            
+        if report:
+            
+            fempy.output.report(self, write_header = True)
+        
+        if write_solution:
+        
+            write_solution(solution_file)
+        
+        if plot:
+            
+            fempy.output.plot(self)
+            
+        while self.time.__float__() < (
+                endtime - self.time_tolerance):
+            
+            self.time.assign(self.time + self.timestep_size)
+                
+            self.solution, _ = self.solve()
+            
+            if report:
+            
+                fempy.output.report(self, write_header = True)
+                
+            if write_solution:
+        
+                fempy.output.write_solution(self, solution_file)
+                
+            if plot:
+            
+                fempy.output.plot(self)
+            
+            self.solutions = self.push_back_solutions()
+            
+            if not quiet:
+            
+                print("Solved at time t = {0}".format(self.time.__float__()))
+                
+        return self.solutions, self.time
 
-        self.integration_measure = fe.dx(degree = self.quadrature_degree)
-        
-    def init_problem(self):
-    
-        r = self.weak_form_residual*self.integration_measure
-        
-        u = self.solution
-        
-        self.problem = fe.NonlinearVariationalProblem(
-            r, u, self.dirichlet_boundary_conditions, fe.derivative(r, u))
-        
-    def init_solver(self, solver_parameters = {
-            "snes_type": "newtonls",
-            "snes_monitor": True,
-            "ksp_type": "preonly", 
-            "pc_type": "lu", 
-            "mat_type": "aij",
-            "pc_factor_mat_solver_type": "mumps"}):
-        
-        self.solver = fe.NonlinearVariationalSolver(
-            self.problem, solver_parameters = solver_parameters)
-    
+    """ Helpers """
     def assign_parameters(self, parameters):
     
         for key, value in parameters.items():
@@ -98,24 +211,14 @@ class Model(object):
             else:
             
                 setattr(self, key, value)
+                
+        return self
+                
+    def assign_initial_values_to_solutions(self):
     
-    def solve(self):
-    
-        self.solver.solve()
+        for solution in self.solutions:
         
-        self.snes_iteration_counter += self.solver.snes.getIterationNumber()
-        
-    def unit_vectors(self):
-    
-        return unit_vectors(self.mesh)
-        
-    def plotvars(self):
-    
-        subscripts, functions = enumerate(model.solution.split())
-        
-        labels = [r"$w_{0}$".format(i) for i in subscripts]
-        
-        filenames = ["w{0}".format(i) for i in subscripts]
-        
-        return functions, labels, filenames
+            solution.assign(self.initial_values)
+            
+        return self.solutions
         

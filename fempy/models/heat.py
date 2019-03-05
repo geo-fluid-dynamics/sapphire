@@ -1,9 +1,9 @@
 """ A heat model class """
 import firedrake as fe
-import fempy.unsteady_model
+import fempy.model
 
     
-class Model(fempy.unsteady_model.UnsteadyModel):
+class Model(fempy.model.Model):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
     
