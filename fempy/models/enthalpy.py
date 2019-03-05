@@ -2,6 +2,68 @@
 import firedrake as fe
 import fempy.model
 
+
+diff, dot, div, grad, tanh = fe.diff, fe.dot, fe.div, fe.grad, fe.tanh
+
+
+def liquid_volume_fraction(model, temperature):
+    
+    T = temperature
+    
+    T_L = model.liquidus_temperature
+    
+    s = model.smoothing
+    
+    return 0.5*(1. + tanh((T - T_L)/s))
+
+    
+def time_discrete_terms(model, solutions, timestep_size):
+    
+    T_t = fempy.model.time_discrete_terms(
+        solutions = solutions, timestep_size = timestep_size)
+        
+    phil_t = fempy.time_discretization.bdf(
+        [liquid_volume_fraction(model = model, temperature = T_n)
+            for T_n in solutions],
+        order = len(solutions) - 1,
+        timestep_size = timestep_size)
+    
+    return T_t, phil_t
+    
+    
+def variational_form_residual(model, solution):
+    
+    T = solution
+    
+    Ste = model.stefan_number
+    
+    T_t, phil_t = time_discrete_terms(
+        model = model,
+        solutions = model.solutions,
+        timestep_size = model.timestep_size)
+    
+    v = fe.TestFunction(T.function_space())
+    
+    return v*(T_t + 1./Ste*phil_t) + dot(grad(v), grad(T))
+    
+    
+def strong_form_residual(model, solution):
+    
+    T = solution
+    
+    t = model.time
+    
+    Ste = model.stefan_number
+    
+    phil = liquid_volume_fraction(model = model, temperature = T)
+    
+    return diff(T, t) - div(grad(T)) + 1./Ste*diff(phil, t)
+    
+
+def element(cell, degree):
+
+    return fe.FiniteElement("P", cell, degree)
+    
     
 class Model(fempy.model.Model):
     
@@ -13,62 +75,11 @@ class Model(fempy.model.Model):
         
         self.smoothing = fe.Constant(1./32.)
         
-        element = fe.FiniteElement("P", mesh.ufl_cell(), element_degree)
-        
-        super().__init__(*args, mesh, element, **kwargs)
-        
-    def porosity(self, T):
-        
-        T_L = self.liquidus_temperature
-        
-        s = self.smoothing
-        
-        tanh = fe.tanh
-        
-        return 0.5*(1. + tanh((T - T_L)/s))
-    
-    def init_time_discrete_terms(self):
-        
-        super().init_time_discrete_terms()
-        
-        phil_t = fempy.time_discretization.bdf(
-            [self.porosity(T_n) for T_n in self.solutions],
-            order = self.time_stencil_size - 1,
-            timestep_size = self.timestep_size)
-        
-        self.time_discrete_terms = (self.time_discrete_terms, phil_t)
-    
-    def init_weak_form_residual(self):
-        
-        T = self.solution
-        
-        Ste = self.stefan_number
-        
-        T_t, phil_t = self.time_discrete_terms
-        
-        v = fe.TestFunction(self.function_space)
-        
-        dot, grad = fe.dot, fe.grad
-        
-        self.weak_form_residual = v*(T_t + 1./Ste*phil_t) +\
-            dot(grad(v), grad(T))
-    
-    def strong_form_residual(self, solution):
-        
-        T = solution
-        
-        t = self.time
-        
-        Ste = self.stefan_number
-        
-        phil = self.porosity
-        
-        diff, div, grad = fe.diff, fe.div, fe.grad
-        
-        return diff(T, t) - div(grad(T)) + 1./Ste*diff(phil(T), t)
-    
-    def init_solver(self, solver_parameters = {"ksp_type": "cg"}):
-        
-        self.solver = fe.NonlinearVariationalSolver(
-            self.problem, solver_parameters = solver_parameters)
-    
+        super().__init__(*args,
+            mesh = mesh,
+            element = element(
+                cell = mesh.ufl_cell(), degree = element_degree),
+            variational_form_residual = variational_form_residual,
+            solver_parameters = {"ksp_type": "cg"},
+            **kwargs)
+            

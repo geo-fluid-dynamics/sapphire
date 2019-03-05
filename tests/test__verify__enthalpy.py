@@ -1,6 +1,6 @@
 import firedrake as fe 
 import fempy.mms
-import fempy.models.enthalpy
+from fempy.models import enthalpy as model_module
 
 
 def manufactured_solution(model):
@@ -20,7 +20,8 @@ def test__verify_spatial_convergence__second_order__via_mms(
         tolerance = 0.1):
     
     fempy.mms.verify_spatial_order_of_accuracy(
-        Model = fempy.models.enthalpy.Model,
+        model_module = model_module,
+        manufactured_solution = manufactured_solution,
         meshes = [fe.UnitIntervalMesh(size) for size in mesh_sizes],
         model_constructor_kwargs = {
             "quadrature_degree": 4,
@@ -29,7 +30,6 @@ def test__verify_spatial_convergence__second_order__via_mms(
         parameters = {
             "stefan_number": 0.1,
             "smoothing": 1./32.},
-        manufactured_solution = manufactured_solution,
         expected_order = 2,
         timestep_size = timestep_size,
         endtime = 1.,
@@ -45,7 +45,8 @@ def test__verify_temporal_convergence__first_order__via_mms(
         tolerance = 0.1):
     
     fempy.mms.verify_temporal_order_of_accuracy(
-        Model = fempy.models.enthalpy.Model,
+        model_module = model_module,
+        manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
         model_constructor_kwargs = {
             "quadrature_degree": 4,
@@ -54,7 +55,6 @@ def test__verify_temporal_convergence__first_order__via_mms(
         parameters = {
             "stefan_number": 0.1,
             "smoothing": 1./32.},
-        manufactured_solution = manufactured_solution,
         expected_order = 1,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
@@ -72,7 +72,8 @@ def test__verify_temporal_convergence__second_order__via_mms(
         plot_solution = False):
     
     fempy.mms.verify_temporal_order_of_accuracy(
-        Model = fempy.models.enthalpy.Model,
+        model_module = model_module,
+        manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
         model_constructor_kwargs = {
             "quadrature_degree": None,
@@ -81,7 +82,6 @@ def test__verify_temporal_convergence__second_order__via_mms(
         parameters = {
             "stefan_number": 0.1,
             "smoothing": 1./32.},
-        manufactured_solution = manufactured_solution,
         expected_order = 2,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
