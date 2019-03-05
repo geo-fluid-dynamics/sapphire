@@ -6,8 +6,7 @@ import fempy.time_discretization
 import fempy.output
 
 
-""" Defaults """
-_solver_parameters = {
+default_solver_parameters = {
     "snes_type": "newtonls",
     "snes_monitor": True,
     "ksp_type": "preonly", 
@@ -66,7 +65,7 @@ class Model(object):
             variational_form_residual,
             dirichlet_boundary_conditions,
             initial_values,
-            solver_parameters = _solver_parameters,
+            solver_parameters = default_solver_parameters,
             time_stencil_size = 2,
             quadrature_degree = None):
         
