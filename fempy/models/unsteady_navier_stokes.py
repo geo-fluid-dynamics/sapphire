@@ -6,7 +6,7 @@ import fempy.model
 diff, inner, dot, grad, div, sym = \
     fe.diff, fe.inner, fe.dot, fe.grad, fe.div, fe.sym
     
-def _variational_form_residual(model, solution):
+def variational_form_residual(model, solution):
     
     u, p = fe.split(model.solution)
     
@@ -23,7 +23,7 @@ def _variational_form_residual(model, solution):
     return mass + momentum
     
     
-def _strong_form_residual(model, solution):
+def strong_form_residual(model, solution):
     
     u, p = solution
     
@@ -36,7 +36,7 @@ def _strong_form_residual(model, solution):
     return r_u, r_p
     
     
-def _element(cell, degree):
+def element(cell, degree):
 
     vector = fe.VectorElement("P", cell, degree + 1)
     
@@ -50,12 +50,11 @@ class Model(fempy.model.Model):
     def __init__(self, *args,
             mesh,
             element_degree,
-            variational_form_residual = _variational_form_residual,
             **kwargs):
         
         super().__init__(*args,
             mesh = mesh,
-            element = _element(cell = mesh.ufl_cell(), degree = element_degree),
+            element = element(cell = mesh.ufl_cell(), degree = element_degree),
             variational_form_residual = variational_form_residual,
             **kwargs)
             

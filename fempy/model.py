@@ -99,20 +99,31 @@ class Model(object):
                 model = self,
                 solution = self.solution)*self.integration_measure
                 
-        self.problem = fe.NonlinearVariationalProblem(
-            F = self.variational_form,
-            u = self.solution,
-            bcs = dirichlet_boundary_conditions(
-                model = self),
-            J = fe.derivative(self.variational_form, self.solution))
+        self.dirichlet_boundary_conditions = \
+            dirichlet_boundary_conditions(model = self)
+                
+        self.solver_parameters = solver_parameters
         
-        self.solver = fe.NonlinearVariationalSolver(
-            problem = self.problem, solver_parameters = solver_parameters)
+        self.problem, self.solver = self.reset_problem_and_solver()
         
         """ Output """
         self.output_directory_path = pathlib.Path("output/")
         
         self.snes_iteration_counter = 0
+    
+    def reset_problem_and_solver(self):
+    
+        self.problem = fe.NonlinearVariationalProblem(
+            F = self.variational_form,
+            u = self.solution,
+            bcs = self.dirichlet_boundary_conditions,
+            J = fe.derivative(self.variational_form, self.solution))
+        
+        self.solver = fe.NonlinearVariationalSolver(
+            problem = self.problem,
+            solver_parameters = self.solver_parameters)
+            
+        return self.problem, self.solver
     
     def solve(self):
     

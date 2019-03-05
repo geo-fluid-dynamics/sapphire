@@ -12,33 +12,38 @@ import matplotlib.pyplot as plt
 import pathlib
 
 
-def _residual(
+def mms_source(
         model,
-        solution,
-        weak_form_residual,
         strong_form_residual,
         manufactured_solution):
     
-    r = weak_form_residual(
-        model = model, solution = solution)
+    r = strong_form_residual(
+        model = model, solution = manufactured_solution(model))
     
-    s = strong_form_residual(
-        model = model, solution = manufactured_solution)
-    
-    V = solution.function_space()
+    V = model.solution.function_space()
     
     if len(V) == 1:
     
-        s = (s,)
-    
-    for psi, s_i in zip(fe.TestFunctions(V), s):
+        psi = fe.TestFunction(V)
         
-        r -= fe.inner(psi, s_i)
-
-    return r
-
+        s = psi*r
     
-def _initial_values(model, manufactured_solution):
+    else:
+    
+        for i, psi, r_i in zip(range(len(V)), fe.TestFunctions(V), r):
+            
+            if i == 0:
+            
+                s = -fe.inner(psi, r_i)
+                
+            else:
+            
+                s -= fe.inner(psi, r_i)
+        
+    return s
+    
+    
+def mms_initial_values(model, manufactured_solution):
 
     initial_values = fe.Function(model.function_space)
     
@@ -56,7 +61,7 @@ def _initial_values(model, manufactured_solution):
     return initial_values
     
     
-def _dirichlet_boundary_conditions(model, manufactured_solution):
+def mms_dirichlet_boundary_conditions(model, manufactured_solution):
     
     W = model.function_space
     
@@ -100,24 +105,15 @@ def make_mms_verification_model_class(
         strong_form_residual,
         manufactured_solution):
     
-    def residual(model, solution):
-        
-        return _residual(
-            model = model,
-            solution = solution,
-            weak_form_residual = weak_form_residual,
-            strong_form_residual = strong_form_residual,
-            manufactured_solution = manufactured_solution(model))
-    
     def initial_values(model):
         
-        return _initial_values(
+        return mms_initial_values(
             model = model,
             manufactured_solution = manufactured_solution(model))
         
     def dirichlet_boundary_conditions(model):
     
-        return _dirichlet_boundary_conditions(
+        return mms_dirichlet_boundary_conditions(
             model = model,
             manufactured_solution = manufactured_solution(model))
         
@@ -126,10 +122,17 @@ def make_mms_verification_model_class(
         def __init__(self, *args, **kwargs):
             
             super().__init__(*args, 
-                variational_form_residual = residual,
                 initial_values = initial_values,
                 dirichlet_boundary_conditions = dirichlet_boundary_conditions,
                 **kwargs)
+                
+            self.variational_form += mms_source(
+                    model = self,
+                    strong_form_residual = strong_form_residual,
+                    manufactured_solution = manufactured_solution)\
+                *self.integration_measure
+            
+            self.problem, self.solver = self.reset_problem_and_solver()
             
             self.L2_error = None
         

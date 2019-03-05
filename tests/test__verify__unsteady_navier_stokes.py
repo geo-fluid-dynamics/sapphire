@@ -28,9 +28,9 @@ def test__verify_spatial_convergence__second_order__via_mms(
     fempy.mms.verify_spatial_order_of_accuracy(
         Model = fempy.models.unsteady_navier_stokes.Model,
         weak_form_residual = \
-            fempy.models.unsteady_navier_stokes._variational_form_residual,
+            fempy.models.unsteady_navier_stokes.variational_form_residual,
         strong_form_residual = \
-            fempy.models.unsteady_navier_stokes._strong_form_residual,
+            fempy.models.unsteady_navier_stokes.strong_form_residual,
         meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
         model_constructor_kwargs = {
             "quadrature_degree": 4,
@@ -51,9 +51,9 @@ def test__verify_temporal_convergence__first_order__via_mms(
     fempy.mms.verify_temporal_order_of_accuracy(
         Model = fempy.models.unsteady_navier_stokes.Model,
         weak_form_residual = \
-            fempy.models.unsteady_navier_stokes._variational_form_residual,
+            fempy.models.unsteady_navier_stokes.variational_form_residual,
         strong_form_residual = \
-            fempy.models.unsteady_navier_stokes._strong_form_residual,
+            fempy.models.unsteady_navier_stokes.strong_form_residual,
         mesh = fe.UnitSquareMesh(meshsize, meshsize),
         model_constructor_kwargs = {
             "quadrature_degree": 4,
