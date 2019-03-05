@@ -54,7 +54,8 @@ class Model(fempy.model.Model):
         
         super().__init__(*args,
             mesh = mesh,
-            element = element(cell = mesh.ufl_cell(), degree = element_degree),
+            element = element(
+                cell = mesh.ufl_cell(), degree = element_degree),
             variational_form_residual = variational_form_residual,
             **kwargs)
             
