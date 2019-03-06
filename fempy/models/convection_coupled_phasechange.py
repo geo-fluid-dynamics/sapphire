@@ -1,4 +1,4 @@
-""" A enthalpy-porosity model class for convection-coupled phase-change """
+"""A enthalpy model class for convection-coupled melting and solidification"""
 import firedrake as fe
 import fempy.model
 import fempy.continuation

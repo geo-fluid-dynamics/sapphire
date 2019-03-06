@@ -57,10 +57,10 @@ def test__regression__validate__melt_octadecane():
     
     model.solutions, _, _ = model.run(
         endtime = endtime,
-        plot = fempy.models.enthalpy_porosity.plot,
+        plot = fempy.models.convection_coupled_phasechange.plot,
         report = True)
     
-    liquid_area = fempy.models.enthalpy_porosity.postprocess(
+    liquid_area = fempy.models.convection_coupled_phasechange.postprocess(
         model)["liquid_area"]
     
     print("Liquid area = {0}".format(liquid_area))
@@ -135,10 +135,10 @@ def test__regression__validate__freeze_water():
     model.solutions, _, _ = model.run(
         endtime = t_f,
         write_solution = False,
-        plot = fempy.models.enthalpy_porosity.plot,
+        plot = fempy.models.convection_coupled_phasechange.plot,
         report = True)
     
-    liquid_area = fempy.models.enthalpy_porosity.postprocess(
+    liquid_area = fempy.models.convection_coupled_phasechange.postprocess(
         model)["liquid_area"]
     
     print("Liquid area = {0}".format(liquid_area))

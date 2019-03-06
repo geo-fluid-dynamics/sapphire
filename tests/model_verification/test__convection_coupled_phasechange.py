@@ -1,6 +1,6 @@
 import firedrake as fe 
 import fempy.mms
-from fempy.models import enthalpy_porosity as model_module
+from fempy.models import convection_coupled_phasechange as model_module
 
 
 def manufactured_solution(model):

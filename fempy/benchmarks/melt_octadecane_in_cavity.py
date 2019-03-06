@@ -1,5 +1,5 @@
 import firedrake as fe
-import fempy.models.enthalpy_porosity
+import fempy.models.convection_coupled_phasechange
 
 
 def initial_values(model):
@@ -21,7 +21,7 @@ def dirichlet_boundary_conditions(model):
         fe.DirichletBC(W.sub(2), model.cold_wall_temperature, 2)]
         
         
-class Model(fempy.models.enthalpy_porosity.Model):
+class Model(fempy.models.convection_coupled_phasechange.Model):
     
     def __init__(self, *args, meshsize, **kwargs):
         
