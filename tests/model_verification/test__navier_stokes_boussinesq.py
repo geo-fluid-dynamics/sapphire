@@ -1,86 +1,49 @@
 import firedrake as fe 
 import fempy.mms
-import fempy.models.navier_stokes_boussinesq
+import fempy.models.navier_stokes_boussinesq as model_module
 import fempy.benchmarks.heat_driven_cavity
 
 
-class VerifiableModel(fempy.models.navier_stokes_boussinesq.Model):
+def manufactured_solution(model):
     
-        def __init__(self, quadrature_degree, spatial_order, meshsize):
-        
-            self.meshsize = meshsize
-            
-            super().__init__(
-                quadrature_degree = quadrature_degree,
-                spatial_order = spatial_order)
-            
-        def init_mesh(self):
-        
-            self.mesh = fe.UnitSquareMesh(self.meshsize, self.meshsize)
-            
-        def init_manufactured_solution(self):
-            
-            sin, pi = fe.sin, fe.pi
-            
-            x = fe.SpatialCoordinate(self.mesh)
-            
-            u0 = sin(2.*pi*x[0])*sin(pi*x[1])
-            
-            u1 = sin(pi*x[0])*sin(2.*pi*x[1])
-            
-            ihat, jhat = self.unit_vectors()
-            
-            u = u0*ihat + u1*jhat
-            
-            p = -0.5*(u0**2 + u1**2)
-            
-            T = sin(2.*pi*x[0])*sin(pi*x[1])
-            
-            self.manufactured_solution = p, u, T
-            
-        def strong_form_residual(self, solution):
-            
-            Gr = self.grashof_number
-            
-            Pr = self.prandtl_number
-            
-            ghat = self.gravity_direction
-            
-            grad, dot, div, sym = fe.grad, fe.dot, fe.div, fe.sym
-            
-            p, u, T = solution
-            
-            r_p = div(u)
-            
-            r_u = grad(u)*u + grad(p) - 2.*div(sym(grad(u))) + Gr*T*ghat
-            
-            r_T = dot(u, grad(T)) - 1./Pr*div(grad(T))
-            
-            return r_p, r_u, r_T
-            
-
+    sin, pi = fe.sin, fe.pi
+    
+    x = fe.SpatialCoordinate(model.mesh)
+    
+    u0 = sin(2.*pi*x[0])*sin(pi*x[1])
+    
+    u1 = sin(pi*x[0])*sin(2.*pi*x[1])
+    
+    ihat, jhat = fempy.model.unit_vectors(model.mesh)
+    
+    u = u0*ihat + u1*jhat
+    
+    p = -0.5*(u0**2 + u1**2)
+    
+    T = sin(2.*pi*x[0])*sin(pi*x[1])
+    
+    return p, u, T
+    
+    
 def test__verify_convergence_order_via_mms(
         mesh_sizes = (4, 8, 16, 32, 64), 
-        tolerance = 0.1, 
-        plot_errors = False,
-        plot_solution = False):
+        tolerance = 0.1):
     
     Ra = 10.
     
     Pr = 0.7
     
     fempy.mms.verify_spatial_order_of_accuracy(
-        Model = VerifiableModel,
-        constructor_kwargs = {
-            "quadrature_degree": 4, "spatial_order": 2},
+        model_module = model_module,
+        model_constructor_kwargs = {
+            "quadrature_degree": 4, "element_degree": 1},
+        manufactured_solution = manufactured_solution,
+        meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
         parameters = {
             "grashof_number": Ra/Pr,
             "prandtl_number": Pr},
         expected_order = 2,
-        mesh_sizes = mesh_sizes,
-        tolerance = tolerance,
-        plot_errors = plot_errors,
-        plot_solution = plot_solution)
+        tolerance = tolerance)
     
     
 def verify_scalar_solution_component(
@@ -145,18 +108,12 @@ def verify_scalar_solution_component(
                 assert(absolute_error < absolute_tolerance)
 
                 
-def unsteadiness(model):
-    
-    return fe.norm(model.solution - model.initial_values[0], "L2")/ \
-        fe.norm(model.initial_values[0], "L2")
-            
-            
 def test__verify_against_heat_driven_cavity_benchmark():
 
     model = fempy.benchmarks.heat_driven_cavity.Model(
-        quadrature_degree = 4, spatial_order = 2, meshsize = 40)
+        quadrature_degree = 4, element_degree = 1, meshsize = 40)
     
-    model.solver.solve()
+    model.solution, _ = model.solve()
     
     """ Verify against the result published in @cite{wang2010comprehensive}. """
     Gr = model.grashof_number.__float__()

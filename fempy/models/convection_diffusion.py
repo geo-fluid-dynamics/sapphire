@@ -2,32 +2,56 @@
 import firedrake as fe
 import fempy.model
 
+
+dot, grad, div = fe.dot, fe.grad, fe.div
+    
+def variational_form_residual(model, solution):
+    
+    u = solution
+    
+    v = fe.TestFunction(solution.function_space())
+    
+    a = model.advection_velocity
+    
+    nu = model.kinematic_viscosity
+    
+    dx = fe.dx(degree = model.quadrature_degree)
+    
+    return (v*dot(a, grad(u)) + dot(grad(v), nu*grad(u)))*dx
+    
+    
+def strong_residual(model, solution):
+    
+    x = fe.SpatialCoordinate(model.mesh)
+    
+    u = solution
+    
+    a = model.advection_velocity
+    
+    nu = model.kinematic_viscosity
+    
+    return dot(a, grad(u)) - div(nu*grad(u))
+
+
+def element(cell, degree):
+
+    return fe.FiniteElement("P", cell, degree)
+    
     
 class Model(fempy.model.Model):
     
-    def __init__(self, quadrature_degree, spatial_order):
-    
+    def __init__(self, *args,
+            mesh, element_degree, advection_velocity,
+            **kwargs):
+        
         self.kinematic_viscosity = fe.Constant(1.)
+        
+        self.advection_velocity = advection_velocity(mesh)
     
-        super().__init__(
-            quadrature_degree = quadrature_degree,
-            spatial_order = spatial_order)
-        
-    def init_element(self):
-    
-        self.element = fe.FiniteElement("P", self.mesh.ufl_cell(), 1)
-    
-    def init_weak_form_residual(self):
-        
-        u, v = self.solution, fe.TestFunction(self.solution.function_space())
-        
-        x = fe.SpatialCoordinate(self.solution.function_space().mesh())
-        
-        a = self.advection_velocity
-        
-        nu = self.kinematic_viscosity
-        
-        dot, grad = fe.dot, fe.grad
-        
-        self.weak_form_residual = v*dot(a, grad(u)) + dot(grad(v), nu*grad(u))
+        super().__init__(*args,
+            mesh = mesh,
+            element = element(
+                cell = mesh.ufl_cell(), degree = element_degree),
+            variational_form_residual = variational_form_residual,
+            **kwargs)
         

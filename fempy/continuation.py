@@ -2,41 +2,32 @@ import firedrake as fe
 import fempy.model
 
 
-def solve(
-        model,
-        solver,
+def solve_with_auto_continuation(
+        solve,
+        solution,
         continuation_parameter,
         continuation_sequence,
-        leftval,
-        rightval,
         startleft = False,
         maxcount = 32):
     """ Solve a strongly nonlinear problem 
     by solving a sequence of over-regularized problems 
     with successively reduced regularization.
-    Here we use the word 'smooth' as a short synonym for 'regularize'.
     
     Always continue from left to right.
     """
-    if continuation_sequence is None:
-    
-        my_continuation_sequence = (leftval, rightval)
-        
-    else:
-    
-        my_continuation_sequence = continuation_sequence
-    
     if startleft:
     
-        first_s_to_solve = my_continuation_sequence[0]
+        first_s_to_solve = continuation_sequence[0]
     
     else:
     
-        first_s_to_solve = my_continuation_sequence[-1]
+        first_s_to_solve = continuation_sequence[-1]
         
-    attempts = range(maxcount - len(my_continuation_sequence))
+    attempts = range(maxcount - len(continuation_sequence))
     
     solved = False
+    
+    leftval, rightval = continuation_sequence[0], continuation_sequence[-1]
     
     def bounded(val):
     
@@ -48,23 +39,25 @@ def solve(
         
             return leftval >= val and val >= rightval
             
+    backup_solution = fe.Function(solution)
+    
+    snes_iteration_count = 0
+    
     for attempt in attempts:
 
-        s_start_index = my_continuation_sequence.index(first_s_to_solve)
+        s_start_index = continuation_sequence.index(first_s_to_solve)
         
         try:
         
-            for s in my_continuation_sequence[s_start_index:]:
+            for s in continuation_sequence[s_start_index:]:
                 
                 continuation_parameter.assign(s)
                 
-                model.backup_solution.assign(model.solution)
+                backup_solution = backup_solution.assign(solution)
                 
-                solver.solve()
+                solution, snes_iteration_count = solve()
                 
-                if not model.quiet:
-                
-                    print("Solved with continuation parameter = " + str(s))
+                print("Solved with continuation parameter = " + str(s))
                 
             solved = True
             
@@ -74,14 +67,12 @@ def solve(
             
             current_s = continuation_parameter.__float__()
             
-            ss = my_continuation_sequence
-            
-            if not model.quiet:
-            
-                print("Failed to solve with continuation paramter = " 
-                    + str(current_s) +
-                    " from the sequence " + str(ss))
-            
+            ss = continuation_sequence
+        
+            print("Failed to solve with continuation paramter = " 
+                + str(current_s) +
+                " from the sequence " + str(ss))
+        
             if attempt == attempts[-1]:
                 
                 break
@@ -96,20 +87,18 @@ def solve(
             
             new_ss = ss[:index] + (s_to_insert,) + ss[index:]
             
-            model.solution.assign(model.backup_solution)
+            solution = solution.assign(backup_solution)
             
-            my_continuation_sequence = new_ss
+            continuation_sequence = new_ss
             
-            if not model.quiet:
-            
-                print("Inserted new value of " + str(s_to_insert))
+            print("Inserted new value of " + str(s_to_insert))
             
             first_s_to_solve = s_to_insert
     
     assert(solved)
     
     assert(continuation_parameter.__float__() ==
-        my_continuation_sequence[-1])
+        continuation_sequence[-1])
     
-    return my_continuation_sequence
+    return solution, snes_iteration_count, continuation_sequence
     
