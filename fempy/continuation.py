@@ -1,5 +1,4 @@
 import firedrake as fe
-import fempy.model
 
 
 def solve_with_auto_continuation(
@@ -57,7 +56,7 @@ def solve_with_auto_continuation(
                 
                 solution, snes_iteration_count = solve()
                 
-                print("Solved with continuation parameter = " + str(s))
+                print("Solved with continuation parameter = {0}".format(s))
                 
             solved = True
             
@@ -69,10 +68,9 @@ def solve_with_auto_continuation(
             
             ss = continuation_sequence
         
-            print("Failed to solve with continuation paramter = " 
-                + str(current_s) +
-                " from the sequence " + str(ss))
-        
+            print("Failed to solve with continuation paramter = {0} " +
+                "from the sequence {1}".format(current_s, ss))
+                
             if attempt == attempts[-1]:
                 
                 break
@@ -97,8 +95,7 @@ def solve_with_auto_continuation(
     
     assert(solved)
     
-    assert(continuation_parameter.__float__() ==
-        continuation_sequence[-1])
+    assert(continuation_parameter.__float__() == continuation_sequence[-1])
     
     return solution, snes_iteration_count, continuation_sequence
     
