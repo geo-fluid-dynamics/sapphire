@@ -196,7 +196,7 @@ def variational_form_residual(model, solution):
     return sum(
             [r(model = model, solution = solution) 
             for r in (mass, momentum, energy, stabilization)])\
-        *model.integration_measure
+        *fe.dx(degree = model.quadrature_degree)
 
     
 def plotvars(model, solution):
@@ -229,16 +229,14 @@ def postprocess(model):
 
     phil = liquid_volume_fraction(model, T)
     
-    liquid_area = fe.assemble(phil*model.integration_measure)
+    liquid_area = fe.assemble(phil*fe.dx)
     
     return {"liquid_area": liquid_area}
     
     
 class Model(fempy.model.Model):
     
-    def __init__(self, *args,
-            mesh, element_degree, quadrature_degree = 8,
-            **kwargs):
+    def __init__(self, *args, mesh, element_degree, **kwargs):
         
         self.grashof_number = fe.Constant(1.)
         
@@ -258,6 +256,8 @@ class Model(fempy.model.Model):
         
         self.smoothing = fe.Constant(1./256.)
         
+        self.smoothing_sequence = None
+        
         if "variational_form_residual" not in kwargs:
         
             kwargs["variational_form_residual"] = variational_form_residual
@@ -266,7 +266,6 @@ class Model(fempy.model.Model):
             mesh = mesh,
             element = element(
                 cell = mesh.ufl_cell(), degree = element_degree),
-            integration_measure = fe.dx(degree = quadrature_degree),
             **kwargs)
             
     def solve_with_auto_smoothing(self,
@@ -280,8 +279,8 @@ class Model(fempy.model.Model):
         elif self.smoothing_sequence is None:
             
             self.smoothing_sequence = (4., self.smoothing.__float__())
-            
-        self.solution, self.snes_iteration_count, self.smoothing_sequence = \
+        
+        self.solution, self.snes_iterations, self.smoothing_sequence = \
             fempy.continuation.solve_with_auto_continuation(
                 solve = super().solve,
                 solution = self.solution,
@@ -289,16 +288,14 @@ class Model(fempy.model.Model):
                 continuation_sequence = self.smoothing_sequence,
                 startleft = True,
                 maxcount = maxcount)
-                
-        return self.solution, self.snes_iteration_count
+        
+        return self.solution, self.snes_iterations, self.smoothing_sequence
     
     def run(self, *args, new_smoothing_sequence = False, **kwargs):
-    
-        self.solutions, self.time = super().run(*args,
+        
+        return super().run(*args,
             solve = lambda: self.solve_with_auto_smoothing(
-                new_smoothing_sequence = new_smoothing_sequence),
+                new_smoothing_sequence = new_smoothing_sequence)[:-1],
             postprocess = postprocess,
             **kwargs)
-        
-        return self.solutions, self.time 
-        
+            

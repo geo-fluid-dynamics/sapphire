@@ -1,5 +1,6 @@
 import firedrake as fe 
-import fempy.models.heat
+import fempy.mms
+import fempy.models.heat as model_module
 
 
 def manufactured_solution(model):
@@ -19,19 +20,16 @@ def test__verify_spatial_convergence__second_order__via_mms(
         tolerance = 0.1):
     
     fempy.mms.verify_spatial_order_of_accuracy(
-        Model = fempy.models.heat.Model,
+        model_module = model_module,
+        manufactured_solution = manufactured_solution,
         meshes = [fe.UnitIntervalMesh(n) for n in mesh_sizes],
         model_constructor_kwargs = {
-            "quadrature_degree": None,
             "element_degree": 1,
             "time_stencil_size": 2},
-        manufactured_solution = manufactured_solution,
         expected_order = 2,
         tolerance = tolerance,
         timestep_size = timestep_size,
-        endtime = 1.,
-        plot_solution = False,
-        report = False)
+        endtime = 1.)
         
         
 def test__verify_temporal_convergence__first_order__via_mms(
@@ -40,19 +38,16 @@ def test__verify_temporal_convergence__first_order__via_mms(
         tolerance = 0.1):
     
     fempy.mms.verify_temporal_order_of_accuracy(
-        Model = fempy.models.heat.Model,
+        model_module = model_module,
+        manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
         model_constructor_kwargs = {
-            "quadrature_degree": None,
             "element_degree": 1,
             "time_stencil_size": 2},
-        manufactured_solution = manufactured_solution,
         expected_order = 1,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
-        tolerance = tolerance,
-        plot_solution = False,
-        report = False)
+        tolerance = tolerance)
     
     
 def test__verify_temporal_convergence__second_order__via_mms(
@@ -62,19 +57,16 @@ def test__verify_temporal_convergence__second_order__via_mms(
         tolerance = 0.1):
     
     fempy.mms.verify_temporal_order_of_accuracy(
-        Model = fempy.models.heat.Model,
+        model_module = model_module,
+        manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
         model_constructor_kwargs = {
-            "quadrature_degree": None,
             "element_degree": 2,
             "time_stencil_size": 3},
-        manufactured_solution = manufactured_solution,
         expected_order = 2,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
-        tolerance = tolerance,
-        plot_solution = False,
-        report = False)
+        tolerance = tolerance)
         
         
 def test__verify_temporal_convergence__third_order__via_mms(
@@ -83,17 +75,14 @@ def test__verify_temporal_convergence__third_order__via_mms(
         tolerance = 0.1):
     
     fempy.mms.verify_temporal_order_of_accuracy(
-        Model = fempy.models.heat.Model,
+        model_module = model_module,
+        manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
         model_constructor_kwargs = {
-            "quadrature_degree": None,
             "element_degree": 2,
             "time_stencil_size": 4},
-        manufactured_solution = manufactured_solution,
         expected_order = 3,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
-        tolerance = tolerance,
-        plot_solution = False,
-        report = False)
+        tolerance = tolerance)
         

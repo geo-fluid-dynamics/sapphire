@@ -29,10 +29,12 @@ def variational_form_residual(model, solution):
     
     energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))
     
-    return mass + momentum + energy
+    dx = fe.dx(degree = model.quadrature_degree)
+    
+    return (mass + momentum + energy)*dx
     
     
-def strong_form_residual(model, solution):
+def strong_residual(model, solution):
     
     Gr = model.grashof_number
     
@@ -62,9 +64,7 @@ def element(cell, degree):
     
 class Model(fempy.model.Model):
     
-    def __init__(self, *args,
-            mesh, element_degree,
-            **kwargs):
+    def __init__(self, *args, mesh, element_degree, **kwargs):
         
         self.grashof_number = fe.Constant(1.)
         
@@ -75,5 +75,6 @@ class Model(fempy.model.Model):
             element = element(
                 cell = mesh.ufl_cell(), degree = element_degree),
             variational_form_residual = variational_form_residual,
+            time_dependent = False,
             **kwargs)
             

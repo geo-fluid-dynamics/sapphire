@@ -33,10 +33,7 @@ def test__verify_spatial_convergence__second_order__via_mms(
         expected_order = 2,
         timestep_size = timestep_size,
         endtime = 1.,
-        tolerance = tolerance,
-        plot_errors = False,
-        plot_solution = False,
-        report = False)
+        tolerance = tolerance)
         
         
 def test__verify_temporal_convergence__first_order__via_mms(
@@ -58,25 +55,20 @@ def test__verify_temporal_convergence__first_order__via_mms(
         expected_order = 1,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
-        tolerance = tolerance,
-        plot_errors = False,
-        plot_solution = False,
-        report = False)
+        tolerance = tolerance)
 
     
 def test__verify_temporal_convergence__second_order__via_mms(
         meshsize = 128,
         timestep_sizes = (1./64., 1./128., 1./256.),
-        tolerance = 0.3,
-        plot_errors = False,
-        plot_solution = False):
+        tolerance = 0.3):
     
     fempy.mms.verify_temporal_order_of_accuracy(
         model_module = model_module,
         manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
         model_constructor_kwargs = {
-            "quadrature_degree": None,
+            "quadrature_degree": 4,
             "element_degree": 2,
             "time_stencil_size": 3},
         parameters = {
@@ -85,7 +77,5 @@ def test__verify_temporal_convergence__second_order__via_mms(
         expected_order = 2,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
-        tolerance = tolerance,
-        plot_errors = plot_errors,
-        plot_solution = plot_solution)
+        tolerance = tolerance)
     

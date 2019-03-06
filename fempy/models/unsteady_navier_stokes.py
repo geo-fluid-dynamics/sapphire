@@ -20,10 +20,12 @@ def variational_form_residual(model, solution):
     momentum = dot(psi_u, u_t + grad(u)*u) - div(psi_u)*p + \
         2.*inner(sym(grad(psi_u)), sym(grad(u)))
     
-    return mass + momentum
+    dx = fe.dx(degree = model.quadrature_degree)
+    
+    return (mass + momentum)*dx
     
     
-def strong_form_residual(model, solution):
+def strong_residual(model, solution):
     
     u, p = solution
     
@@ -47,10 +49,7 @@ def element(cell, degree):
     
 class Model(fempy.model.Model):
     
-    def __init__(self, *args,
-            mesh,
-            element_degree,
-            **kwargs):
+    def __init__(self, *args, mesh, element_degree, **kwargs):
         
         super().__init__(*args,
             mesh = mesh,

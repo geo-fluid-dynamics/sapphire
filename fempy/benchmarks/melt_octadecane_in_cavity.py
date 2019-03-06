@@ -70,24 +70,23 @@ class Model(fempy.models.enthalpy_porosity.Model):
         
         if final_endtime < topwall_heatflux_starttime:
         
-            self.solutions, self.time = super().run(
+            self.solutions, self.time, self.snes_iterations = super().run(
                 *args, endtime = final_endtime, **kwargs)
             
             return self.solutions, self.time
         
-        self.solutions, self.time = super().run(
+        self.solutions, self.time, self.snes_iterations = super().run(
             *args, endtime = topwall_heatflux_starttime, **kwargs)
         
         self.topwall_heatflux = self.topwall_heatflux.assign(
             topwall_heatflux_poststart)
             
-        self.solutions, self.time = super().run(*args,
+        self.solutions, self.time, self.snes_iterations = super().run(*args,
             endtime = final_endtime,
-            assign_initial_values_to_solutions = False,
             **kwargs)
         
         self.topwall_heatflux = self.topwall_heatflux.assign(
             original_topwall_heatflux)
             
-        return self.solutions, self.time
+        return self.solutions, self.time, self.snes_iterations
         

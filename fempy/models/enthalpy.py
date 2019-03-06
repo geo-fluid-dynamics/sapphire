@@ -36,17 +36,16 @@ def variational_form_residual(model, solution):
     
     Ste = model.stefan_number
     
-    T_t, phil_t = time_discrete_terms(
-        model = model,
-        solutions = model.solutions,
-        timestep_size = model.timestep_size)
+    T_t, phil_t = time_discrete_terms(model = model)
     
     v = fe.TestFunction(T.function_space())
     
-    return v*(T_t + 1./Ste*phil_t) + dot(grad(v), grad(T))
+    dx = fe.dx(degree = model.quadrature_degree)
+    
+    return (v*(T_t + 1./Ste*phil_t) + dot(grad(v), grad(T)))*dx
     
     
-def strong_form_residual(model, solution):
+def strong_residual(model, solution):
     
     T = solution
     
@@ -79,6 +78,9 @@ class Model(fempy.model.Model):
             element = element(
                 cell = mesh.ufl_cell(), degree = element_degree),
             variational_form_residual = variational_form_residual,
-            solver_parameters = {"ksp_type": "cg"},
             **kwargs)
+            
+    def solve(self, *args, **kwargs):
+    
+        return super().solve(*args, parameters = {"ksp_type": "cg"}, **kwargs)
             

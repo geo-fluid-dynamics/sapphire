@@ -1,6 +1,6 @@
 import firedrake as fe 
 import fempy.mms
-import fempy.models.navier_stokes_boussinesq
+import fempy.models.navier_stokes_boussinesq as model_module
 import fempy.benchmarks.heat_driven_cavity
 
 
@@ -27,31 +27,23 @@ def manufactured_solution(model):
     
 def test__verify_convergence_order_via_mms(
         mesh_sizes = (4, 8, 16, 32, 64), 
-        tolerance = 0.1, 
-        plot_errors = False,
-        plot_solution = False):
+        tolerance = 0.1):
     
     Ra = 10.
     
     Pr = 0.7
     
     fempy.mms.verify_spatial_order_of_accuracy(
-        Model = fempy.models.navier_stokes_boussinesq.Model,
-        weak_form_residual = \
-            fempy.models.navier_stokes_boussinesq.variational_form_residual,
-        strong_form_residual = \
-            fempy.models.navier_stokes_boussinesq.strong_form_residual,
-        manufactured_solution = manufactured_solution,
-        meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
+        model_module = model_module,
         model_constructor_kwargs = {
             "quadrature_degree": 4, "element_degree": 1},
+        manufactured_solution = manufactured_solution,
+        meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
         parameters = {
             "grashof_number": Ra/Pr,
             "prandtl_number": Pr},
         expected_order = 2,
-        tolerance = tolerance,
-        plot_errors = plot_errors,
-        plot_solution = plot_solution)
+        tolerance = tolerance)
     
     
 def verify_scalar_solution_component(
@@ -121,7 +113,7 @@ def test__verify_against_heat_driven_cavity_benchmark():
     model = fempy.benchmarks.heat_driven_cavity.Model(
         quadrature_degree = 4, element_degree = 1, meshsize = 40)
     
-    model.solver.solve()
+    model.solution, _ = model.solve()
     
     """ Verify against the result published in @cite{wang2010comprehensive}. """
     Gr = model.grashof_number.__float__()

@@ -101,7 +101,7 @@ def initial_values(model):
         model.function_space)
     
     r = heat_driven_cavity_variational_form_residual(
-        model = model, solution = w)*model.integration_measure
+        model = model, solution = w)*fe.dx(degree = model.quadrature_degree)
         
     T_h = model.hot_wall_temperature.__float__()
     
@@ -131,7 +131,7 @@ def variational_form_residual(model, solution):
                 model = model, solution = solution, buoyancy = water_buoyancy),
             fempy.models.enthalpy_porosity.energy,
             fempy.models.enthalpy_porosity.stabilization)])\
-        *model.integration_measure
+        *fe.dx(degree = model.quadrature_degree)
     
     
 class Model(fempy.models.enthalpy_porosity.Model):
@@ -176,15 +176,14 @@ class Model(fempy.models.enthalpy_porosity.Model):
         
         for i in range(2):
         
-            self.solutions, self.time = super().run(*args,
-                endtime = self.time.__float__() + self.timestep_size.__float__(),
-                new_smoothing_sequence = (4., self.smoothing.__float__()),
-                **kwargs)
+            self.solutions, self.time, self.snes_iteration_count = \
+                super().run(*args,
+                    endtime = self.time.__float__() + self.timestep_size.__float__(),
+                    new_smoothing_sequence = (4., self.smoothing.__float__()),
+                    **kwargs)
         
-        self.solutions, self.time = super().run(*args,
+        return super().run(*args,
             endtime = endtime,
             new_smoothing_sequence = False,
             **kwargs)
-        
-        return self.solutions, self.time
         

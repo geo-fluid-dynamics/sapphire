@@ -12,7 +12,6 @@ def solve_with_auto_continuation(
     """ Solve a strongly nonlinear problem 
     by solving a sequence of over-regularized problems 
     with successively reduced regularization.
-    Here we use the word 'smooth' as a short synonym for 'regularize'.
     
     Always continue from left to right.
     """

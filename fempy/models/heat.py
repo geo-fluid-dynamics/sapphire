@@ -3,38 +3,50 @@ import firedrake as fe
 import fempy.model
 
     
-class Model(fempy.model.Model):
+def variational_form_residual(model, solution):
     
-    def __init__(self, *args, mesh, element_degree, **kwargs):
+    u = solution
     
-        element = fe.FiniteElement("P", mesh.ufl_cell(), element_degree)
-        
-        super().__init__(*args, mesh, element, **kwargs)
+    u_t = fempy.model.time_discrete_terms(
+        solutions = model.solutions, timestep_size = model.timestep_size)
     
-    def init_weak_form_residual(self):
-        
-        u = self.solution
-        
-        u_t = self.time_discrete_terms
-        
-        v = fe.TestFunction(self.function_space)
-        
-        dot, grad = fe.dot, fe.grad
-        
-        self.weak_form_residual = v*u_t + dot(grad(v), grad(u))
+    v = fe.TestFunction(solution.function_space())
     
-    def strong_form_residual(self, solution):
+    dot, grad = fe.dot, fe.grad
+    
+    dx = fe.dx(degree = model.quadrature_degree)
+    
+    return (v*u_t + dot(grad(v), grad(u)))*dx
+    
+    
+def element(cell, degree):
+
+    return fe.FiniteElement("P", cell, degree)
+    
+    
+def strong_residual(model, solution):
         
         u = solution
         
-        t = self.time
+        t = model.time
         
         diff, div, grad = fe.diff, fe.div, fe.grad
         
         return diff(u, t) - div(grad(u))
         
-    def init_solver(self, solver_parameters = {"ksp_type": "cg"}):
+    
+class Model(fempy.model.Model):
+    
+    def __init__(self, *args, mesh, element_degree, **kwargs):
         
-        self.solver = fe.NonlinearVariationalSolver(
-            self.problem, solver_parameters = solver_parameters)
+        super().__init__(*args,
+            mesh = mesh,
+            element = element(
+                cell = mesh.ufl_cell(), degree = element_degree),
+            variational_form_residual = variational_form_residual,
+            **kwargs)
+    
+    def solve(self, *args, **kwargs):
+        
+        return super().solve(*args, parameters = {"ksp_type": "cg"}, **kwargs)
         

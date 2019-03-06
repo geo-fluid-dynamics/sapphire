@@ -41,7 +41,8 @@ class Model(object):
             variational_form_residual,
             dirichlet_boundary_conditions,
             initial_values,
-            integration_measure = fe.dx,
+            quadrature_degree = None,
+            time_dependent = True,
             time_stencil_size = 2):
         
         self.mesh = mesh
@@ -50,7 +51,7 @@ class Model(object):
         
         self.function_space = fe.FunctionSpace(mesh, element)
         
-        self.integration_measure = integration_measure
+        self.quadrature_degree = quadrature_degree
         
         """ Time dependence """
         self.solutions = [fe.Function(self.function_space) 
@@ -58,15 +59,21 @@ class Model(object):
             
         self.solution = self.solutions[0]
         
-        self.time = fe.Constant(0.)
-        
-        self.timestep_size = fe.Constant(1.)
-        
-        self.time_tolerance = 1.e-8
-        
+        if time_dependent:
+            
+            assert(time_stencil_size > 1)
+            
+            self.time = fe.Constant(0.)
+            
+            self.timestep_size = fe.Constant(1.)
+            
+            self.time_tolerance = 1.e-8
+            
         self.initial_values = initial_values(model = self)
         
-        self.assign_initial_values_to_solutions()
+        for solution in self.solutions:
+        
+            solution.assign(self.initial_values)
         
         """ Construct the variational problem and solver """
         self.variational_form_residual = variational_form_residual(
@@ -106,12 +113,10 @@ class Model(object):
     def run(self,
             endtime,
             solve = None,
-            report = True,
+            report = False,
             postprocess = None,
             write_solution = False,
             plot = None):
-            
-        assert(len(self.solutions) > 1)
         
         if solve is None:
         
@@ -120,10 +125,10 @@ class Model(object):
         self.output_directory_path.mkdir(
             parents = True, exist_ok = True)
         
-        solution_filepath = self.\
-            output_directory_path.joinpath("solution").with_suffix(".pvd")
-        
         if write_solution:
+        
+            solution_filepath = self.\
+                output_directory_path.joinpath("solution").with_suffix(".pvd")
         
             solution_file = fe.File(str(solution_filepath))
             
@@ -164,7 +169,7 @@ class Model(object):
             
             print("Solved at time t = {0}".format(self.time.__float__()))
                 
-        return self.solutions, self.time
+        return self.solutions, self.time, self.snes_iteration_count
         
     def assign_parameters(self, parameters):
     
@@ -181,16 +186,6 @@ class Model(object):
                 setattr(self, key, value)
                 
         return self
-        
-        
-    def assign_initial_values_to_solutions(self):
-    
-        for solution in self.solutions:
-        
-            solution.assign(self.initial_values)
-            
-        return self.solutions
-        
         
 def unit_vectors(mesh):
     

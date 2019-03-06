@@ -1,5 +1,6 @@
-import firedrake as fe 
-import fempy.models.convection_diffusion
+import firedrake as fe
+import fempy.mms
+import fempy.models.convection_diffusion as model_module
 
 
 sin, pi = fe.sin, fe.pi
@@ -25,11 +26,7 @@ def test__verify_convergence_order_via_mms(
         mesh_sizes = (16, 32), tolerance = 0.1, quadrature_degree = 2):
     
     fempy.mms.verify_spatial_order_of_accuracy(
-        Model = fempy.models.convection_diffusion.Model,
-        weak_form_residual = \
-            fempy.models.convection_diffusion.variational_form_residual,
-        strong_form_residual = \
-            fempy.models.convection_diffusion.strong_form_residual,
+        model_module = model_module,
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
         model_constructor_kwargs = {

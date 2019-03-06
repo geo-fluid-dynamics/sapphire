@@ -55,7 +55,7 @@ def test__regression__validate__melt_octadecane():
         + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
         + "_s" + str(s) + "_tau" + str(tau) + "/" + "tf" + str(endtime) + "/")
     
-    model.run(
+    model.solutions, _, _ = model.run(
         endtime = endtime,
         plot = fempy.models.enthalpy_porosity.plot,
         report = True)
@@ -132,7 +132,7 @@ def test__regression__validate__freeze_water():
         "s{0}_tau{1}/rx{2}_nx{3}_rt{4}_nt{5}/q{6}/tf{7}/dim{8}/".format(
             s, tau, rx, nx, rt, nt, q, t_f, spatial_dimensions))
     
-    model.solutions, model.time = model.run(
+    model.solutions, _, _ = model.run(
         endtime = t_f,
         write_solution = False,
         plot = fempy.models.enthalpy_porosity.plot,

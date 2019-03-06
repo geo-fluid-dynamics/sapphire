@@ -11,16 +11,16 @@ def variational_form_residual(model, solution):
     
     v = fe.TestFunction(solution.function_space())
     
-    x = fe.SpatialCoordinate(solution.function_space().mesh())
-    
     a = model.advection_velocity
     
     nu = model.kinematic_viscosity
     
-    return v*dot(a, grad(u)) + dot(grad(v), nu*grad(u))
+    dx = fe.dx(degree = model.quadrature_degree)
+    
+    return (v*dot(a, grad(u)) + dot(grad(v), nu*grad(u)))*dx
     
     
-def strong_form_residual(model, solution):
+def strong_residual(model, solution):
     
     x = fe.SpatialCoordinate(model.mesh)
     
@@ -40,11 +40,8 @@ def element(cell, degree):
     
 class Model(fempy.model.Model):
     
-    def __init__(self, 
-            *args, 
-            mesh,
-            element_degree,
-            advection_velocity,
+    def __init__(self, *args,
+            mesh, element_degree, advection_velocity,
             **kwargs):
         
         self.kinematic_viscosity = fe.Constant(1.)

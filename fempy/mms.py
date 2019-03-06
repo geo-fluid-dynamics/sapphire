@@ -8,7 +8,6 @@ import firedrake as fe
 import fempy.output
 import fempy.table
 import math
-import matplotlib.pyplot as plt
 import pathlib
 
 
@@ -135,7 +134,7 @@ def make_mms_verification_model_class(
                     model = self,
                     strong_residual = model_module.strong_residual,
                     manufactured_solution = manufactured_solution)\
-                *self.integration_measure
+                *fe.dx(degree = self.quadrature_degree)
         
     return MMSVerificationModel
     
@@ -150,10 +149,7 @@ def verify_spatial_order_of_accuracy(
         parameters = {},
         timestep_size = 1.e32,
         endtime = 0.,
-        starttime = 0.,
-        plot_errors = False,
-        plot_solution = False,
-        report = False):
+        starttime = 0.):
     
     MMSVerificationModel = make_mms_verification_model_class(
         model_module = model_module,
@@ -181,21 +177,25 @@ def verify_spatial_order_of_accuracy(
         
         model = model.assign_parameters(parameters)
         
-        model.time = model.time.assign(starttime)
+        if hasattr(model, "time"):
+            
+            model.time = model.time.assign(starttime)
+            
+            model.timestep_size = model.timestep_size.assign(timestep_size)
+            
+            model.solutions, _, _ = model.run(endtime = endtime)
+            
+        else:
         
-        model.timestep_size = model.timestep_size.assign(timestep_size)
-        
-        model.solutions, model.time = model.run(
-            endtime = endtime,
-            plot = plot_solution,
-            report = report)
-                
+            model.solution, _ = model.solve()
+            
         table.append({
             "h": h,
             "L2_error": L2_error(
                 solution = model.solution,
                 true_solution = manufactured_solution(model),
-                integration_measure = model.integration_measure)})
+                integration_measure = fe.dx(
+                    degree = model.quadrature_degree))})
             
         if len(table) > 1:
         
@@ -213,29 +213,6 @@ def verify_spatial_order_of_accuracy(
     
     print("Last observed spatial order of accuracy is {0}".format(order))
     
-    if plot_errors:
-    
-        h, e = table.data["h"], table.data["L2_error"]
-        
-        plt.loglog(h, e, marker = "o")
-        
-        plt.xlabel(r"$h$")
-        
-        plt.ylabel(r"$\Vert u - u_h \Vert$")
-        
-        plt.axis("equal")
-        
-        plt.grid(True)
-        
-        filepath = model.output_directory_path.joinpath(
-            "e_vs_h").with_suffix(".png")
-        
-        print("Writing plot to " + str(filepath))
-        
-        plt.savefig(str(filepath))
-        
-        plt.close()
-        
     assert(abs(order - expected_order) < tolerance)
     
     
@@ -249,10 +226,7 @@ def verify_temporal_order_of_accuracy(
         tolerance,
         model_constructor_kwargs = {},
         parameters = {},
-        starttime = 0.,
-        plot_errors = False,
-        plot_solution = False,
-        report = False):
+        starttime = 0.):
     
     h = mesh.cell_sizes((0.,)*mesh.geometric_dimension())
     
@@ -288,17 +262,18 @@ def verify_temporal_order_of_accuracy(
         
         model.time = model.time.assign(starttime)
         
-        model.solutions = model.assign_initial_values_to_solutions()
-        
-        model.solutions, model.time = model.run(
-            endtime = endtime, plot = plot_solution, report = report)
+        for solution in model.solutions:
+            
+            solution = solution.assign(model.initial_values)
+            
+        model.solutions, _, _ = model.run(endtime = endtime)
         
         table.append({
             "Delta_t": timestep_size,
             "L2_error": L2_error(
                 solution = model.solution,
                 true_solution = manufactured_solution(model),
-                integration_measure = model.integration_measure)})
+                integration_measure = fe.dx(degree = model.quadrature_degree))})
             
         if len(table) > 1:
         
@@ -316,28 +291,5 @@ def verify_temporal_order_of_accuracy(
         
     print("Last observed temporal order of accuracy is {0}".format(order))
     
-    if plot_errors:
-    
-        Delta_t, e = table.data["Delta_t"], table.data["L2_error"]
-        
-        plt.loglog(Delta_t, e, marker = "o")
-        
-        plt.xlabel(r"$\Delta t$")
-        
-        plt.ylabel(r"$\Vert u - u_h \Vert$")
-        
-        plt.axis("equal")
-        
-        plt.grid(True)
-        
-        filepath = model.output_directory_path.joinpath(
-            "e_vs_Delta_t").with_suffix(".png")
-        
-        print("Writing plot to " + str(filepath))
-        
-        plt.savefig(str(filepath))
-        
-        plt.close()
-        
     assert(abs(order - expected_order) < tolerance)
     

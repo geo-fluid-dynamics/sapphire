@@ -50,10 +50,7 @@ def test__verify__second_order_spatial_convergence__via_mms(
         expected_order = 2,
         tolerance = tolerance,
         timestep_size = timestep_size,
-        endtime = 0.5,
-        plot_solution = False,
-        plot_errors = False,
-        report = False)
+        endtime = 0.5)
         
         
 def test__verify__second_order_temporal_convergence__via_mms(
@@ -81,10 +78,7 @@ def test__verify__second_order_temporal_convergence__via_mms(
         expected_order = 2,
         tolerance = tolerance,
         timestep_sizes = timestep_sizes,
-        endtime = 0.5,
-        plot_solution = False,
-        plot_errors = False,
-        report = False)
+        endtime = 0.5)
 
         
 def test__verify__third_order_spatial_convergence__via_mms(
@@ -112,15 +106,12 @@ def test__verify__third_order_spatial_convergence__via_mms(
         expected_order = 3,
         tolerance = tolerance,
         timestep_size = timestep_size,
-        endtime = 0.32,
-        plot_solution = False,
-        plot_errors = False,
-        report = False)
+        endtime = 0.32)
         
         
 def test__verify__third_order_temporal_convergence__via_mms(
         model_constructor_kwargs = {
-            "quadrature_degree": 8,
+            "quadrature_degree": 2,
             "element_degree": 2,
             "time_stencil_size": 4},
         parameters = {
@@ -132,7 +123,7 @@ def test__verify__third_order_temporal_convergence__via_mms(
             "smoothing": 1./16.},
         meshsize = 16,
         timestep_sizes = (1./2., 1./4., 1./8., 1./16.),
-        tolerance = 0.15):
+        tolerance = 0.36):
     
     fempy.mms.verify_temporal_order_of_accuracy(
         model_module = model_module,
@@ -143,8 +134,5 @@ def test__verify__third_order_temporal_convergence__via_mms(
         expected_order = 3,
         tolerance = tolerance,
         timestep_sizes = timestep_sizes,
-        endtime = 0.5,
-        plot_solution = False,
-        plot_errors = False,
-        report = False)
+        endtime = 0.5)
         
