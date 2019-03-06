@@ -3,8 +3,8 @@ import fempy.model
 
 
 def solve_with_auto_continuation(
-        model,
         solve,
+        solution,
         continuation_parameter,
         continuation_sequence,
         leftval,
@@ -48,7 +48,9 @@ def solve_with_auto_continuation(
         
             return leftval >= val and val >= rightval
             
-    backup_solution = fe.Function(model.solution)
+    backup_solution = fe.Function(solution)
+    
+    snes_iteration_count = 0
     
     for attempt in attempts:
 
@@ -60,10 +62,9 @@ def solve_with_auto_continuation(
                 
                 continuation_parameter.assign(s)
                 
-                backup_solution = backup_solution.assign(
-                    model.solution)
+                backup_solution = backup_solution.assign(solution)
                 
-                model.solution, model.snes_iteration_count = solve(model)
+                solution, snes_iteration_count = solve()
                 
                 print("Solved with continuation parameter = " + str(s))
                 
@@ -95,7 +96,7 @@ def solve_with_auto_continuation(
             
             new_ss = ss[:index] + (s_to_insert,) + ss[index:]
             
-            model.solution = model.solution.assign(backup_solution)
+            solution = solution.assign(backup_solution)
             
             my_continuation_sequence = new_ss
             
@@ -108,6 +109,5 @@ def solve_with_auto_continuation(
     assert(continuation_parameter.__float__() ==
         my_continuation_sequence[-1])
     
-    return model.solution, model.snes_iteration_count,\
-    my_continuation_sequence
+    return solution, snes_iteration_count, my_continuation_sequence
     

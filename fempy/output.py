@@ -50,7 +50,7 @@ def plot(model, solution = None, plotvars = default_plotvars):
         model.output_directory_path.mkdir(
             parents = True, exist_ok = True)
     
-        filename = "{0}_t" + str(time).replace(".", "p").format(name)
+        filename = "{0}_t{0}".format(name, str(time).replace(".", "p"))
         
         filepath = model.output_directory_path.joinpath(
             filename).with_suffix(".png")
@@ -62,9 +62,7 @@ def plot(model, solution = None, plotvars = default_plotvars):
         plt.close()
 
         
-def report(model, write_header = True):
-    
-    model = model.postprocess()
+def report(model, postprocess = None, write_header = True):
     
     repvars = vars(model).copy()
     
@@ -73,6 +71,12 @@ def report(model, write_header = True):
         if type(repvars[key]) is type(fe.Constant(0.)):
         
             repvars[key] = repvars[key].__float__()
+    
+    if postprocess:
+    
+        for key, value in postprocess(model).items():
+        
+            repvars[key] = value
     
     with model.output_directory_path.joinpath(
                 "report").with_suffix(".csv").open("a+") as csv_file:

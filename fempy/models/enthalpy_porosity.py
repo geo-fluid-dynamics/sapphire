@@ -4,6 +4,15 @@ import fempy.model
 import fempy.continuation
 
 
+def element(cell, degree):
+
+    scalar = fe.FiniteElement("P", cell, degree)
+    
+    vector = fe.VectorElement("P", cell, degree)
+    
+    return fe.MixedElement(scalar, vector, scalar)
+    
+
 tanh = fe.tanh
 
 def liquid_volume_fraction(model, temperature):
@@ -28,8 +37,8 @@ def phase_dependent_material_property(solid_to_liquid_ratio):
     return a
     
     
-def default_buoyancy(model, temperature):
-    """ Boussinesq buoyancy """
+def linear_boussinesq_buoyancy(model, temperature):
+    
     T = temperature
     
     Gr = model.grashof_number
@@ -131,7 +140,7 @@ def mass(model, solution):
     return mass
     
     
-def momentum(model, solution, buoyancy = default_buoyancy):
+def momentum(model, solution, buoyancy = linear_boussinesq_buoyancy):
     
     p, u, T = fe.split(solution)
     
@@ -212,15 +221,17 @@ def plot(model, solution = None):
         model = model,
         solution = solution,
         plotvars = lambda u: plotvars(model = model, solution = u))
-        
-        
-def element(cell, degree):
+    
+    
+def postprocess(model):
+    
+    _, _, T = model.solution.split()
 
-    scalar = fe.FiniteElement("P", cell, degree)
+    phil = liquid_volume_fraction(model, T)
     
-    vector = fe.VectorElement("P", cell, degree)
+    liquid_area = fe.assemble(phil*model.integration_measure)
     
-    return fe.MixedElement(scalar, vector, scalar)
+    return {"liquid_area": liquid_area}
     
     
 class Model(fempy.model.Model):
@@ -246,16 +257,6 @@ class Model(fempy.model.Model):
         self.solid_velocity_relaxation_factor = fe.Constant(1.e-12)
         
         self.smoothing = fe.Constant(1./256.)
-        
-        self.smoothing_sequence = None
-        
-        self.save_smoothing_sequence = False
-        
-        self.autosmooth_enable = True
-        
-        self.autosmooth_maxval = 4.
-        
-        self.autosmooth_maxcount = 32
             
         super().__init__(*args,
             mesh = mesh,
@@ -264,30 +265,32 @@ class Model(fempy.model.Model):
             variational_form_residual = variational_form_residual,
             integration_measure = fe.dx(degree = quadrature_degree),
             **kwargs)
-        
-        self.backup_solution = fe.Function(self.solution)
-        
-        self.liquid_area = None
-    
-    def solve(self):
-        
-        if self.autosmooth_enable:
             
-            self.solution, self.snes_iteration_count, smoothing_sequence =\
+        self.smoothing_sequence = None
+    
+    def solve(self,
+            new_smoothing_sequence = False,
+            autosmooth_enable = True,
+            autosmooth_maxval = 4.,
+            autosmooth_maxcount = 32):
+        
+        if new_smoothing_sequence:
+        
+            self.smoothing_sequence = new_smoothing_sequence
+            
+        if autosmooth_enable:
+            
+            self.solution, self.snes_iteration_count, self.smoothing_sequence =\
                 fempy.continuation.solve_with_auto_continuation(
-                    model = self,
-                    solve = fempy.model.Model.solve,
+                    solve = super().solve,
+                    solution = self.solution,
                     continuation_parameter = self.smoothing,
                     continuation_sequence = self.smoothing_sequence,
-                    leftval = self.autosmooth_maxval,
+                    leftval = autosmooth_maxval,
                     rightval = self.smoothing.__float__(),
                     startleft = True,
-                    maxcount = self.autosmooth_maxcount)
+                    maxcount = autosmooth_maxcount)
                 
-            if self.save_smoothing_sequence:
-            
-                self.smoothing_sequence = smoothing_sequence
-            
         elif self.smoothing_sequence == None:
         
             self.solution, self.snes_iteration_count = super().solve()
@@ -295,7 +298,7 @@ class Model(fempy.model.Model):
         else:
         
             assert(self.smoothing.__float__()
-                == self.smoothing_sequence[-1])
+                == smoothing_sequence[-1])
         
             for s in self.smoothing_sequence:
             
@@ -306,16 +309,12 @@ class Model(fempy.model.Model):
                 if not self.quiet:
                     
                     print("Solved with s = " + str(s))
-    
+        
         return self.solution, self.snes_iteration_count
-        
-    def postprocess(self):
-        
-        _, _, T = self.solution.split()
     
-        phil = liquid_volume_fraction(self, T)
-        
-        self.liquid_area = fe.assemble(phil*self.integration_measure)
-        
-        return self
+    def run(self, *args, **kwargs):
     
+        super().run(*args, postprocess = postprocess, **kwargs)
+        
+        return self.solutions, self.time 
+        

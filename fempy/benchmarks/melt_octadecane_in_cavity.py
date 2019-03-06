@@ -46,12 +46,6 @@ class Model(fempy.models.enthalpy_porosity.Model):
 
         self.variational_form_residual += psi_T*q*ds
         
-        self.reset_problem_and_solver()
-        
-        self.topwall_heatflux_postswitch = 0.
-        
-        self.topwall_heatflux_switchtime = 40. + 2.*self.time_tolerance
-        
         Ra = 3.27e5
         
         Pr = 56.2
@@ -64,15 +58,36 @@ class Model(fempy.models.enthalpy_porosity.Model):
         
         self.liquidus_temperature = self.liquidus_temperature.assign(0.)
         
-    def solve(self):
+    def run(self, *args,
+            endtime,
+            topwall_heatflux_poststart = -0.02,
+            topwall_heatflux_starttime = 40.,
+            **kwargs):
     
-        if self.time.__float__() >  \
-                (self.topwall_heatflux_switchtime - self.time_tolerance):
-            
-            self.topwall_heatflux.assign(
-                self.topwall_heatflux_postswitch)
-    
-        self.solution, self.snes_iteration_count = super().solve()
+        final_endtime = endtime
         
-        return self.solution, self.snes_iteration_count
+        original_topwall_heatflux = self.topwall_heatflux.__float__()
+        
+        if final_endtime < topwall_heatflux_starttime:
+        
+            self.solutions, self.time = super().run(
+                *args, endtime = final_endtime, **kwargs)
+            
+            return self.solutions, self.time
+        
+        self.solutions, self.time = super().run(
+            *args, endtime = topwall_heatflux_starttime, **kwargs)
+        
+        self.topwall_heatflux = self.topwall_heatflux.assign(
+            topwall_heatflux_poststart)
+            
+        self.solutions, self.time = super().run(*args,
+            endtime = final_endtime,
+            assign_initial_values_to_solutions = False,
+            **kwargs)
+        
+        self.topwall_heatflux = self.topwall_heatflux.assign(
+            original_topwall_heatflux)
+            
+        return self.solutions, self.time
         

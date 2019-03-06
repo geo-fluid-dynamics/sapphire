@@ -6,42 +6,6 @@ import fempy.time_discretization
 import fempy.output
 
 
-default_solver_parameters = {
-    "snes_type": "newtonls",
-    "snes_monitor": True,
-    "ksp_type": "preonly", 
-    "pc_type": "lu", 
-    "mat_type": "aij",
-    "pc_factor_mat_solver_type": "mumps"}
-    
-    
-""" Helpers """
-def unit_vectors(mesh):
-    
-    dim = mesh.geometric_dimension()
-    
-    return tuple([fe.unit_vector(i, dim) for i in range(dim)])
-    
-    
-def time_discrete_terms(solutions, timestep_size):
-    
-    time_discrete_terms = [
-        fempy.time_discretization.bdf(
-            [fe.split(solutions[n])[i] for n in range(len(solutions))],
-            timestep_size = timestep_size)
-        for i in range(len(fe.split(solutions[0])))]
-        
-    if len(time_discrete_terms) == 1:
-    
-        time_discrete_terms = time_discrete_terms[0]
-        
-    else:
-    
-        time_discrete_terms = time_discrete_terms
-
-    return time_discrete_terms
-    
-""" The main class """    
 class Model(object):
     """ A class on which to base finite element models """
     def __init__(self, 
@@ -51,7 +15,6 @@ class Model(object):
             dirichlet_boundary_conditions,
             initial_values,
             integration_measure = fe.dx,
-            solver_parameters = default_solver_parameters,
             time_stencil_size = 2):
         
         self.mesh = mesh
@@ -85,39 +48,36 @@ class Model(object):
                 
         self.dirichlet_boundary_conditions = \
             dirichlet_boundary_conditions(model = self)
-                
-        self.solver_parameters = solver_parameters
-        
-        self.problem, self.solver = self.reset_problem_and_solver()
         
         """ Output """
         self.output_directory_path = pathlib.Path("output/")
         
         self.snes_iteration_count = 0
+        
+    def solve(self, parameters = {
+            "snes_type": "newtonls",
+            "snes_monitor": True,
+            "ksp_type": "preonly", 
+            "pc_type": "lu", 
+            "mat_type": "aij",
+            "pc_factor_mat_solver_type": "mumps"}):
     
-    def reset_problem_and_solver(self):
-    
-        self.problem = fe.NonlinearVariationalProblem(
+        problem = fe.NonlinearVariationalProblem(
             F = self.variational_form_residual,
             u = self.solution,
             bcs = self.dirichlet_boundary_conditions,
             J = fe.derivative(self.variational_form_residual, self.solution))
-        
-        self.solver = fe.NonlinearVariationalSolver(
-            problem = self.problem,
-            solver_parameters = self.solver_parameters)
             
-        return self.problem, self.solver
-    
-    def solve(self):
-    
-        self.solver.solve()
+        solver = fe.NonlinearVariationalSolver(
+            problem = problem,
+            solver_parameters = parameters)
+            
+        solver.solve()
         
-        self.snes_iteration_count += self.solver.snes.getIterationNumber()
+        self.snes_iteration_count += solver.snes.getIterationNumber()
         
         return self.solution, self.snes_iteration_count
     
-    """ Time dependence """
     def push_back_solutions(self):
         
         for i in range(len(self.solutions[1:])):
@@ -130,6 +90,7 @@ class Model(object):
     def run(self,
             endtime,
             report = True,
+            postprocess = None,
             write_solution = False,
             plot = None,
             assign_initial_values_to_solutions = True):
@@ -154,7 +115,8 @@ class Model(object):
             
         if report:
             
-            fempy.output.report(self, write_header = True)
+            fempy.output.report(
+                self, postprocess = postprocess, write_header = True)
         
         if write_solution:
         
@@ -168,12 +130,13 @@ class Model(object):
                 endtime - self.time_tolerance):
             
             self.time.assign(self.time + self.timestep_size)
-                
+            
             self.solution, self.snes_iteration_count = self.solve()
             
             if report:
             
-                fempy.output.report(self, write_header = False)
+                fempy.output.report(
+                    self, postprocess = postprocess, write_header = False)
                 
             if write_solution:
         
@@ -188,12 +151,7 @@ class Model(object):
             print("Solved at time t = {0}".format(self.time.__float__()))
                 
         return self.solutions, self.time
-
-    def postprocess(self):
-    
-        return self
         
-    """ Helpers """
     def assign_parameters(self, parameters):
     
         for key, value in parameters.items():
@@ -219,3 +177,29 @@ class Model(object):
             
         return self.solutions
         
+        
+def unit_vectors(mesh):
+    
+    dim = mesh.geometric_dimension()
+    
+    return tuple([fe.unit_vector(i, dim) for i in range(dim)])
+    
+    
+def time_discrete_terms(solutions, timestep_size):
+    
+    time_discrete_terms = [
+        fempy.time_discretization.bdf(
+            [fe.split(solutions[n])[i] for n in range(len(solutions))],
+            timestep_size = timestep_size)
+        for i in range(len(fe.split(solutions[0])))]
+        
+    if len(time_discrete_terms) == 1:
+    
+        time_discrete_terms = time_discrete_terms[0]
+        
+    else:
+    
+        time_discrete_terms = time_discrete_terms
+
+    return time_discrete_terms
+    

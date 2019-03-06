@@ -60,11 +60,12 @@ def test__regression__validate__melt_octadecane():
         plot = fempy.models.enthalpy_porosity.plot,
         report = True)
     
-    model = model.postprocess()
+    liquid_area = fempy.models.enthalpy_porosity.postprocess(
+        model)["liquid_area"]
     
-    print("Liquid area = {0}".format(model.liquid_area))
+    print("Liquid area = {0}".format(liquid_area))
     
-    assert(abs(model.liquid_area - expected_liquid_area) < tolerance)
+    assert(abs(liquid_area - expected_liquid_area) < tolerance)
 
 
 def test__regression__validate__freeze_water():
