@@ -131,15 +131,11 @@ def make_mms_verification_model_class(
                 dirichlet_boundary_conditions = dirichlet_boundary_conditions,
                 **kwargs)
                 
-            self.variational_form -= mms_source(
+            self.variational_form_residual -= mms_source(
                     model = self,
                     strong_residual = model_module.strong_residual,
                     manufactured_solution = manufactured_solution)\
                 *self.integration_measure
-            
-            self.problem, self.solver = self.reset_problem_and_solver()
-            
-            self.L2_error = None
         
     return MMSVerificationModel
     
@@ -190,16 +186,16 @@ def verify_spatial_order_of_accuracy(
         model.timestep_size = model.timestep_size.assign(timestep_size)
         
         model.solutions, model.time = model.run(
-            endtime = endtime, plot = plot_solution, report = report)
-        
-        model.L2_error = L2_error(
-            solution = model.solution,
-            true_solution = manufactured_solution(model),
-            integration_measure = model.integration_measure)
+            endtime = endtime,
+            plot = plot_solution,
+            report = report)
                 
         table.append({
             "h": h,
-            "L2_error": model.L2_error})
+            "L2_error": L2_error(
+                solution = model.solution,
+                true_solution = manufactured_solution(model),
+                integration_measure = model.integration_measure)})
             
         if len(table) > 1:
         
@@ -296,15 +292,13 @@ def verify_temporal_order_of_accuracy(
         
         model.solutions, model.time = model.run(
             endtime = endtime, plot = plot_solution, report = report)
-            
-        model.L2_error = L2_error(
-            solution = model.solution,
-            true_solution = manufactured_solution(model),
-            integration_measure = model.integration_measure)
-            
+        
         table.append({
             "Delta_t": timestep_size,
-            "L2_error": model.L2_error})
+            "L2_error": L2_error(
+                solution = model.solution,
+                true_solution = manufactured_solution(model),
+                integration_measure = model.integration_measure)})
             
         if len(table) > 1:
         

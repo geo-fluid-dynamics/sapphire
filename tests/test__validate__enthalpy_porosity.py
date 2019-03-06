@@ -120,28 +120,28 @@ def test__regression__validate__freeze_water():
         spatial_dimensions = spatial_dimensions,
         meshsize = nx)
     
-    model.timestep_size.assign(t_f/float(nt))
+    model.timestep_size = model.timestep_size.assign(t_f/float(nt))
     
-    model.solid_velocity_relaxation_factor.assign(tau)
+    model.solid_velocity_relaxation_factor = \
+        model.solid_velocity_relaxation_factor.assign(tau)
     
-    model.smoothing.assign(s)
-    
-    model.save_smoothing_sequence = False
+    model.smoothing = model.smoothing.assign(s)
     
     model.output_directory_path = model.output_directory_path.joinpath(
         "freeze_water/" +
         "s{0}_tau{1}/rx{2}_nx{3}_rt{4}_nt{5}/q{6}/tf{7}/dim{8}/".format(
             s, tau, rx, nx, rt, nt, q, t_f, spatial_dimensions))
     
-    model.run(
+    model.solutions, model.time = model.run(
         endtime = t_f,
         write_solution = False,
         plot = fempy.models.enthalpy_porosity.plot,
         report = True)
     
-    model.postprocess()
+    liquid_area = fempy.models.enthalpy_porosity.postprocess(
+        model)["liquid_area"]
     
-    print("Liquid area = {0}".format(model.liquid_area))
+    print("Liquid area = {0}".format(liquid_area))
     
-    assert(abs(model.liquid_area - expected_liquid_area) < tolerance)
+    assert(abs(liquid_area - expected_liquid_area) < tolerance)
     

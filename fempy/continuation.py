@@ -7,8 +7,6 @@ def solve_with_auto_continuation(
         solution,
         continuation_parameter,
         continuation_sequence,
-        leftval,
-        rightval,
         startleft = False,
         maxcount = 32):
     """ Solve a strongly nonlinear problem 
@@ -18,25 +16,19 @@ def solve_with_auto_continuation(
     
     Always continue from left to right.
     """
-    if continuation_sequence is None:
-    
-        my_continuation_sequence = (leftval, rightval)
-        
-    else:
-    
-        my_continuation_sequence = continuation_sequence
-    
     if startleft:
     
-        first_s_to_solve = my_continuation_sequence[0]
+        first_s_to_solve = continuation_sequence[0]
     
     else:
     
-        first_s_to_solve = my_continuation_sequence[-1]
+        first_s_to_solve = continuation_sequence[-1]
         
-    attempts = range(maxcount - len(my_continuation_sequence))
+    attempts = range(maxcount - len(continuation_sequence))
     
     solved = False
+    
+    leftval, rightval = continuation_sequence[0], continuation_sequence[-1]
     
     def bounded(val):
     
@@ -54,11 +46,11 @@ def solve_with_auto_continuation(
     
     for attempt in attempts:
 
-        s_start_index = my_continuation_sequence.index(first_s_to_solve)
+        s_start_index = continuation_sequence.index(first_s_to_solve)
         
         try:
         
-            for s in my_continuation_sequence[s_start_index:]:
+            for s in continuation_sequence[s_start_index:]:
                 
                 continuation_parameter.assign(s)
                 
@@ -76,7 +68,7 @@ def solve_with_auto_continuation(
             
             current_s = continuation_parameter.__float__()
             
-            ss = my_continuation_sequence
+            ss = continuation_sequence
         
             print("Failed to solve with continuation paramter = " 
                 + str(current_s) +
@@ -98,7 +90,7 @@ def solve_with_auto_continuation(
             
             solution = solution.assign(backup_solution)
             
-            my_continuation_sequence = new_ss
+            continuation_sequence = new_ss
             
             print("Inserted new value of " + str(s_to_insert))
             
@@ -107,7 +99,7 @@ def solve_with_auto_continuation(
     assert(solved)
     
     assert(continuation_parameter.__float__() ==
-        my_continuation_sequence[-1])
+        continuation_sequence[-1])
     
-    return solution, snes_iteration_count, my_continuation_sequence
+    return solution, snes_iteration_count, continuation_sequence
     

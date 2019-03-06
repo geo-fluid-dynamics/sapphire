@@ -6,6 +6,33 @@ import fempy.time_discretization
 import fempy.output
 
 
+def solve(
+        variational_form_residual,
+        solution,
+        dirichlet_boundary_conditions,
+        parameters = {
+            "snes_type": "newtonls",
+            "snes_monitor": True,
+            "ksp_type": "preonly", 
+            "pc_type": "lu", 
+            "mat_type": "aij",
+            "pc_factor_mat_solver_type": "mumps"}):
+
+    problem = fe.NonlinearVariationalProblem(
+        F = variational_form_residual,
+        u = solution,
+        bcs = dirichlet_boundary_conditions,
+        J = fe.derivative(variational_form_residual, solution))
+        
+    solver = fe.NonlinearVariationalSolver(
+        problem = problem,
+        solver_parameters = parameters)
+        
+    solver.solve()
+    
+    return solution, solver.snes.getIterationNumber()
+    
+    
 class Model(object):
     """ A class on which to base finite element models """
     def __init__(self, 
@@ -54,27 +81,16 @@ class Model(object):
         
         self.snes_iteration_count = 0
         
-    def solve(self, parameters = {
-            "snes_type": "newtonls",
-            "snes_monitor": True,
-            "ksp_type": "preonly", 
-            "pc_type": "lu", 
-            "mat_type": "aij",
-            "pc_factor_mat_solver_type": "mumps"}):
-    
-        problem = fe.NonlinearVariationalProblem(
-            F = self.variational_form_residual,
-            u = self.solution,
-            bcs = self.dirichlet_boundary_conditions,
-            J = fe.derivative(self.variational_form_residual, self.solution))
-            
-        solver = fe.NonlinearVariationalSolver(
-            problem = problem,
-            solver_parameters = parameters)
-            
-        solver.solve()
+    def solve(self, *args, **kwargs):
         
-        self.snes_iteration_count += solver.snes.getIterationNumber()
+        self.solution, snes_iteration_count = solve(*args,
+            variational_form_residual = self.variational_form_residual,
+            solution = self.solution,
+            dirichlet_boundary_conditions = \
+                self.dirichlet_boundary_conditions,
+            **kwargs)
+           
+        self.snes_iteration_count += snes_iteration_count
         
         return self.solution, self.snes_iteration_count
     
@@ -89,13 +105,17 @@ class Model(object):
         
     def run(self,
             endtime,
+            solve = None,
             report = True,
             postprocess = None,
             write_solution = False,
-            plot = None,
-            assign_initial_values_to_solutions = True):
+            plot = None):
             
         assert(len(self.solutions) > 1)
+        
+        if solve is None:
+        
+            solve = self.solve
         
         self.output_directory_path.mkdir(
             parents = True, exist_ok = True)
@@ -106,12 +126,6 @@ class Model(object):
         if write_solution:
         
             solution_file = fe.File(str(solution_filepath))
-        
-        if assign_initial_values_to_solutions:
-        
-            for solution in self.solutions:
-        
-                solution.assign(self.initial_values)
             
         if report:
             
@@ -131,7 +145,7 @@ class Model(object):
             
             self.time.assign(self.time + self.timestep_size)
             
-            self.solution, self.snes_iteration_count = self.solve()
+            self.solution, self.snes_iteration_count = solve()
             
             if report:
             

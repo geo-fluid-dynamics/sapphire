@@ -50,7 +50,7 @@ def plot(model, solution = None, plotvars = default_plotvars):
         model.output_directory_path.mkdir(
             parents = True, exist_ok = True)
     
-        filename = "{0}_t{0}".format(name, str(time).replace(".", "p"))
+        filename = "{0}_t{1}".format(name, str(time).replace(".", "p"))
         
         filepath = model.output_directory_path.joinpath(
             filename).with_suffix(".png")

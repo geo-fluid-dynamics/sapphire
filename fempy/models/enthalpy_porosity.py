@@ -65,7 +65,7 @@ dot, inner, grad, div, sym = fe.dot, fe.inner, fe.grad, fe.div, fe.sym
 
 diff = fe.diff
 
-def strong_residual(model, solution):
+def strong_residual(model, solution, buoyancy = linear_boussinesq_buoyancy):
     
     Pr = model.prandtl_number
     
@@ -257,64 +257,48 @@ class Model(fempy.model.Model):
         self.solid_velocity_relaxation_factor = fe.Constant(1.e-12)
         
         self.smoothing = fe.Constant(1./256.)
-            
+        
+        if "variational_form_residual" not in kwargs:
+        
+            kwargs["variational_form_residual"] = variational_form_residual
+        
         super().__init__(*args,
             mesh = mesh,
             element = element(
                 cell = mesh.ufl_cell(), degree = element_degree),
-            variational_form_residual = variational_form_residual,
             integration_measure = fe.dx(degree = quadrature_degree),
             **kwargs)
             
-        self.smoothing_sequence = None
-    
-    def solve(self,
+    def solve_with_auto_smoothing(self,
             new_smoothing_sequence = False,
-            autosmooth_enable = True,
-            autosmooth_maxval = 4.,
-            autosmooth_maxcount = 32):
+            maxcount = 32):
         
         if new_smoothing_sequence:
         
             self.smoothing_sequence = new_smoothing_sequence
+        
+        elif self.smoothing_sequence is None:
             
-        if autosmooth_enable:
+            self.smoothing_sequence = (4., self.smoothing.__float__())
             
-            self.solution, self.snes_iteration_count, self.smoothing_sequence =\
-                fempy.continuation.solve_with_auto_continuation(
-                    solve = super().solve,
-                    solution = self.solution,
-                    continuation_parameter = self.smoothing,
-                    continuation_sequence = self.smoothing_sequence,
-                    leftval = autosmooth_maxval,
-                    rightval = self.smoothing.__float__(),
-                    startleft = True,
-                    maxcount = autosmooth_maxcount)
+        self.solution, self.snes_iteration_count, self.smoothing_sequence = \
+            fempy.continuation.solve_with_auto_continuation(
+                solve = super().solve,
+                solution = self.solution,
+                continuation_parameter = self.smoothing,
+                continuation_sequence = self.smoothing_sequence,
+                startleft = True,
+                maxcount = maxcount)
                 
-        elif self.smoothing_sequence == None:
-        
-            self.solution, self.snes_iteration_count = super().solve()
-           
-        else:
-        
-            assert(self.smoothing.__float__()
-                == smoothing_sequence[-1])
-        
-            for s in self.smoothing_sequence:
-            
-                self.smoothing.assign(s)
-                
-                self.solution, self.snes_iteration_count = super().solve()
-                
-                if not self.quiet:
-                    
-                    print("Solved with s = " + str(s))
-        
         return self.solution, self.snes_iteration_count
     
-    def run(self, *args, **kwargs):
+    def run(self, *args, new_smoothing_sequence = False, **kwargs):
     
-        super().run(*args, postprocess = postprocess, **kwargs)
+        self.solutions, self.time = super().run(*args,
+            solve = lambda: self.solve_with_auto_smoothing(
+                new_smoothing_sequence = new_smoothing_sequence),
+            postprocess = postprocess,
+            **kwargs)
         
         return self.solutions, self.time 
         
