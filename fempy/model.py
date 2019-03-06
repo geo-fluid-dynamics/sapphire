@@ -41,7 +41,6 @@ def time_discrete_terms(solutions, timestep_size):
 
     return time_discrete_terms
     
-    
 """ The main class """    
 class Model(object):
     """ A class on which to base finite element models """
@@ -174,7 +173,7 @@ class Model(object):
             
             if report:
             
-                fempy.output.report(self, write_header = True)
+                fempy.output.report(self, write_header = False)
                 
             if write_solution:
         

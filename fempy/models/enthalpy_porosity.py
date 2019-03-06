@@ -273,15 +273,16 @@ class Model(fempy.model.Model):
         
         if self.autosmooth_enable:
             
-            smoothing_sequence = fempy.continuation.solve(
-                model = self,
-                solver = self.solver,
-                continuation_parameter = self.smoothing,
-                continuation_sequence = self.smoothing_sequence,
-                leftval = self.autosmooth_maxval,
-                rightval = self.smoothing.__float__(),
-                startleft = True,
-                maxcount = self.autosmooth_maxcount)
+            self.solution, self.snes_iteration_count, smoothing_sequence =\
+                fempy.continuation.solve_with_auto_continuation(
+                    model = self,
+                    solve = fempy.model.Model.solve,
+                    continuation_parameter = self.smoothing,
+                    continuation_sequence = self.smoothing_sequence,
+                    leftval = self.autosmooth_maxval,
+                    rightval = self.smoothing.__float__(),
+                    startleft = True,
+                    maxcount = self.autosmooth_maxcount)
                 
             if self.save_smoothing_sequence:
             
