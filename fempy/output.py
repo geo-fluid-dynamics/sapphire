@@ -14,38 +14,43 @@ def write_solution(model, file):
         file.write(*self.solution.split())
     
 
-def plot(model):
+def default_plotvars(solution):
     
+    subscripts, functions = enumerate(solution.split())
+    
+    labels = [r"$w_{0}$".format(i) for i in subscripts]
+    
+    filenames = ["w{0}".format(i) for i in subscripts]
+    
+    return functions, labels, filenames
+    
+    
+def plot(model, solution = None, plotvars = default_plotvars):
+    
+    if solution is None:
+    
+        solution = model.solution
+        
     outpath = model.output_directory_path
     
     outpath.mkdir(parents = True, exist_ok = True)
     
-    if hasattr(model, "time"):
+    time = model.time.__float__()
     
-        time = model.time.__float__()
-    
-    for f, label, name in zip(*model.plotvars()):
+    for f, label, name in zip(*plotvars(solution)):
         
         fe.plot(f)
         
         plt.axis("square")
         
-        title = label
-        
-        if hasattr(model, "time"):
-        
-            title += ", $ t = " + str(time) + "$"
+        title = "label, $ t = {0}$".format(time)
         
         plt.title(title)
         
         model.output_directory_path.mkdir(
             parents = True, exist_ok = True)
     
-        filename = name
-        
-        if hasattr(model, "time"):
-        
-            filename += "_t" + str(time).replace(".", "p")
+        filename = "{0}_t" + str(time).replace(".", "p").format(name)
         
         filepath = model.output_directory_path.joinpath(
             filename).with_suffix(".png")
@@ -59,7 +64,7 @@ def plot(model):
         
 def report(model, write_header = True):
     
-    model.postprocess()
+    model = model.postprocess()
     
     repvars = vars(model).copy()
     

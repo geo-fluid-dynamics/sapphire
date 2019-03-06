@@ -28,7 +28,6 @@ def time_discrete_terms(solutions, timestep_size):
     time_discrete_terms = [
         fempy.time_discretization.bdf(
             [fe.split(solutions[n])[i] for n in range(len(solutions))],
-            order = len(solutions) - 1,
             timestep_size = timestep_size)
         for i in range(len(fe.split(solutions[0])))]
         
@@ -42,18 +41,6 @@ def time_discrete_terms(solutions, timestep_size):
 
     return time_discrete_terms
     
-
-""" Output """    
-def plotvars(solution):
-    
-    subscripts, functions = enumerate(solution.split())
-    
-    labels = [r"$w_{0}$".format(i) for i in subscripts]
-    
-    filenames = ["w{0}".format(i) for i in subscripts]
-    
-    return functions, labels, filenames
-    
     
 """ The main class """    
 class Model(object):
@@ -64,9 +51,9 @@ class Model(object):
             variational_form_residual,
             dirichlet_boundary_conditions,
             initial_values,
+            integration_measure = fe.dx,
             solver_parameters = default_solver_parameters,
-            time_stencil_size = 2,
-            quadrature_degree = None):
+            time_stencil_size = 2):
         
         self.mesh = mesh
         
@@ -74,7 +61,7 @@ class Model(object):
         
         self.function_space = fe.FunctionSpace(mesh, element)
         
-        self.integration_measure = fe.dx(degree = quadrature_degree)
+        self.integration_measure = integration_measure
         
         """ Time dependence """
         self.solutions = [fe.Function(self.function_space) 
@@ -93,9 +80,9 @@ class Model(object):
         self.assign_initial_values_to_solutions()
         
         """ Construct the variational problem and solver """
-        self.variational_form = variational_form_residual(
+        self.variational_form_residual = variational_form_residual(
                 model = self,
-                solution = self.solution)*self.integration_measure
+                solution = self.solution)
                 
         self.dirichlet_boundary_conditions = \
             dirichlet_boundary_conditions(model = self)
@@ -107,15 +94,15 @@ class Model(object):
         """ Output """
         self.output_directory_path = pathlib.Path("output/")
         
-        self.snes_iteration_counter = 0
+        self.snes_iteration_count = 0
     
     def reset_problem_and_solver(self):
     
         self.problem = fe.NonlinearVariationalProblem(
-            F = self.variational_form,
+            F = self.variational_form_residual,
             u = self.solution,
             bcs = self.dirichlet_boundary_conditions,
-            J = fe.derivative(self.variational_form, self.solution))
+            J = fe.derivative(self.variational_form_residual, self.solution))
         
         self.solver = fe.NonlinearVariationalSolver(
             problem = self.problem,
@@ -127,9 +114,9 @@ class Model(object):
     
         self.solver.solve()
         
-        self.snes_iteration_counter += self.solver.snes.getIterationNumber()
+        self.snes_iteration_count += self.solver.snes.getIterationNumber()
         
-        return self.solution, self.snes_iteration_counter
+        return self.solution, self.snes_iteration_count
     
     """ Time dependence """
     def push_back_solutions(self):
@@ -145,9 +132,8 @@ class Model(object):
             endtime,
             report = True,
             write_solution = False,
-            plot = False,
-            assign_initial_values_to_solutions = True,
-            quiet = False):
+            plot = None,
+            assign_initial_values_to_solutions = True):
             
         assert(len(self.solutions) > 1)
         
@@ -177,14 +163,14 @@ class Model(object):
         
         if plot:
             
-            fempy.output.plot(self)
+            plot(self)
             
         while self.time.__float__() < (
                 endtime - self.time_tolerance):
             
             self.time.assign(self.time + self.timestep_size)
                 
-            self.solution, _ = self.solve()
+            self.solution, self.snes_iteration_count = self.solve()
             
             if report:
             
@@ -196,16 +182,18 @@ class Model(object):
                 
             if plot:
             
-                fempy.output.plot(self)
+                plot(self, self.solution)
             
             self.solutions = self.push_back_solutions()
             
-            if not quiet:
-            
-                print("Solved at time t = {0}".format(self.time.__float__()))
+            print("Solved at time t = {0}".format(self.time.__float__()))
                 
         return self.solutions, self.time
 
+    def postprocess(self):
+    
+        return self
+        
     """ Helpers """
     def assign_parameters(self, parameters):
     

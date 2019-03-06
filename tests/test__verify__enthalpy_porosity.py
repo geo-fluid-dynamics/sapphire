@@ -1,6 +1,6 @@
 import firedrake as fe 
 import fempy.mms
-import fempy.models.enthalpy_porosity
+from fempy.models import enthalpy_porosity as model_module
 
 
 def manufactured_solution(model):
@@ -13,7 +13,7 @@ def manufactured_solution(model):
     
     t_f = fe.Constant(1.)
     
-    ihat, jhat = model.unit_vectors()
+    ihat, jhat = fempy.model.unit_vectors(model.mesh)
     
     u = exp(t)*sin(2.*pi*x[0])*sin(pi*x[1])*ihat + \
         exp(t)*sin(pi*x[0])*sin(2.*pi*x[1])*jhat
@@ -42,11 +42,11 @@ def test__verify__second_order_spatial_convergence__via_mms(
         tolerance = 0.02):
     
     fempy.mms.verify_spatial_order_of_accuracy(
-        Model = fempy.models.enthalpy_porosity.Model,
+        model_module = model_module,
+        manufactured_solution = manufactured_solution,
         model_constructor_kwargs = model_constructor_kwargs,
         meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
         parameters = parameters,
-        manufactured_solution = manufactured_solution,
         expected_order = 2,
         tolerance = tolerance,
         timestep_size = timestep_size,
@@ -73,11 +73,11 @@ def test__verify__second_order_temporal_convergence__via_mms(
         tolerance = 0.4):
     
     fempy.mms.verify_temporal_order_of_accuracy(
-        Model = fempy.models.enthalpy_porosity.Model,
+        model_module = model_module,
+        manufactured_solution = manufactured_solution,
         model_constructor_kwargs = model_constructor_kwargs,
         mesh = fe.UnitSquareMesh(meshsize, meshsize),
         parameters = parameters,
-        manufactured_solution = manufactured_solution,
         expected_order = 2,
         tolerance = tolerance,
         timestep_sizes = timestep_sizes,
@@ -104,11 +104,11 @@ def test__verify__third_order_spatial_convergence__via_mms(
         tolerance = 0.32):
     
     fempy.mms.verify_spatial_order_of_accuracy(
-        Model = fempy.models.enthalpy_porosity.Model,
+        model_module = model_module,
+        manufactured_solution = manufactured_solution,
         model_constructor_kwargs = model_constructor_kwargs,
         meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
         parameters = parameters,
-        manufactured_solution = manufactured_solution,
         expected_order = 3,
         tolerance = tolerance,
         timestep_size = timestep_size,
@@ -135,11 +135,11 @@ def test__verify__third_order_temporal_convergence__via_mms(
         tolerance = 0.15):
     
     fempy.mms.verify_temporal_order_of_accuracy(
-        Model = fempy.models.enthalpy_porosity.Model,
+        model_module = model_module,
+        manufactured_solution = manufactured_solution,
         model_constructor_kwargs = model_constructor_kwargs,
         mesh = fe.UnitSquareMesh(meshsize, meshsize),
         parameters = parameters,
-        manufactured_solution = manufactured_solution,
         expected_order = 3,
         tolerance = tolerance,
         timestep_sizes = timestep_sizes,

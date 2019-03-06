@@ -62,9 +62,7 @@ def solve(
                 
                 solver.solve()
                 
-                if not model.quiet:
-                
-                    print("Solved with continuation parameter = " + str(s))
+                print("Solved with continuation parameter = " + str(s))
                 
             solved = True
             
@@ -75,13 +73,11 @@ def solve(
             current_s = continuation_parameter.__float__()
             
             ss = my_continuation_sequence
-            
-            if not model.quiet:
-            
-                print("Failed to solve with continuation paramter = " 
-                    + str(current_s) +
-                    " from the sequence " + str(ss))
-            
+        
+            print("Failed to solve with continuation paramter = " 
+                + str(current_s) +
+                " from the sequence " + str(ss))
+        
             if attempt == attempts[-1]:
                 
                 break
@@ -100,9 +96,7 @@ def solve(
             
             my_continuation_sequence = new_ss
             
-            if not model.quiet:
-            
-                print("Inserted new value of " + str(s_to_insert))
+            print("Inserted new value of " + str(s_to_insert))
             
             first_s_to_solve = s_to_insert
     

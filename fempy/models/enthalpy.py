@@ -17,16 +17,15 @@ def liquid_volume_fraction(model, temperature):
     return 0.5*(1. + tanh((T - T_L)/s))
 
     
-def time_discrete_terms(model, solutions, timestep_size):
+def time_discrete_terms(model):
     
     T_t = fempy.model.time_discrete_terms(
-        solutions = solutions, timestep_size = timestep_size)
+        solutions = model.solutions, timestep_size = model.timestep_size)
         
     phil_t = fempy.time_discretization.bdf(
         [liquid_volume_fraction(model = model, temperature = T_n)
-            for T_n in solutions],
-        order = len(solutions) - 1,
-        timestep_size = timestep_size)
+            for T_n in model.solutions],
+        timestep_size = model.timestep_size)
     
     return T_t, phil_t
     

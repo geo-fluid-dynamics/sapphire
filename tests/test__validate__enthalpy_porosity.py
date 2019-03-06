@@ -54,20 +54,17 @@ def test__regression__validate__melt_octadecane():
         + "second_order_"
         + "nx" + str(nx) + "_Deltat" + str(Delta_t) 
         + "_s" + str(s) + "_tau" + str(tau) + "/" + "tf" + str(endtime) + "/")
-        
-    simulation = fempy.simulation.Simulation(model)
     
-    simulation.run(endtime = endtime, plot = True, report = True)
+    model.run(
+        endtime = endtime,
+        plot = fempy.models.enthalpy_porosity.plot,
+        report = True)
     
-    p, u, T = model.solution.split()
+    model = model.postprocess()
     
-    phil = model.porosity(T)
+    print("Liquid area = {0}".format(model.liquid_area))
     
-    liquid_area = fe.assemble(phil*fe.dx)
-    
-    print("Liquid area = " + str(liquid_area))
-    
-    assert(abs(liquid_area - expected_liquid_area) < tolerance)
+    assert(abs(model.liquid_area - expected_liquid_area) < tolerance)
 
 
 def test__regression__validate__freeze_water():
@@ -89,12 +86,6 @@ def test__regression__validate__freeze_water():
     """ For Kowalewski's water freezing experiment,
     at t_f__SI 2340 s, t_f = 1.44.
     """
-    plot = False
-    
-    write_solution = False
-    
-    report = False
-    
     spatial_dimensions = 2
     
     
@@ -140,22 +131,16 @@ def test__regression__validate__freeze_water():
         "freeze_water/" +
         "s{0}_tau{1}/rx{2}_nx{3}_rt{4}_nt{5}/q{6}/tf{7}/dim{8}/".format(
             s, tau, rx, nx, rt, nt, q, t_f, spatial_dimensions))
-        
-    simulation = fempy.simulation.Simulation(model)
-        
-    simulation.run(
+    
+    model.run(
         endtime = t_f,
-        write_solution = write_solution,
-        plot = plot,
-        report = report)
+        write_solution = False,
+        plot = fempy.models.enthalpy_porosity.plot,
+        report = True)
     
-    p, u, T = model.solution.split()
+    model.postprocess()
     
-    phil = model.porosity(T)
+    print("Liquid area = {0}".format(model.liquid_area))
     
-    liquid_area = fe.assemble(phil*fe.dx)
-    
-    print("Liquid area = " + str(liquid_area))
-    
-    assert(abs(liquid_area - expected_liquid_area) < tolerance)
+    assert(abs(model.liquid_area - expected_liquid_area) < tolerance)
     

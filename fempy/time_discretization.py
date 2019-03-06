@@ -1,9 +1,9 @@
 """ Time discretization formulas """
 
 
-def bdf(ys, order, timestep_size):
+def bdf(ys, timestep_size):
     """ Backward difference formulas """
-    assert(len(ys) == (order + 1))
+    order = len(ys) - 1
     
     """ Table of BDF method coefficients """
     if order == 1:

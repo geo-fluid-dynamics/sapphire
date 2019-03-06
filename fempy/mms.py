@@ -14,12 +14,12 @@ import pathlib
 
 def mms_source(
         model,
-        strong_form_residual,
+        strong_residual,
         manufactured_solution):
     
     V = model.solution.function_space()
     
-    _r = strong_form_residual(
+    _r = strong_residual(
         model = model, solution = manufactured_solution(model))
         
     if type(model.element) is fe.FiniteElement:
@@ -133,7 +133,7 @@ def make_mms_verification_model_class(
                 
             self.variational_form -= mms_source(
                     model = self,
-                    strong_form_residual = model_module.strong_form_residual,
+                    strong_residual = model_module.strong_residual,
                     manufactured_solution = manufactured_solution)\
                 *self.integration_measure
             

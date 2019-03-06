@@ -2,6 +2,25 @@ import firedrake as fe
 import fempy.models.enthalpy_porosity
 
 
+def initial_values(model):
+    
+    return fe.interpolate(
+        fe.Expression(
+            (0., 0., 0., model.cold_wall_temperature.__float__()),
+            element = model.element),
+        model.function_space)
+        
+        
+def dirichlet_boundary_conditions(model):
+
+    W = model.function_space
+    
+    return [
+        fe.DirichletBC(W.sub(1), (0., 0.), "on_boundary"),
+        fe.DirichletBC(W.sub(2), model.hot_wall_temperature, 1),
+        fe.DirichletBC(W.sub(2), model.cold_wall_temperature, 2)]
+        
+        
 class Model(fempy.models.enthalpy_porosity.Model):
     
     def __init__(self, *args, meshsize, **kwargs):
@@ -15,56 +34,36 @@ class Model(fempy.models.enthalpy_porosity.Model):
         super().__init__(
             *args,
             mesh = fe.UnitSquareMesh(meshsize, meshsize),
+            initial_values = initial_values,
+            dirichlet_boundary_conditions = dirichlet_boundary_conditions,
             **kwargs)
         
-        Ra = 3.27e5
+        q = self.topwall_heatflux
+
+        _, _, psi_T = fe.TestFunctions(self.function_space)
+
+        ds = fe.ds(domain = self.mesh, subdomain_id = 4)
+
+        self.variational_form_residual += psi_T*q*ds
         
-        Pr = 56.2
-        
-        self.grashof_number.assign(Ra/Pr)
-        
-        self.prandtl_number.assign(Pr)
-        
-        self.stefan_number.assign(0.045)
-        
-        self.liquidus_temperature.assign(0.)
+        self.reset_problem_and_solver()
         
         self.topwall_heatflux_postswitch = 0.
         
         self.topwall_heatflux_switchtime = 40. + 2.*self.time_tolerance
         
-    def init_dirichlet_boundary_conditions(self):
-    
-        W = self.function_space
+        Ra = 3.27e5
         
-        self.dirichlet_boundary_conditions = [
-            fe.DirichletBC(W.sub(1), (0., 0.), "on_boundary"),
-            fe.DirichletBC(W.sub(2), self.hot_wall_temperature, 1),
-            fe.DirichletBC(W.sub(2), self.cold_wall_temperature, 2)]
-            
-    def init_problem(self):
+        Pr = 56.2
         
-        q = self.topwall_heatflux
+        self.grashof_number = self.grashof_number.assign(Ra/Pr)
         
-        _, _, psi_T = fe.TestFunctions(self.function_space)
+        self.prandtl_number = self.prandtl_number.assign(Pr)
         
-        ds = fe.ds(domain = self.mesh, subdomain_id = 4)
+        self.stefan_number = self.stefan_number.assign(0.045)
         
-        r = self.weak_form_residual*self.integration_measure + psi_T*q*ds
+        self.liquidus_temperature = self.liquidus_temperature.assign(0.)
         
-        u = self.solution
-        
-        self.problem = fe.NonlinearVariationalProblem(
-            r, u, self.dirichlet_boundary_conditions, fe.derivative(r, u))
-            
-    def initial_values(self):
-        
-        return fe.interpolate(
-            fe.Expression(
-                (0., 0., 0., self.cold_wall_temperature.__float__()),
-                element = self.element),
-            self.function_space)
-            
     def solve(self):
     
         if self.time.__float__() >  \
@@ -73,5 +72,7 @@ class Model(fempy.models.enthalpy_porosity.Model):
             self.topwall_heatflux.assign(
                 self.topwall_heatflux_postswitch)
     
-        super().solve()
+        self.solution, self.snes_iteration_count = super().solve()
+        
+        return self.solution, self.snes_iteration_count
         
