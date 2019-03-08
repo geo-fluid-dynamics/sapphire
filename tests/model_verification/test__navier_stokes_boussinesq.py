@@ -113,7 +113,7 @@ def test__verify_against_heat_driven_cavity_benchmark():
     model = fempy.benchmarks.heat_driven_cavity.Model(
         quadrature_degree = 4, element_degree = 1, meshsize = 40)
     
-    model.solution, _ = model.solve()
+    model.solution = model.solve()
     
     """ Verify against the result published in @cite{wang2010comprehensive}. """
     Gr = model.grashof_number.__float__()

@@ -7,11 +7,11 @@ def write_solution(model, file):
     
     if hasattr(model, "time"):
     
-        file.write(*self.solution.split(), time = self.time)
+        file.write(*model.solution.split(), time = model.time.__float__())
         
     else:
     
-        file.write(*self.solution.split())
+        file.write(*model.solution.split())
     
 
 def default_plotvars(solution):

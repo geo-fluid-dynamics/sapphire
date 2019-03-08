@@ -268,34 +268,52 @@ class Model(fempy.model.Model):
                 cell = mesh.ufl_cell(), degree = element_degree),
             **kwargs)
             
-    def solve_with_auto_smoothing(self,
-            new_smoothing_sequence = False,
-            maxcount = 32):
+    def solve_with_auto_smoothing(self):
         
-        if new_smoothing_sequence:
+        def solve_with_over_regularization(self, startval):
         
-            self.smoothing_sequence = new_smoothing_sequence
-        
-        elif self.smoothing_sequence is None:
-            
-            self.smoothing_sequence = (4., self.smoothing.__float__())
-        
-        self.solution, self.snes_iterations, self.smoothing_sequence = \
-            fempy.continuation.solve_with_auto_continuation(
+            return fempy.continuation.solve_with_over_regularization(
                 solve = super().solve,
                 solution = self.solution,
-                continuation_parameter = self.smoothing,
-                continuation_sequence = self.smoothing_sequence,
-                startleft = True,
-                maxcount = maxcount)
+                regularization_parameter = self.smoothing,
+                startval = startval)
         
-        return self.solution, self.snes_iterations, self.smoothing_sequence
+        def solve_with_bounded_regularization_sequence(self):
+        
+            return fempy.continuation.solve_with_bounded_regularization_sequence(
+                solve = super().solve,
+                solution = self.solution,
+                backup_solution = self.backup_solution,
+                regularization_parameter = self.smoothing,
+                initial_regularization_sequence = self.smoothing_sequence)
+                
+        if self.smoothing_sequence is None:
+        
+            self.solution, smax = solve_with_over_regularization(self, startval = None)
+            
+            self.smoothing_sequence = (smax, self.smoothing.__float__())
+            
+        try:
+            
+            self.solution, self.smoothing_sequence = \
+                solve_with_bounded_regularization_sequence(self)
+                
+        except fe.exceptions.ConvergenceError: 
+            # Try one more time.
+            self.solution, smax = solve_with_over_regularization(
+                self, startval = self.smoothing_sequence[-1])
+            
+            self.smoothing_sequence = (smax, self.smoothing.__float__())
+            
+            self.solution, self.smoothing_sequence = \
+                solve_with_bounded_regularization_sequence(self)
+                
+        return self.solution
     
-    def run(self, *args, new_smoothing_sequence = False, **kwargs):
+    def run(self, *args, **kwargs):
         
         return super().run(*args,
-            solve = lambda: self.solve_with_auto_smoothing(
-                new_smoothing_sequence = new_smoothing_sequence)[:-1],
+            solve = self.solve_with_auto_smoothing,
             postprocess = postprocess,
             **kwargs)
             

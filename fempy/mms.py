@@ -183,11 +183,11 @@ def verify_spatial_order_of_accuracy(
             
             model.timestep_size = model.timestep_size.assign(timestep_size)
             
-            model.solutions, _, _ = model.run(endtime = endtime)
+            model.solutions, _ = model.run(endtime = endtime)
             
         else:
         
-            model.solution, _ = model.solve()
+            model.solution = model.solve()
             
         table.append({
             "h": h,
@@ -266,7 +266,7 @@ def verify_temporal_order_of_accuracy(
             
             solution = solution.assign(model.initial_values)
             
-        model.solutions, _, _ = model.run(endtime = endtime)
+        model.solutions, _, = model.run(endtime = endtime)
         
         table.append({
             "Delta_t": timestep_size,
