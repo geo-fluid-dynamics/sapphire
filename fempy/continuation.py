@@ -1,101 +1,137 @@
 import firedrake as fe
 
 
-def solve_with_auto_continuation(
+def solve_with_over_regularization(
         solve,
         solution,
-        continuation_parameter,
-        continuation_sequence,
-        startleft = False,
-        maxcount = 32):
+        regularization_parameter,
+        search_operator = lambda r: 2.*r,
+        attempts = 16,
+        startval = None):
+    
+    original_regularization_parameter_value = \
+        regularization_parameter.__float__()
+        
+    if startval is None:
+    
+        r0 = original_regularization_parameter_value
+        
+    else:
+    
+        r0 = startval
+    
+    backup_solution = fe.Function(solution)
+    
+    print("Searching for a working regularization")
+    
+    r = r0
+    
+    for attempt in range(attempts):
+        
+        regularization_parameter = regularization_parameter.assign(r)
+        
+        print("Trying r = {0}".format(r))
+        
+        try:
+            
+            solution = solve()
+            
+            regularization_parameter = regularization_parameter.assign(     
+                original_regularization_parameter_value)
+            
+            return solution, r
+            
+        except fe.exceptions.ConvergenceError as exception:
+            
+            r = search_operator(r)
+            
+            solution = solution.assign(backup_solution)
+            
+            if attempt == range(attempts)[-1]:
+            
+                raise(exception)
+                
+def solve_with_bounded_regularization_sequence(
+        solve,
+        solution,
+        backup_solution,
+        regularization_parameter,
+        initial_regularization_sequence,
+        maxcount = 16):
     """ Solve a strongly nonlinear problem 
     by solving a sequence of over-regularized problems 
     with successively reduced regularization.
     
     Always continue from left to right.
     """
-    if startleft:
+    r0 = regularization_parameter.__float__()
     
-        first_s_to_solve = continuation_sequence[0]
+    assert(initial_regularization_sequence[-1] == r0)
     
-    else:
+    regularization_sequence = initial_regularization_sequence
     
-        first_s_to_solve = continuation_sequence[-1]
-        
-    attempts = range(maxcount - len(continuation_sequence))
+    first_r_to_solve = regularization_sequence[0]
+    
+    attempts = range(maxcount - len(regularization_sequence))
     
     solved = False
     
-    leftval, rightval = continuation_sequence[0], continuation_sequence[-1]
-    
-    def bounded(val):
-    
-        if leftval < rightval:
-        
-            return leftval <= val and val <= rightval
-            
-        if leftval > rightval:
-        
-            return leftval >= val and val >= rightval
-            
-    backup_solution = fe.Function(solution)
-    
-    snes_iteration_count = 0
+    backup_solution = backup_solution.assign(solution)
     
     for attempt in attempts:
 
-        s_start_index = continuation_sequence.index(first_s_to_solve)
+        r_start_index = regularization_sequence.index(first_r_to_solve)
         
         try:
         
-            for s in continuation_sequence[s_start_index:]:
+            for r in regularization_sequence[r_start_index:]:
                 
-                continuation_parameter.assign(s)
+                regularization_parameter.assign(r)
+                
+                solution = solve()
                 
                 backup_solution = backup_solution.assign(solution)
                 
-                solution, snes_iteration_count = solve()
-                
-                print("Solved with continuation parameter = {0}".format(s))
+                print("Solved with regularization parameter = {0}".format(r))
                 
             solved = True
             
             break
             
-        except fe.exceptions.ConvergenceError:  
+        except fe.exceptions.ConvergenceError as exception:  
             
-            current_s = continuation_parameter.__float__()
+            current_r = regularization_parameter.__float__()
             
-            ss = continuation_sequence
+            rs = regularization_sequence
         
-            print("Failed to solve with continuation paramter = {0} " +
-                "from the sequence {1}".format(current_s, ss))
+            print("Failed to solve with regularization paramter = {0} \
+                from the sequence {1}".format(current_r, rs))
                 
-            if attempt == attempts[-1]:
+            index = rs.index(current_r)
+            
+            if attempt == attempts[-1] or (index == 0):
                 
-                break
+                regularization_parameter = regularization_parameter.assign(r0)
+                
+                raise(exception)
+                
+            r_to_insert = (current_r + rs[index - 1])/2.
             
-            index = ss.index(current_s)
-            
-            assert(index > 0)
-            
-            s_to_insert = (current_s + ss[index - 1])/2.
-            
-            assert(bounded(s_to_insert))
-            
-            new_ss = ss[:index] + (s_to_insert,) + ss[index:]
+            new_rs = rs[:index] + (r_to_insert,) + rs[index:]
             
             solution = solution.assign(backup_solution)
             
-            continuation_sequence = new_ss
+            regularization_sequence = new_rs
             
-            print("Inserted new value of " + str(s_to_insert))
+            print("Inserted new value of " + str(r_to_insert))
             
-            first_s_to_solve = s_to_insert
-    
+            first_r_to_solve = r_to_insert
+            
     assert(solved)
     
-    assert(continuation_parameter.__float__() == continuation_sequence[-1])
+    assert(regularization_parameter.__float__() == r0)
     
-    return solution, snes_iteration_count, continuation_sequence
+    assert(regularization_sequence[-1] == r0)
+    
+    return solution, regularization_sequence
     

@@ -199,8 +199,12 @@ def variational_form_residual(model, solution):
         *fe.dx(degree = model.quadrature_degree)
 
     
-def plotvars(model, solution):
+def plotvars(model, solution = None):
     
+    if solution is None:
+    
+        solution = model.solution
+        
     V = fe.FunctionSpace(
         solution.function_space().mesh(),
         fe.FiniteElement("P", model.mesh.ufl_cell(), 1))
@@ -213,25 +217,6 @@ def plotvars(model, solution):
     return (p, u, T, phil), \
         ("p", "\\mathbf{u}", "T", "\\phi_l"), \
         ("p", "u", "T", "phil")
-        
-        
-def plot(model, solution = None):
-
-    return fempy.output.plot(
-        model = model,
-        solution = solution,
-        plotvars = lambda u: plotvars(model = model, solution = u))
-    
-    
-def postprocess(model):
-    
-    _, _, T = model.solution.split()
-
-    phil = liquid_volume_fraction(model, T)
-    
-    liquid_area = fe.assemble(phil*fe.dx)
-    
-    return {"liquid_area": liquid_area}
     
     
 class Model(fempy.model.Model):
@@ -268,34 +253,82 @@ class Model(fempy.model.Model):
                 cell = mesh.ufl_cell(), degree = element_degree),
             **kwargs)
             
-    def solve_with_auto_smoothing(self,
-            new_smoothing_sequence = False,
-            maxcount = 32):
-        
-        if new_smoothing_sequence:
-        
-            self.smoothing_sequence = new_smoothing_sequence
-        
-        elif self.smoothing_sequence is None:
-            
-            self.smoothing_sequence = (4., self.smoothing.__float__())
-        
-        self.solution, self.snes_iterations, self.smoothing_sequence = \
-            fempy.continuation.solve_with_auto_continuation(
-                solve = super().solve,
-                solution = self.solution,
-                continuation_parameter = self.smoothing,
-                continuation_sequence = self.smoothing_sequence,
-                startleft = True,
-                maxcount = maxcount)
-        
-        return self.solution, self.snes_iterations, self.smoothing_sequence
+    def solve(self, *args, **kwargs):
     
-    def run(self, *args, new_smoothing_sequence = False, **kwargs):
-        
-        return super().run(*args,
-            solve = lambda: self.solve_with_auto_smoothing(
-                new_smoothing_sequence = new_smoothing_sequence)[:-1],
-            postprocess = postprocess,
+        return super().solve(*args,
+            parameters = {
+                "snes_type": "newtonls",
+                "snes_max_it": 24,
+                "snes_monitor": True,
+                "ksp_type": "preonly", 
+                "pc_type": "lu", 
+                "mat_type": "aij",
+                "pc_factor_mat_solver_type": "mumps"},
             **kwargs)
             
+    def solve_with_auto_smoothing(self):
+        
+        s0 = self.smoothing.__float__()
+        
+        def solve_with_over_regularization(self, startval):
+        
+            return fempy.continuation.solve_with_over_regularization(
+                solve = self.solve,
+                solution = self.solution,
+                regularization_parameter = self.smoothing,
+                startval = startval)
+        
+        def solve_with_bounded_regularization_sequence(self):
+        
+            return fempy.continuation.solve_with_bounded_regularization_sequence(
+                solve = self.solve,
+                solution = self.solution,
+                backup_solution = self.backup_solution,
+                regularization_parameter = self.smoothing,
+                initial_regularization_sequence = self.smoothing_sequence)
+                
+        if self.smoothing_sequence is None:
+        
+            self.solution, smax = solve_with_over_regularization(self, startval = None)
+            
+            self.smoothing_sequence = (smax, self.smoothing.__float__())
+            
+        try:
+            
+            self.solution, self.smoothing_sequence = \
+                solve_with_bounded_regularization_sequence(self)
+                
+        except fe.exceptions.ConvergenceError: 
+            # Try one more time.
+            self.solution, smax = solve_with_over_regularization(
+                self, startval = self.smoothing_sequence[-1])
+            
+            self.smoothing_sequence = (smax, self.smoothing.__float__())
+            
+            self.solution, self.smoothing_sequence = \
+                solve_with_bounded_regularization_sequence(self)
+               
+        assert(self.smoothing.__float__() == s0)
+               
+        return self.solution
+    
+    def run(self, *args, **kwargs):
+        
+        return super().run(*args,
+            solve = self.solve_with_auto_smoothing,
+            **kwargs)
+           
+    def postprocess(self):
+        
+        _, _, T = self.solution.split()
+        
+        phil = liquid_volume_fraction(model = self, temperature = T)
+        
+        self.liquid_area = fe.assemble(phil*fe.dx)
+        
+        return self
+        
+    def write_outputs(self, *args, **kwargs):
+        
+        super().write_outputs(*args, plotvars = plotvars, **kwargs)
+        

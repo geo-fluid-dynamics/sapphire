@@ -99,24 +99,43 @@ def initial_values(model):
             element = model.element),
         model.function_space)
     
-    r = heat_driven_cavity_variational_form_residual(
-        model = model, solution = w)*fe.dx(degree = model.quadrature_degree)
+    F = heat_driven_cavity_variational_form_residual(
+        model = model,
+        solution = w)*fe.dx(degree = model.quadrature_degree)
         
     T_h = model.hot_wall_temperature.__float__()
     
-    w, _, _ = \
-        fempy.continuation.solve_with_auto_continuation(
-            solve = lambda: fempy.model.solve(
-                variational_form_residual = r,
-                solution = w,
-                dirichlet_boundary_conditions = \
-                    dirichlet_boundary_conditions(model)),
-            solution = w,
-            continuation_parameter = model.grashof_number,
-            continuation_sequence = (0., model.grashof_number.__float__()),
-            startleft = True,
-            maxcount = 16)
+    problem = fe.NonlinearVariationalProblem(
+        F = F,
+        u = w,
+        bcs = dirichlet_boundary_conditions(model),
+        J = fe.derivative(F, w))
     
+    solver = fe.NonlinearVariationalSolver(
+        problem = problem,
+        solver_parameters = {
+                "snes_type": "newtonls",
+                "snes_monitor": True,
+                "ksp_type": "preonly", 
+                "pc_type": "lu", 
+                "mat_type": "aij",
+                "pc_factor_mat_solver_type": "mumps"})
+                
+    def solve():
+    
+        solver.solve()
+        
+        return w
+    
+    w, _ = \
+        fempy.continuation.solve_with_bounded_regularization_sequence(
+            solve = solve,
+            solution = w,
+            backup_solution = fe.Function(w),
+            regularization_parameter = model.grashof_number,
+            initial_regularization_sequence = (
+                0., model.grashof_number.__float__()))
+                
     return w
 
     
@@ -173,19 +192,4 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
             self.thermal_conductivity_solid_to_liquid_ratio.assign(2.14/0.561)
         
         self.cold_wall_temperature = self.cold_wall_temperature.assign(-1.)
-        
-    def run(self, *args, endtime, **kwargs):
-        
-        for i in range(2):
-        
-            self.solutions, self.time, self.snes_iteration_count = \
-                super().run(*args,
-                    endtime = self.time.__float__() + self.timestep_size.__float__(),
-                    new_smoothing_sequence = (4., self.smoothing.__float__()),
-                    **kwargs)
-        
-        return super().run(*args,
-            endtime = endtime,
-            new_smoothing_sequence = False,
-            **kwargs)
         

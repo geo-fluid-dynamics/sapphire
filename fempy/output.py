@@ -3,19 +3,35 @@ import matplotlib.pyplot as plt
 import csv
 
 
-def write_solution(model, file):
+def write_solution(model, solution = None, time = None, file = None):
     
-    if hasattr(model, "time"):
+    if solution is None:
     
-        file.write(*self.solution.split(), time = self.time)
+        solution = model.solution
+        
+    if time is None:
+    
+        time = model.time
+        
+    if file is None:
+    
+        time = model.solution_file
+        
+    if time is None:
+        
+        file.write(*solution.split())
         
     else:
     
-        file.write(*self.solution.split())
+        file.write(*solution.split(), time = time)
     
 
-def default_plotvars(solution):
+def default_plotvars(model, solution = None):
     
+    if solution is None:
+    
+        solution = model.solution
+        
     subscripts, functions = enumerate(solution.split())
     
     labels = [r"$w_{0}$".format(i) for i in subscripts]
@@ -25,44 +41,57 @@ def default_plotvars(solution):
     return functions, labels, filenames
     
     
-def plot(model, solution = None, plotvars = default_plotvars):
+def plot(
+        model,
+        solution = None,
+        time = None,
+        outdir_path = None,
+        plotvars = None):
     
     if solution is None:
     
         solution = model.solution
         
-    outpath = model.output_directory_path
+    if time is None:
     
-    outpath.mkdir(parents = True, exist_ok = True)
+        time = model.time.__float__()
+        
+    if outdir_path is None:
     
-    time = model.time.__float__()
+        outdir_path = model.output_directory_path
     
-    for f, label, name in zip(*plotvars(solution)):
+    if plotvars is None:
+    
+        plotvars = default_plotvars
+    
+    outdir_path.mkdir(parents = True, exist_ok = True)
+    
+    for f, label, name in zip(*plotvars(model = model, solution = solution)):
         
         fe.plot(f)
         
         plt.axis("square")
         
-        title = "label, $ t = {0}$".format(time)
+        title = label
+        
+        if time is not None:
+        
+            title += ", $ t = {0}$".format(time)
         
         plt.title(title)
         
-        model.output_directory_path.mkdir(
-            parents = True, exist_ok = True)
-    
         filename = "{0}_t{1}".format(name, str(time).replace(".", "p"))
         
-        filepath = model.output_directory_path.joinpath(
-            filename).with_suffix(".png")
+        filepath = outdir_path.joinpath(filename).with_suffix(".png")
             
-        print("Writing plot to " + str(filepath))
+        print("Writing plot to {0}".format(filepath))
         
         plt.savefig(str(filepath))
         
         plt.close()
-
         
-def report(model, postprocess = None, write_header = True):
+        
+def report(model, write_header = True):
     
     repvars = vars(model).copy()
     
@@ -71,12 +100,6 @@ def report(model, postprocess = None, write_header = True):
         if type(repvars[key]) is type(fe.Constant(0.)):
         
             repvars[key] = repvars[key].__float__()
-    
-    if postprocess:
-    
-        for key, value in postprocess(model).items():
-        
-            repvars[key] = value
     
     with model.output_directory_path.joinpath(
                 "report").with_suffix(".csv").open("a+") as csv_file:

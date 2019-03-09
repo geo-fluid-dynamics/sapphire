@@ -135,6 +135,10 @@ def make_mms_verification_model_class(
                     strong_residual = model_module.strong_residual,
                     manufactured_solution = manufactured_solution)\
                 *fe.dx(degree = self.quadrature_degree)
+                
+        def write_outputs(self, *args, **kwargs):
+        
+            pass
         
     return MMSVerificationModel
     
@@ -149,7 +153,8 @@ def verify_spatial_order_of_accuracy(
         parameters = {},
         timestep_size = 1.e32,
         endtime = 0.,
-        starttime = 0.):
+        starttime = 0.,
+        outdir_path_prefix = "output/mms_space/"):
     
     MMSVerificationModel = make_mms_verification_model_class(
         model_module = model_module,
@@ -165,29 +170,19 @@ def verify_spatial_order_of_accuracy(
         
         model = MMSVerificationModel(mesh = mesh, **model_constructor_kwargs)
         
-        model.output_directory_path = model.output_directory_path.joinpath(
-            "mms_space_p{0}/".format(expected_order))
-
-        model.output_directory_path = \
-            model.output_directory_path.joinpath(
-            "Deltat{0}".format(timestep_size))
-        
-        model.output_directory_path = model.output_directory_path.joinpath(
-            "h{0}/".format(h))
-        
         model = model.assign_parameters(parameters)
         
-        if hasattr(model, "time"):
+        if model.time is not None:
             
             model.time = model.time.assign(starttime)
             
             model.timestep_size = model.timestep_size.assign(timestep_size)
             
-            model.solutions, _, _ = model.run(endtime = endtime)
+            model.solutions, _ = model.run(endtime = endtime)
             
         else:
         
-            model.solution, _ = model.solve()
+            model.solution = model.solve()
             
         table.append({
             "h": h,
@@ -226,9 +221,8 @@ def verify_temporal_order_of_accuracy(
         tolerance,
         model_constructor_kwargs = {},
         parameters = {},
-        starttime = 0.):
-    
-    h = mesh.cell_sizes((0.,)*mesh.geometric_dimension())
+        starttime = 0.,
+        outdir_path_prefix = "output/mms_time/"):
     
     MMSVerificationModel = make_mms_verification_model_class(
         model_module = model_module,
@@ -236,29 +230,17 @@ def verify_temporal_order_of_accuracy(
     
     table = fempy.table.Table(("Delta_t", "L2_error", "temporal_order"))
     
-    model = MMSVerificationModel(
-        mesh = mesh, **model_constructor_kwargs)
-    
-    assert(len(model.solutions) > 1)
-    
-    basepath = model.output_directory_path
-    
-    model = model.assign_parameters(parameters)
-    
     print("")
     
     for timestep_size in timestep_sizes:
         
+        model = MMSVerificationModel(mesh = mesh, **model_constructor_kwargs)
+    
+        assert(len(model.solutions) > 1)
+        
+        model = model.assign_parameters(parameters)
+    
         model.timestep_size = model.timestep_size.assign(timestep_size)
-        
-        model.output_directory_path = basepath.joinpath(
-            "mms_time_q{0}/".format(expected_order))
-        
-        model.output_directory_path = model.output_directory_path.joinpath(
-            "h{0}".format(h))
-            
-        model.output_directory_path = model.output_directory_path.joinpath(
-            "Deltat{0}".format(timestep_size))
         
         model.time = model.time.assign(starttime)
         
@@ -266,7 +248,7 @@ def verify_temporal_order_of_accuracy(
             
             solution = solution.assign(model.initial_values)
             
-        model.solutions, _, _ = model.run(endtime = endtime)
+        model.solutions, _, = model.run(endtime = endtime)
         
         table.append({
             "Delta_t": timestep_size,

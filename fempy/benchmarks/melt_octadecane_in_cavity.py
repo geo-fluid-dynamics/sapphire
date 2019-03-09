@@ -70,23 +70,24 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         if final_endtime < topwall_heatflux_starttime:
         
-            self.solutions, self.time, self.snes_iterations = super().run(
-                *args, endtime = final_endtime, **kwargs)
+            self.solutions, self.time = super().run(*args,
+                endtime = final_endtime,
+                **kwargs)
             
             return self.solutions, self.time
         
-        self.solutions, self.time, self.snes_iterations = super().run(
-            *args, endtime = topwall_heatflux_starttime, **kwargs)
+        self.solutions, self.time = super().run(*args,
+            endtime = topwall_heatflux_starttime,
+            write_initial_outputs = False,
+            **kwargs)
         
         self.topwall_heatflux = self.topwall_heatflux.assign(
             topwall_heatflux_poststart)
             
-        self.solutions, self.time, self.snes_iterations = super().run(*args,
+        self.solutions, self.time = super().run(*args,
             endtime = final_endtime,
+            write_initial_outputs = False,
             **kwargs)
         
-        self.topwall_heatflux = self.topwall_heatflux.assign(
-            original_topwall_heatflux)
-            
-        return self.solutions, self.time, self.snes_iterations
+        return self.solutions, self.time
         
