@@ -300,8 +300,6 @@ class Model(fempy.model.Model):
                 
         except fe.exceptions.ConvergenceError: 
             # Try one more time.
-            self.solution = self.solution.assign(self.solutions[1])
-            
             self.solution, smax = solve_with_over_regularization(
                 self, startval = self.smoothing_sequence[-1])
             
