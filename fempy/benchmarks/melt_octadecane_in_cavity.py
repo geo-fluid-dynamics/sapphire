@@ -62,32 +62,23 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
             endtime,
             topwall_heatflux_poststart = -0.02,
             topwall_heatflux_starttime = 40.,
-            solution_file = None,
             **kwargs):
     
         final_endtime = endtime
         
         original_topwall_heatflux = self.topwall_heatflux.__float__()
         
-        if solution_file is None:
-        
-            solution_filepath = self.\
-                output_directory_path.joinpath("solution").with_suffix(".pvd")
-                
-            solution_file = fe.File(str(solution_filepath))
-        
         if final_endtime < topwall_heatflux_starttime:
         
             self.solutions, self.time = super().run(*args,
                 endtime = final_endtime,
-                solution_file = solution_file,
                 **kwargs)
             
             return self.solutions, self.time
         
         self.solutions, self.time = super().run(*args,
             endtime = topwall_heatflux_starttime,
-            solution_file = solution_file,
+            write_initial_outputs = False,
             **kwargs)
         
         self.topwall_heatflux = self.topwall_heatflux.assign(
@@ -95,11 +86,8 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
             
         self.solutions, self.time = super().run(*args,
             endtime = final_endtime,
-            solution_file = solution_file,
+            write_initial_outputs = False,
             **kwargs)
         
-        self.topwall_heatflux = self.topwall_heatflux.assign(
-            original_topwall_heatflux)
-            
         return self.solutions, self.time
         

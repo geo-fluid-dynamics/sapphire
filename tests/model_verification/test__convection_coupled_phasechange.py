@@ -41,6 +41,8 @@ def test__verify__second_order_spatial_convergence__via_mms(
         timestep_size = 1./128.,
         tolerance = 0.02):
     
+    rt = model_constructor_kwargs["time_stencil_size"] - 1
+    
     fempy.mms.verify_spatial_order_of_accuracy(
         model_module = model_module,
         manufactured_solution = manufactured_solution,
@@ -50,7 +52,9 @@ def test__verify__second_order_spatial_convergence__via_mms(
         expected_order = 2,
         tolerance = tolerance,
         timestep_size = timestep_size,
-        endtime = 0.5)
+        endtime = 0.5,
+        outdir_path_prefix = "output/mms/space/rt{0}_Deltat{1}/".format(
+            rt, timestep_size))
         
         
 def test__verify__second_order_temporal_convergence__via_mms(
@@ -69,16 +73,24 @@ def test__verify__second_order_temporal_convergence__via_mms(
         timestep_sizes = (1./8., 1./16., 1./32.),
         tolerance = 0.4):
     
+    rx = model_constructor_kwargs["element_degree"] + 1
+    
+    mesh = fe.UnitSquareMesh(meshsize, meshsize)
+    
+    h = mesh.cell_sizes((0.,)*mesh.geometric_dimension())
+    
     fempy.mms.verify_temporal_order_of_accuracy(
         model_module = model_module,
         manufactured_solution = manufactured_solution,
         model_constructor_kwargs = model_constructor_kwargs,
-        mesh = fe.UnitSquareMesh(meshsize, meshsize),
+        mesh = mesh,
         parameters = parameters,
         expected_order = 2,
         tolerance = tolerance,
         timestep_sizes = timestep_sizes,
-        endtime = 0.5)
+        endtime = 0.5,
+        outdir_path_prefix = "output/mms/time/rx{0}_h{1}/".format(
+            rx, h))
 
         
 def test__verify__third_order_spatial_convergence__via_mms(
@@ -97,6 +109,8 @@ def test__verify__third_order_spatial_convergence__via_mms(
         timestep_size = 1./64.,
         tolerance = 0.32):
     
+    rt = model_constructor_kwargs["time_stencil_size"] - 1
+    
     fempy.mms.verify_spatial_order_of_accuracy(
         model_module = model_module,
         manufactured_solution = manufactured_solution,
@@ -106,7 +120,9 @@ def test__verify__third_order_spatial_convergence__via_mms(
         expected_order = 3,
         tolerance = tolerance,
         timestep_size = timestep_size,
-        endtime = 0.32)
+        endtime = 0.32,
+        outdir_path_prefix = "output/mms/space/rt{0}_Deltat{1}/".format(
+            rt, timestep_size))
         
         
 def test__verify__third_order_temporal_convergence__via_mms(
@@ -125,14 +141,22 @@ def test__verify__third_order_temporal_convergence__via_mms(
         timestep_sizes = (1./2., 1./4., 1./8., 1./16.),
         tolerance = 0.36):
     
+    rx = model_constructor_kwargs["element_degree"] + 1
+    
+    mesh = fe.UnitSquareMesh(meshsize, meshsize)
+    
+    h = mesh.cell_sizes((0.,)*mesh.geometric_dimension())
+    
     fempy.mms.verify_temporal_order_of_accuracy(
         model_module = model_module,
         manufactured_solution = manufactured_solution,
         model_constructor_kwargs = model_constructor_kwargs,
-        mesh = fe.UnitSquareMesh(meshsize, meshsize),
+        mesh = mesh,
         parameters = parameters,
         expected_order = 3,
         tolerance = tolerance,
         timestep_sizes = timestep_sizes,
-        endtime = 0.5)
+        endtime = 0.5,
+        outdir_path_prefix = "output/mms/time/rx{0}_h{1}/".format(
+            rx, h))
         

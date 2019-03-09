@@ -64,9 +64,10 @@ def solve_with_bounded_regularization_sequence(
     
     Always continue from left to right.
     """
-    assert(regularization_parameter.__float__() == \
-        initial_regularization_sequence[-1])
-        
+    r0 = regularization_parameter.__float__()
+    
+    assert(initial_regularization_sequence[-1] == r0)
+    
     regularization_sequence = initial_regularization_sequence
     
     first_r_to_solve = regularization_sequence[0]
@@ -106,14 +107,14 @@ def solve_with_bounded_regularization_sequence(
             print("Failed to solve with regularization paramter = {0} \
                 from the sequence {1}".format(current_r, rs))
                 
-            if attempt == attempts[-1]:
-                
-                raise(exception)
-            
             index = rs.index(current_r)
             
-            assert(index > 0)
-            
+            if attempt == attempts[-1] or (index == 0):
+                
+                regularization_parameter = regularization_parameter.assign(r0)
+                
+                raise(exception)
+                
             r_to_insert = (current_r + rs[index - 1])/2.
             
             new_rs = rs[:index] + (r_to_insert,) + rs[index:]
@@ -128,8 +129,9 @@ def solve_with_bounded_regularization_sequence(
             
     assert(solved)
     
-    assert(regularization_parameter.__float__() == \
-        regularization_sequence[-1])
+    assert(regularization_parameter.__float__() == r0)
+    
+    assert(regularization_sequence[-1] == r0)
     
     return solution, regularization_sequence
     

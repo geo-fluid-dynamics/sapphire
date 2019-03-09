@@ -6,6 +6,8 @@ import fempy.time_discretization
 import fempy.output
 
 
+time_tolerance = 1.e-8
+
 class Model(object):
     """ A class on which to base finite element models """
     def __init__(self, 
@@ -16,7 +18,8 @@ class Model(object):
             initial_values,
             quadrature_degree = None,
             time_dependent = True,
-            time_stencil_size = 2):
+            time_stencil_size = 2,
+            output_directory_path = "output/"):
         
         self.mesh = mesh
         
@@ -26,12 +29,14 @@ class Model(object):
         
         self.quadrature_degree = quadrature_degree
         
+        
         self.solutions = [fe.Function(self.function_space) 
             for i in range(time_stencil_size)]
             
         self.solution = self.solutions[0]
         
         self.backup_solution = fe.Function(self.solution)
+        
         
         if time_dependent:
             
@@ -41,13 +46,23 @@ class Model(object):
             
             self.timestep_size = fe.Constant(1.)
             
-            self.time_tolerance = 1.e-8
+        else:
+        
+            self.time = None
+        
+            self.timestep_size = None
             
+        self.output_directory_path = pathlib.Path(output_directory_path)
+        
+        self.plotvars = None
+        
+        
         self.initial_values = initial_values(model = self)
         
         for solution in self.solutions:
         
             solution.assign(self.initial_values)
+        
         
         self.variational_form_residual = variational_form_residual(
                 model = self,
@@ -56,7 +71,6 @@ class Model(object):
         self.dirichlet_boundary_conditions = \
             dirichlet_boundary_conditions(model = self)
         
-        self.output_directory_path = pathlib.Path("output/")
         
         self.snes_iteration_count = 0
         
@@ -94,68 +108,55 @@ class Model(object):
                 
         return self.solutions
         
+    def postprocess(self):
+    
+        return self
+        
+    def write_outputs(self, write_headers, plotvars = None):
+        
+        self.output_directory_path.mkdir(
+            parents = True, exist_ok = True)
+        
+        if self.solution_file is None:
+            
+            solution_filepath = self.output_directory_path.joinpath(
+                "solution").with_suffix(".pvd")
+            
+            self.solution_file = fe.File(str(solution_filepath))
+        
+        self = self.postprocess()
+        
+        fempy.output.report(model = self, write_header = write_headers)
+        
+        fempy.output.write_solution(model = self, file = self.solution_file)
+        
+        fempy.output.plot(model = self, plotvars = plotvars)
+        
     def run(self,
             endtime,
             solve = None,
-            report = False,
-            postprocess = None,
-            write_solution = False,
-            solution_file = None,
-            plot = None):
+            write_initial_outputs = True):
+        
+        if write_initial_outputs:
+        
+            self.write_outputs(write_headers = True)
         
         if solve is None:
         
             solve = self.solve
         
-        self.output_directory_path.mkdir(
-            parents = True, exist_ok = True)
-        
-        if write_solution:
-        
-            solution_filepath = self.\
-                output_directory_path.joinpath("solution").with_suffix(".pvd")
-            
-            if solution_file is None:
-            
-                solution_file = fe.File(str(solution_filepath))
-            
-        if report:
-            
-            fempy.output.report(
-                self, postprocess = postprocess, write_header = True)
-        
-        if write_solution:
-        
-            fempy.output.write_solution(model = self, file = solution_file)
-        
-        if plot:
-            
-            plot(self)
-            
-        while self.time.__float__() < (
-                endtime - self.time_tolerance):
+        while self.time.__float__() < (endtime - time_tolerance):
             
             self.time.assign(self.time + self.timestep_size)
             
             self.solution = solve()
             
-            if report:
+            print("Solved at time t = {0}".format(self.time.__float__()))
             
-                fempy.output.report(
-                    self, postprocess = postprocess, write_header = False)
-                
-            if write_solution:
-        
-                fempy.output.write_solution(self, solution_file)
-                
-            if plot:
-            
-                plot(self, self.solution)
+            self.write_outputs(write_headers = False)
             
             self.solutions = self.push_back_solutions()
             
-            print("Solved at time t = {0}".format(self.time.__float__()))
-                
         return self.solutions, self.time
         
     def assign_parameters(self, parameters):
