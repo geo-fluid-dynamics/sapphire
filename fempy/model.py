@@ -1,7 +1,6 @@
 """ Contains the Model class """
-import firedrake as fe
 import pathlib
-import matplotlib.pyplot as plt
+import firedrake as fe
 import fempy.time_discretization
 import fempy.output
 
@@ -52,7 +51,10 @@ class Model(object):
         
             self.timestep_size = None
             
+            
         self.output_directory_path = pathlib.Path(output_directory_path)
+        
+        self.solution_file = None
         
         self.plotvars = None
         
