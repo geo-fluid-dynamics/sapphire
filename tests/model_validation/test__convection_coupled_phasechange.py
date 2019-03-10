@@ -122,7 +122,7 @@ def test__validate__freeze_water():
         spatial_dimensions = dim,
         meshsize = nx,
         output_directory_path = "output/freeze_water/"
-            + "dim{0}".format(dim)
+            + "dim{0}/".format(dim)
             + "s{0}_tau{1}/".format(s, tau)
             + "rx{0}_nx{1}_rt{2}_nt{3}/".format(rx, nx, rt, nt)
             + "q{0}/".format(q))

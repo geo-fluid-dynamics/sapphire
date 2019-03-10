@@ -87,13 +87,15 @@ def strong_residual(model, solution, buoyancy = linear_boussinesq_buoyancy):
     k = phase_dependent_material_property(
         model.thermal_conductivity_solid_to_liquid_ratio)(phil)
         
+    h = cp*T
+        
     r_p = div(u)
     
     r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(sym(grad(u))) \
         + b + d*u
     
-    r_T = diff(cp*T, t) + dot(u, grad(cp*T)) \
-        - 1./Pr*div(k*grad(T)) + 1./Ste*diff(cp*phil, t)
+    r_T = diff(h, t) + dot(u, grad(h)) - 1./Pr*div(k*grad(T)) \
+        + 1./Ste*diff(cp*phil, t)
     
     return r_p, r_u, r_T
     
@@ -116,7 +118,7 @@ def time_discrete_terms(model):
     cp = phase_dependent_material_property(
         model.heat_capacity_solid_to_liquid_ratio)
         
-    cpT_t = fempy.time_discretization.bdf(
+    h_t = fempy.time_discretization.bdf(
         [cp(phil(T))*T for T in temperature_solutions],
         timestep_size = model.timestep_size)
     
@@ -124,7 +126,7 @@ def time_discrete_terms(model):
         [cp(phil(T))*phil(T) for T in temperature_solutions],
         timestep_size = model.timestep_size)
     
-    return u_t, cpT_t, cpphil_t
+    return u_t, h_t, cpphil_t
     
 
 def mass(model, solution):
@@ -172,12 +174,14 @@ def energy(model, solution):
     k = phase_dependent_material_property(
         model.thermal_conductivity_solid_to_liquid_ratio)(phil)
     
-    _, cpT_t, cpphil_t = time_discrete_terms(model = model)
+    h = cp*T
+    
+    _, h_t, cpphil_t = time_discrete_terms(model = model)
     
     _, _, psi_T = fe.TestFunctions(solution.function_space())
     
-    return psi_T*(cpT_t + dot(u, cp*grad(T)) + 1./Ste*cpphil_t) \
-        + dot(grad(psi_T), k/Pr*grad(T))
+    return psi_T*(h_t + dot(u, grad(h)) + 1./Ste*cpphil_t) \
+        + 1./Pr*dot(grad(psi_T), k*grad(T))
         
     
 def stabilization(model, solution):

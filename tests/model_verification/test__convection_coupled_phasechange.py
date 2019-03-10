@@ -39,7 +39,7 @@ def test__verify__second_order_spatial_convergence__via_mms(
             "smoothing": 1./16.},
         mesh_sizes = (2, 4, 8),
         timestep_size = 1./128.,
-        tolerance = 0.02):
+        tolerance = 0.05):
     
     rt = model_constructor_kwargs["time_stencil_size"] - 1
     
