@@ -4,7 +4,7 @@ import fempy.benchmarks.melt_octadecane_in_cavity
 import fempy.benchmarks.freeze_water_in_cavity
 
 
-def test__validate__melt_octadecane():
+def test__validate__melt_octadecane__regression():
     
     tf = 80.
     
@@ -31,7 +31,7 @@ def test__validate__melt_octadecane():
     q = 4
     
     
-    expected_liquid_area = 0.42
+    expected_liquid_area = 0.43
     
     tolerance = 0.01
     
@@ -70,7 +70,7 @@ def test__validate__melt_octadecane():
     assert(abs(model.liquid_area - expected_liquid_area) < tolerance)
     
 
-def test__validate__freeze_water():
+def test__validate__freeze_water__regression():
     
     mu_l__SI = 8.90e-4  # [Pa s]
     
