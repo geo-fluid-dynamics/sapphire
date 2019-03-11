@@ -38,8 +38,8 @@ def test__verify__second_order_spatial_convergence__via_mms(
             "thermal_conductivity_solid_to_liquid_ratio": 2.14/0.561,
             "smoothing": 1./16.},
         mesh_sizes = (2, 4, 8),
-        timestep_size = 1./128.,
-        tolerance = 0.05):
+        timestep_size = 1./32.,
+        tolerance = 0.25):
     
     rt = model_constructor_kwargs["time_stencil_size"] - 1
     
@@ -70,8 +70,8 @@ def test__verify__second_order_temporal_convergence__via_mms(
             "thermal_conductivity_solid_to_liquid_ratio": 2.14/0.561,
             "smoothing": 1./16.},
         meshsize = 24,
-        timestep_sizes = (1./8., 1./16., 1./32.),
-        tolerance = 0.4):
+        timestep_sizes = (1./3., 1./9., 1./27.),
+        tolerance = 0.3):
     
     rx = model_constructor_kwargs["element_degree"] + 1
     
@@ -137,9 +137,9 @@ def test__verify__third_order_temporal_convergence__via_mms(
             "heat_capacity_solid_to_liquid_ratio": 0.500,
             "thermal_conductivity_solid_to_liquid_ratio": 2.14/0.561,
             "smoothing": 1./16.},
-        meshsize = 16,
-        timestep_sizes = (1./2., 1./4., 1./8., 1./16.),
-        tolerance = 0.36):
+        meshsize = 32,
+        timestep_sizes = (1./2., 1./4., 1./8., 1./16., 1./32.),
+        tolerance = 0.2):
     
     rx = model_constructor_kwargs["element_degree"] + 1
     
