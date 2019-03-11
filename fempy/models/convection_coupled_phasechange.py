@@ -13,7 +13,7 @@ def element(cell, degree):
     return fe.MixedElement(scalar, vector, scalar)
     
 
-tanh = fe.tanh
+erf, sqrt = fe.erf, fe.sqrt
 
 def liquid_volume_fraction(model, temperature):
     
@@ -21,9 +21,9 @@ def liquid_volume_fraction(model, temperature):
     
     T_L = model.liquidus_temperature
     
-    s = model.smoothing
+    sigma = model.smoothing
     
-    return 0.5*(1. + tanh((T - T_L)/s))
+    return 0.5*(1. + erf((T - T_L)/(sigma*sqrt(2.))))
     
     
 def phase_dependent_material_property(solid_to_liquid_ratio):
