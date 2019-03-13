@@ -28,11 +28,11 @@ def liquid_volume_fraction(model, temperature):
     
 def phase_dependent_material_property(solid_to_liquid_ratio):
 
-    a_s = solid_to_liquid_ratio
+    a_sl = solid_to_liquid_ratio
     
     def a(phil):
     
-        return a_s + (1. - a_s)*phil
+        return a_sl + (1. - a_sl)*phil
     
     return a
     
@@ -81,21 +81,23 @@ def strong_residual(model, solution, buoyancy = linear_boussinesq_buoyancy):
     
     phil = liquid_volume_fraction(model = model, temperature = T)
     
-    cp = phase_dependent_material_property(
-        model.heat_capacity_solid_to_liquid_ratio)(phil)
+    rho_sl = model.density_solid_to_liquid_ratio
     
-    k = phase_dependent_material_property(
-        model.thermal_conductivity_solid_to_liquid_ratio)(phil)
-        
-    h = cp*T
-        
+    c_sl = model.heat_capacity_solid_to_liquid_ratio
+    
+    C = phase_dependent_material_property(rho_sl*c_sl)(phil)
+    
+    k_sl = model.thermal_conductivity_solid_to_liquid_ratio
+    
+    k = phase_dependent_material_property(k_sl)(phil)
+    
     r_p = div(u)
     
-    r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(sym(grad(u))) \
-        + b + d*u
+    r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(sym(grad(u))) + b + d*u
     
-    r_T = diff(h, t) + dot(u, grad(h)) - 1./Pr*div(k*grad(T)) \
-        + 1./Ste*diff(cp*phil, t)
+    r_T = diff(C*T, t) + 1./Ste*diff(phil, t) + dot(u, grad(C*T)) \
+        - 1./Pr*div(k*grad(T))
+        
     
     return r_p, r_u, r_T
     
@@ -114,19 +116,22 @@ def time_discrete_terms(model):
     def phil(T):
     
         return liquid_volume_fraction(model = model, temperature = T)
-    
-    cp = phase_dependent_material_property(
-        model.heat_capacity_solid_to_liquid_ratio)
         
-    h_t = fempy.time_discretization.bdf(
-        [cp(phil(T))*T for T in temperature_solutions],
+    rho_sl = model.density_solid_to_liquid_ratio
+    
+    c_sl = model.heat_capacity_solid_to_liquid_ratio
+    
+    C = phase_dependent_material_property(rho_sl*c_sl)
+    
+    CT_t = fempy.time_discretization.bdf(
+        [C(phil(T))*T for T in temperature_solutions],
         timestep_size = model.timestep_size)
     
-    cpphil_t = fempy.time_discretization.bdf(
-        [cp(phil(T))*phil(T) for T in temperature_solutions],
+    phil_t = fempy.time_discretization.bdf(
+        [phil(T) for T in temperature_solutions],
         timestep_size = model.timestep_size)
     
-    return u_t, h_t, cpphil_t
+    return u_t, CT_t, phil_t
     
 
 def mass(model, solution):
@@ -168,19 +173,21 @@ def energy(model, solution):
     
     phil = liquid_volume_fraction(model = model, temperature = T)
     
-    cp = phase_dependent_material_property(
-        model.heat_capacity_solid_to_liquid_ratio)(phil)
+    rho_sl = model.density_solid_to_liquid_ratio
     
-    k = phase_dependent_material_property(
-        model.thermal_conductivity_solid_to_liquid_ratio)(phil)
+    c_sl = model.heat_capacity_solid_to_liquid_ratio
     
-    h = cp*T
+    C = phase_dependent_material_property(rho_sl*c_sl)(phil)
     
-    _, h_t, cpphil_t = time_discrete_terms(model = model)
+    k_sl = model.thermal_conductivity_solid_to_liquid_ratio
+    
+    k = phase_dependent_material_property(k_sl)(phil)
+    
+    _, CT_t, phil_t = time_discrete_terms(model = model)
     
     _, _, psi_T = fe.TestFunctions(solution.function_space())
     
-    return psi_T*(h_t + dot(u, grad(h)) + 1./Ste*cpphil_t) \
+    return psi_T*(CT_t + 1./Ste*phil_t + dot(u, grad(C*T))) \
         + 1./Pr*dot(grad(psi_T), k*grad(T))
         
     
@@ -236,6 +243,8 @@ class Model(fempy.model.Model):
         self.pressure_penalty_factor = fe.Constant(1.e-7)
         
         self.liquidus_temperature = fe.Constant(0.)
+        
+        self.density_solid_to_liquid_ratio = fe.Constant(1.)
         
         self.heat_capacity_solid_to_liquid_ratio = fe.Constant(1.)
         
