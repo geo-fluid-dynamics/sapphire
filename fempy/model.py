@@ -7,7 +7,7 @@ import fempy.output
 
 time_tolerance = 1.e-8
 
-class Model(object):
+class Model(fempy.output.ObjectWithOrderedDict):
     """ A class on which to base finite element models """
     def __init__(self, 
             mesh, 
@@ -176,6 +176,7 @@ class Model(object):
                 setattr(self, key, value)
                 
         return self
+        
         
 def unit_vectors(mesh):
     

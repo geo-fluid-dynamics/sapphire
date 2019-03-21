@@ -273,6 +273,7 @@ class Model(fempy.model.Model):
                 "snes_type": "newtonls",
                 "snes_max_it": 24,
                 "snes_monitor": True,
+                "snes_converged_reason": True,
                 "ksp_type": "preonly", 
                 "pc_type": "lu", 
                 "mat_type": "aij",
