@@ -73,11 +73,11 @@ def plot(
         
         plt.axis("square")
         
-        title = label
+        title = "${0}$".format(label)
         
         if time is not None:
         
-            title += ", $ t = {0}$".format(time)
+            title += ", $t = {0}$".format(time)
         
         plt.title(title)
         
