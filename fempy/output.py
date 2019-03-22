@@ -18,13 +18,22 @@ def write_solution(model, solution = None, time = None, file = None):
     
         time = model.solution_file
         
+        
     if time is None:
         
         file.write(*solution.split())
         
     else:
     
-        file.write(*solution.split(), time = time)
+        if type(time) is type(0.):
+        
+            timefloat = time
+            
+        elif type(time) is fe.Constant:
+        
+            timefloat = time.__float__()
+        
+        file.write(*solution.split(), time = timefloat)
     
 
 def default_plotvars(model, solution = None):
