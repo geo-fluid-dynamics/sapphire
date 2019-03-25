@@ -46,7 +46,11 @@ def plot_mesh(vtk_data):
     return fig, axes
 
     
-def plot_field_contour(vtk_data, scalar_solution_component = 0, contours = 16):
+def plot_field_contours(
+        vtk_data,
+        scalar_solution_component = 0,
+        contours = 16,
+        filled = False):
     """ Plot contours of a scalar field """
     point_data = vtk_to_numpy(vtk_data.GetPoints().GetData())
     
@@ -59,7 +63,15 @@ def plot_field_contour(vtk_data, scalar_solution_component = 0, contours = 16):
     
     fig, axes = plt.subplots()
     
-    plt.tricontour(x, y, get_connectivity(vtk_data), u, contours, axes = axes)
+    args = (x, y, get_connectivity(vtk_data), u, contours)
+    
+    if filled:
+    
+        plt.tricontourf(*args, axes = axes)
+        
+    else:
+    
+        plt.tricontour(*args, axes = axes)
     
     axes.set_aspect("equal")
     
@@ -72,7 +84,15 @@ def plot_field_contour(vtk_data, scalar_solution_component = 0, contours = 16):
     return fig, axes
     
     
+def plot_field(vtk_data, scalar_solution_component = 0):
+    """ Plot a scalar field """
     
+    return plot_field_contours(
+        vtk_data = vtk_data,
+        scalar_solution_component = scalar_solution_component,
+        contours = 128,
+        filled = True)
+        
 def plot_velocity_streamlines(solution_filepath):
     
     # https://matplotlib.org/gallery/images_contours_and_fields/plot_streamplot.html
