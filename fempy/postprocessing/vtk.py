@@ -4,8 +4,6 @@ import vtk
 from vtk.util.numpy_support import vtk_to_numpy
 
 
-# Trying ideas from https://perso.univ-rennes1.fr/pierre.navaro/read-vtk-with-python.html
-
 def read_vtk_data(vtk_filepath):
     
     reader = vtk.vtkXMLUnstructuredGridReader()
@@ -23,6 +21,7 @@ def get_connectivity(vtk_data):
     
     cell_data = vtk_to_numpy(vtk_data.GetCells().GetData())
     
+    # See https://perso.univ-rennes1.fr/pierre.navaro/read-vtk-with-python.html
     connectivity = np.take(
         cell_data,
         [i for i in range(cell_data.size) if i%4 != 0]\
