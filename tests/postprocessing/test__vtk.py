@@ -29,10 +29,28 @@ def datadir(tmpdir, request):
 
 def test__plot_mesh(datadir):
     
-    fig, _ = fempy.postprocessing.vtk.plot_mesh(solution_filepath = \
-        str(datadir.join("mixed_vector_valued_solution.vtu")))
+    data = fempy.postprocessing.vtk.read_vtk_data(
+        vtk_filepath = str(datadir.join("water_freezing_endtime.vtu")))
+    
+    fig, _ = fempy.postprocessing.vtk.plot_mesh(vtk_data = data)
     
     outpath = datadir.join("mesh.png")
+    
+    print("Saving {0}".format(outpath))
+    
+    fig.savefig(outpath)
+    
+    
+def test__plot_scalar_field_contour(datadir):
+    
+    data = fempy.postprocessing.vtk.read_vtk_data(
+        vtk_filepath = str(datadir.join("water_freezing_endtime.vtu")))
+        
+    fig, _ = fempy.postprocessing.vtk.plot_field_contour(
+        vtk_data = data,
+        scalar_solution_component = 2)
+    
+    outpath = datadir.join("temperature.png")
     
     print("Saving {0}".format(outpath))
     
