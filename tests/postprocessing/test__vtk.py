@@ -73,11 +73,27 @@ def test__plot_scalar_field(datadir):
     data = fempy.postprocessing.vtk.read_vtk_data(
         vtk_filepath = str(datadir.join("water_freezing_endtime.vtu")))
         
-    fig, _ = fempy.postprocessing.vtk.plot_field(
+    fig, _ = fempy.postprocessing.vtk.plot_scalar_field(
         vtk_data = data,
         scalar_solution_component = 2)
     
     outpath = datadir.join("temperature.png")
+    
+    print("Saving {0}".format(outpath))
+    
+    fig.savefig(outpath)
+    
+    
+def test__plot_vector_field(datadir):
+    
+    data = fempy.postprocessing.vtk.read_vtk_data(
+        vtk_filepath = str(datadir.join("water_freezing_endtime.vtu")))
+        
+    fig, _ = fempy.postprocessing.vtk.plot_vector_field(
+        vtk_data = data,
+        vector_solution_component = 1)
+    
+    outpath = datadir.join("velocity.png")
     
     print("Saving {0}".format(outpath))
     

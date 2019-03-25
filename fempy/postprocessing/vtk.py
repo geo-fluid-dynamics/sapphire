@@ -83,15 +83,39 @@ def plot_field_contours(
     return fig, axes
     
     
-def plot_field(vtk_data, scalar_solution_component = 0):
+def plot_scalar_field(vtk_data, scalar_solution_component = 0, axes = None):
     """ Plot a scalar field """
-    
     return plot_field_contours(
         vtk_data = vtk_data,
         scalar_solution_component = scalar_solution_component,
         contours = 128,
         filled = True)
         
+        
+def plot_vector_field(vtk_data, vector_solution_component = 0):
+    """ Plot a vector field """
+    point_data = vtk_to_numpy(vtk_data.GetPoints().GetData())
+    
+    x = point_data[:,0]
+    
+    y = point_data[:,1]
+    
+    u = vtk_to_numpy(
+        vtk_data.GetPointData().GetArray(vector_solution_component))
+    
+    fig, axes = plt.subplots()
+    
+    plt.quiver(x, y, u[:,0], u[:,1], axes = axes)
+    
+    axes.set_aspect("equal")
+    
+    plt.xlabel("$x$")
+    
+    plt.ylabel("$y$")
+    
+    return fig, axes
+    
+    
 def plot_velocity_streamlines(solution_filepath):
     
     # https://matplotlib.org/gallery/images_contours_and_fields/plot_streamplot.html
