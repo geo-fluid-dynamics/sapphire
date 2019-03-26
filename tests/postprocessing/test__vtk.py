@@ -32,13 +32,13 @@ def test__plot_mesh(datadir):
     data = fempy.postprocessing.vtk.read_vtk_data(
         vtk_filepath = str(datadir.join("water_freezing_endtime.vtu")))
     
-    fig, _ = fempy.postprocessing.vtk.plot_mesh(vtk_data = data)
+    axes = fempy.postprocessing.vtk.plot_mesh(vtk_data = data)
     
     outpath = datadir.join("mesh.png")
     
     print("Saving {0}".format(outpath))
     
-    fig.savefig(outpath)
+    axes.get_figure().savefig(str(outpath))
 
     
 def test__plot_scalar_field_contours(datadir):
@@ -49,11 +49,13 @@ def test__plot_scalar_field_contours(datadir):
     
     for filled in (False, True):
     
-        fig, _ = fempy.postprocessing.vtk.plot_field_contours(
+        axes, colorbar = fempy.postprocessing.vtk.plot_field_contours(
             vtk_data = data,
             scalar_solution_component = 2,
             contours = 8,
             filled = filled)
+        
+        colorbar.ax.set_title("$T$")
         
         name = "temperature_contours"
         
@@ -65,7 +67,7 @@ def test__plot_scalar_field_contours(datadir):
         
         print("Saving {0}".format(outpath))
     
-        fig.savefig(outpath)
+        axes.get_figure().savefig(str(outpath))
         
     
 def test__plot_scalar_field(datadir):
@@ -73,15 +75,17 @@ def test__plot_scalar_field(datadir):
     data = fempy.postprocessing.vtk.read_vtk_data(
         vtk_filepath = str(datadir.join("water_freezing_endtime.vtu")))
         
-    fig, _ = fempy.postprocessing.vtk.plot_scalar_field(
+    axes, colorbar = fempy.postprocessing.vtk.plot_scalar_field(
         vtk_data = data,
         scalar_solution_component = 2)
+    
+    colorbar.ax.set_title("$T$")
     
     outpath = datadir.join("temperature.png")
     
     print("Saving {0}".format(outpath))
     
-    fig.savefig(outpath)
+    axes.get_figure().savefig(str(outpath))
     
     
 def test__plot_vector_field(datadir):
@@ -89,13 +93,38 @@ def test__plot_vector_field(datadir):
     data = fempy.postprocessing.vtk.read_vtk_data(
         vtk_filepath = str(datadir.join("water_freezing_endtime.vtu")))
         
-    fig, _ = fempy.postprocessing.vtk.plot_vector_field(
+    axes = fempy.postprocessing.vtk.plot_vector_field(
         vtk_data = data,
-        vector_solution_component = 1)
+        vector_solution_component = 1,
+        headwidth = 5)
     
     outpath = datadir.join("velocity.png")
     
     print("Saving {0}".format(outpath))
     
-    fig.savefig(outpath)
+    axes.get_figure().savefig(str(outpath))
+    
+    
+def test__plot_superposed_scalar_and_vector_fields(datadir):
+
+    data = fempy.postprocessing.vtk.read_vtk_data(
+        vtk_filepath = str(datadir.join("water_freezing_endtime.vtu")))
+        
+    axes, colorbar = fempy.postprocessing.vtk.plot_scalar_field(
+        vtk_data = data,
+        scalar_solution_component = 2)
+        
+    colorbar.ax.set_title("$T$")
+    
+    axes = fempy.postprocessing.vtk.plot_vector_field(
+        vtk_data = data,
+        vector_solution_component = 1,
+        axes = axes,
+        headwidth = 5)
+    
+    outpath = datadir.join("temperature_and_velocity.png")
+    
+    print("Saving {0}".format(outpath))
+    
+    axes.get_figure().savefig(str(outpath))
     
