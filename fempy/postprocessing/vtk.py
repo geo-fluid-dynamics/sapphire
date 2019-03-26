@@ -47,7 +47,7 @@ def plot_mesh(vtk_data, axes = None):
     return axes
 
     
-def plot_field_contours(
+def plot_scalar_field_contours(
         vtk_data,
         scalar_solution_component = 0,
         contours = 16,
@@ -71,26 +71,26 @@ def plot_field_contours(
     
     if filled:
     
-        plt.tricontourf(*args, axes = axes)
+        mappable = axes.tricontourf(*args)
         
     else:
     
-        plt.tricontour(*args, axes = axes)
+        mappable = axes.tricontour(*args)
     
     axes.set_aspect("equal")
     
-    colorbar = plt.colorbar(ax = axes)
+    colorbar = plt.colorbar(mappable = mappable, ax = axes)
     
-    plt.xlabel("$x$")
+    axes.set_xlabel("$x$")
     
-    plt.ylabel("$y$")
+    axes.set_ylabel("$y$")
     
     return axes, colorbar
     
     
 def plot_scalar_field(vtk_data, scalar_solution_component = 0, axes = None):
     """ Plot a scalar field """
-    return plot_field_contours(
+    return plot_scalar_field_contours(
         vtk_data = vtk_data,
         scalar_solution_component = scalar_solution_component,
         contours = 128,
