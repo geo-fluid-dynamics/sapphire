@@ -32,8 +32,8 @@ def test__plot_scalar_field_contours(datadir):
         axes, colorbar = fempy.postprocessing.vtk.plot_scalar_field_contours(
             vtk_data = data,
             scalar_solution_component = 2,
-            contours = 8,
-            filled = filled)
+            filled = filled,
+            levels = 8)
         
         colorbar.ax.set_title("$T$")
         
