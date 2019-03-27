@@ -9,7 +9,7 @@ and in time using finite differences.
 ## Portfolio
 
 ### Water freezing
-![Water freezing benchmark](https://github.com/geo-fluid-dynamics/fempy-docs/blob/master/WaterFreezing_Temperature_and_Velocity_16Colors.gif?raw=true)
+![Water freezing benchmark](https://github.com/geo-fluid-dynamics/fempy-docs/blob/master/WaterFreezing.gif?raw=true)
 
 
 ## Setup
