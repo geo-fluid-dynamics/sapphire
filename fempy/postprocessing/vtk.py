@@ -1,4 +1,5 @@
-import numpy as np
+import numpy
+import scipy.interpolate
 from matplotlib import pyplot as plt
 import vtk
 from vtk.util.numpy_support import vtk_to_numpy
@@ -22,10 +23,10 @@ def get_connectivity(vtk_data):
     cell_data = vtk_to_numpy(vtk_data.GetCells().GetData())
     
     # See https://perso.univ-rennes1.fr/pierre.navaro/read-vtk-with-python.html
-    connectivity = np.take(
+    connectivity = numpy.take(
         cell_data,
-        [i for i in range(cell_data.size) if i%4 != 0]\
-        ).reshape(cell_data.size//4, 3)
+        [i for i in range(cell_data.size) if i%4 != 0])\
+        .reshape(cell_data.size//4, 3)
         
     return connectivity
     
@@ -61,8 +62,8 @@ def plot_scalar_field_contours(
     
     y = point_data[:,1]
     
-    u = vtk_to_numpy(
-        vtk_data.GetPointData().GetArray(scalar_solution_component))
+    u = vtk_to_numpy(vtk_data.GetPointData().GetArray(
+        scalar_solution_component))
     
     if axes is None:
     
@@ -103,7 +104,8 @@ def plot_scalar_field(vtk_data, scalar_solution_component = 0, axes = None):
         levels = 128)
         
         
-def plot_vector_field(vtk_data, vector_solution_component = 0, axes = None, **kwargs):
+def plot_vector_field(vtk_data, vector_solution_component = 0, axes = None,
+        **kwargs):
     """ Plot a vector field """
     point_data = vtk_to_numpy(vtk_data.GetPoints().GetData())
     
@@ -111,8 +113,8 @@ def plot_vector_field(vtk_data, vector_solution_component = 0, axes = None, **kw
     
     y = point_data[:,1]
     
-    u = vtk_to_numpy(
-        vtk_data.GetPointData().GetArray(vector_solution_component))
+    u = vtk_to_numpy(vtk_data.GetPointData().GetArray(
+        vector_solution_component))
     
     if axes is None:
     
@@ -127,4 +129,58 @@ def plot_vector_field(vtk_data, vector_solution_component = 0, axes = None, **kw
     axes.set_ylabel("$y$")
     
     return axes
+    
+    
+def format_data_for_streamplot(x, y, u, v):
+    
+    x_unique = numpy.unique(x)
+    
+    y_unique = numpy.unique(y)
+    
+    x_grid, y_grid = numpy.meshgrid(x_unique, y_unique)
+    
+    u_grid = scipy.interpolate.griddata((x, y), u, (x_grid, y_grid))
+    
+    v_grid = scipy.interpolate.griddata((x, y), v, (x_grid, y_grid))
+    
+    return x_unique, y_unique, u_grid, v_grid
+    
+    
+def plot_streamlines(vtk_data, vector_solution_component = 0, axes = None,
+        max_linewidth = 3.,
+        **kwargs):
+    """ Plot streamlines of a vector field """
+    points = vtk_to_numpy(vtk_data.GetPoints().GetData())[:,:2]
+    
+    velocities = vtk_to_numpy(vtk_data.GetPointData().GetArray(
+        vector_solution_component))
+    
+    if axes is None:
+    
+        _, axes = plt.subplots()
+    
+    u = velocities[:,0]
+    
+    v = velocities[:,1]
+    
+    x_unique, y_unique, u_grid, v_grid = format_data_for_streamplot(
+        x = points[:,0],
+        y = points[:,1],
+        u = u,
+        v = v)
+        
+    speed_grid = numpy.sqrt(u_grid**2 + v_grid**2)
+        
+    stream = axes.streamplot(x_unique, y_unique, u_grid, v_grid,
+        linewidth = max_linewidth*speed_grid/speed_grid.max(),
+        arrowsize = 1.e-8,
+        **kwargs)
+    
+    axes.set_aspect("equal")
+    
+    axes.set_xlabel("$x$")
+    
+    axes.set_ylabel("$y$")
+    
+    return axes, stream
     

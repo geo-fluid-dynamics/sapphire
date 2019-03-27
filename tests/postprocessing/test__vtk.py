@@ -85,6 +85,26 @@ def test__plot_vector_field(datadir):
     axes.get_figure().savefig(str(outpath))
     
     
+def test__plot_streamlines(datadir):
+    
+    data = fempy.postprocessing.vtk.read_vtk_data(
+        vtk_filepath = str(datadir.join(vtk_filename)))
+        
+    axes, _ = fempy.postprocessing.vtk.plot_streamlines(
+        vtk_data = data,
+        vector_solution_component = 1)
+    
+    axes.set_xlim((0., 1.))
+    
+    axes.set_ylim((0., 1.))
+    
+    outpath = datadir.join("velocity_streamlines.png")
+    
+    print("Saving {0}".format(outpath))
+    
+    axes.get_figure().savefig(str(outpath))
+    
+    
 def test__plot_superposed_scalar_and_vector_fields(datadir):
 
     data = fempy.postprocessing.vtk.read_vtk_data(
