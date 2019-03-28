@@ -78,7 +78,7 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         
         self.solutions, self.time = super().run(*args,
             endtime = topwall_heatflux_starttime,
-            write_initial_outputs = False,
+            write_initial_outputs = True,
             **kwargs)
         
         self.topwall_heatflux = self.topwall_heatflux.assign(

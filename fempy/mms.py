@@ -5,7 +5,6 @@ which approximates a strong form PDE.
 We verify that the solved problem approximates the strong form.
 """
 import firedrake as fe
-import fempy.output
 import fempy.table
 import math
 import pathlib
@@ -153,8 +152,7 @@ def verify_spatial_order_of_accuracy(
         parameters = {},
         timestep_size = 1.e32,
         endtime = 0.,
-        starttime = 0.,
-        outdir_path_prefix = "output/mms_space/"):
+        starttime = 0.):
     
     MMSVerificationModel = make_mms_verification_model_class(
         model_module = model_module,
@@ -221,8 +219,7 @@ def verify_temporal_order_of_accuracy(
         tolerance,
         model_constructor_kwargs = {},
         parameters = {},
-        starttime = 0.,
-        outdir_path_prefix = "output/mms_time/"):
+        starttime = 0.):
     
     MMSVerificationModel = make_mms_verification_model_class(
         model_module = model_module,

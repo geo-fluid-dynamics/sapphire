@@ -1,6 +1,7 @@
-import firedrake as fe
-import matplotlib.pyplot as plt
 import csv
+from collections import OrderedDict
+import matplotlib.pyplot as plt
+import firedrake as fe
 
 
 def write_solution(model, solution = None, time = None, file = None):
@@ -17,13 +18,22 @@ def write_solution(model, solution = None, time = None, file = None):
     
         time = model.solution_file
         
+        
     if time is None:
         
         file.write(*solution.split())
         
     else:
     
-        file.write(*solution.split(), time = time)
+        if type(time) is type(0.):
+        
+            timefloat = time
+            
+        elif type(time) is fe.Constant:
+        
+            timefloat = time.__float__()
+        
+        file.write(*solution.split(), time = timefloat)
     
 
 def default_plotvars(model, solution = None):
@@ -72,11 +82,11 @@ def plot(
         
         plt.axis("square")
         
-        title = label
+        title = "${0}$".format(label)
         
         if time is not None:
         
-            title += ", $ t = {0}$".format(time)
+            title += ", $t = {0}$".format(time)
         
         plt.title(title)
         
@@ -91,24 +101,53 @@ def plot(
         plt.close()
         
         
+class ObjectWithOrderedDict(object):
+    """ Base class for maintaining an ordered dict of all attributes.
+    See https://stackoverflow.com/questions/37591180/get-instance-variables-in-order-in-python
+    """
+    def __new__(Class, *args, **kwargs):
+    
+        instance = object.__new__(Class)
+        
+        instance.__odict__ = OrderedDict()
+        
+        return instance
+
+    def __setattr__(self, key, value):
+    
+        if not key == "__odict__":
+        
+            self.__odict__[key] = value
+            
+        object.__setattr__(self, key, value)
+
+    def keys(self):
+    
+        return self.__odict__.keys()
+
+    def iteritems(self):
+    
+        return self.__odict__.iteritems()
+        
+        
 def report(model, write_header = True):
     
-    repvars = vars(model).copy()
+    ordered_dict = model.__odict__.copy()
     
-    for key in repvars.keys():
+    for key in ordered_dict.keys():
         
-        if type(repvars[key]) is type(fe.Constant(0.)):
+        if type(ordered_dict[key]) is type(fe.Constant(0.)):
         
-            repvars[key] = repvars[key].__float__()
+            ordered_dict[key] = ordered_dict[key].__float__()
     
     with model.output_directory_path.joinpath(
                 "report").with_suffix(".csv").open("a+") as csv_file:
         
-        writer = csv.DictWriter(csv_file, fieldnames = repvars.keys())
+        writer = csv.DictWriter(csv_file, fieldnames = ordered_dict.keys())
         
         if write_header:
             
             writer.writeheader()
         
-        writer.writerow(repvars)
+        writer.writerow(ordered_dict)
         

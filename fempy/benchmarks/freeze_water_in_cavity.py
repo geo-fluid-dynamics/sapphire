@@ -16,11 +16,9 @@ def water_buoyancy(model, temperature):
     
     M = model.reference_temperature_range__degC
     
-    T_L = model.liquidus_temperature
-    
     def T_degC(T):
-        """ T = (T_degC - T_L)/M """
-        return M*T + T_L
+        """ T = T_degC/M """
+        return M*T
     
     def rho_of_T_degC(T_degC):
         """ Eq. (24) from @cite{danaila2014newton} """
@@ -36,7 +34,9 @@ def water_buoyancy(model, temperature):
     
     ghat = fe.Constant(-fempy.model.unit_vectors(model.mesh)[1])
     
-    return Gr/(beta*M)*(rho(T_L) - rho(T))/rho(T_L)*ghat
+    rho_0 = rho(T = 0.)
+    
+    return Gr/(beta*M)*(rho_0 - rho(T))/rho_0*ghat
     
     
 def heat_driven_cavity_variational_form_residual(model, solution):
@@ -184,6 +184,9 @@ class Model(fempy.models.convection_coupled_phasechange.Model):
         self.stefan_number = self.stefan_number.assign(0.125)
         
         self.liquidus_temperature = self.liquidus_temperature.assign(0.)
+        
+        self.density_solid_to_liquid_ratio = \
+            self.density_solid_to_liquid_ratio.assign(916.70/999.84)
         
         self.heat_capacity_solid_to_liquid_ratio = \
             self.heat_capacity_solid_to_liquid_ratio.assign(0.500)

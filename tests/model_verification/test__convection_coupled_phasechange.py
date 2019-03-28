@@ -38,8 +38,8 @@ def test__verify__second_order_spatial_convergence__via_mms(
             "thermal_conductivity_solid_to_liquid_ratio": 2.14/0.561,
             "smoothing": 1./16.},
         mesh_sizes = (2, 4, 8),
-        timestep_size = 1./128.,
-        tolerance = 0.02):
+        timestep_size = 1./64.,
+        tolerance = 0.13):
     
     rt = model_constructor_kwargs["time_stencil_size"] - 1
     
@@ -52,9 +52,7 @@ def test__verify__second_order_spatial_convergence__via_mms(
         expected_order = 2,
         tolerance = tolerance,
         timestep_size = timestep_size,
-        endtime = 0.5,
-        outdir_path_prefix = "output/mms/space/rt{0}_Deltat{1}/".format(
-            rt, timestep_size))
+        endtime = 0.5)
         
         
 def test__verify__second_order_temporal_convergence__via_mms(
@@ -70,8 +68,8 @@ def test__verify__second_order_temporal_convergence__via_mms(
             "thermal_conductivity_solid_to_liquid_ratio": 2.14/0.561,
             "smoothing": 1./16.},
         meshsize = 24,
-        timestep_sizes = (1./8., 1./16., 1./32.),
-        tolerance = 0.4):
+        timestep_sizes = (1./3., 1./9., 1./27.),
+        tolerance = 0.3):
     
     rx = model_constructor_kwargs["element_degree"] + 1
     
@@ -88,9 +86,7 @@ def test__verify__second_order_temporal_convergence__via_mms(
         expected_order = 2,
         tolerance = tolerance,
         timestep_sizes = timestep_sizes,
-        endtime = 0.5,
-        outdir_path_prefix = "output/mms/time/rx{0}_h{1}/".format(
-            rx, h))
+        endtime = 0.5)
 
         
 def test__verify__third_order_spatial_convergence__via_mms(
@@ -120,9 +116,7 @@ def test__verify__third_order_spatial_convergence__via_mms(
         expected_order = 3,
         tolerance = tolerance,
         timestep_size = timestep_size,
-        endtime = 0.32,
-        outdir_path_prefix = "output/mms/space/rt{0}_Deltat{1}/".format(
-            rt, timestep_size))
+        endtime = 0.32)
         
         
 def test__verify__third_order_temporal_convergence__via_mms(
@@ -137,9 +131,9 @@ def test__verify__third_order_temporal_convergence__via_mms(
             "heat_capacity_solid_to_liquid_ratio": 0.500,
             "thermal_conductivity_solid_to_liquid_ratio": 2.14/0.561,
             "smoothing": 1./16.},
-        meshsize = 16,
+        meshsize = 32,
         timestep_sizes = (1./2., 1./4., 1./8., 1./16.),
-        tolerance = 0.36):
+        tolerance = 0.3):
     
     rx = model_constructor_kwargs["element_degree"] + 1
     
@@ -156,7 +150,5 @@ def test__verify__third_order_temporal_convergence__via_mms(
         expected_order = 3,
         tolerance = tolerance,
         timestep_sizes = timestep_sizes,
-        endtime = 0.5,
-        outdir_path_prefix = "output/mms/time/rx{0}_h{1}/".format(
-            rx, h))
+        endtime = 0.5)
         

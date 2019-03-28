@@ -2,9 +2,12 @@ import firedrake as fe
 import fempy.mms
 import fempy.benchmarks.melt_octadecane_in_cavity
 import fempy.benchmarks.freeze_water_in_cavity
+import fempy.test
 
 
-def test__validate__melt_octadecane():
+datadir = fempy.test.datadir
+
+def test__validate__melt_octadecane__regression():
     
     tf = 80.
     
@@ -31,7 +34,7 @@ def test__validate__melt_octadecane():
     q = 4
     
     
-    expected_liquid_area = 0.42
+    expected_liquid_area = 0.43
     
     tolerance = 0.01
     
@@ -70,7 +73,7 @@ def test__validate__melt_octadecane():
     assert(abs(model.liquid_area - expected_liquid_area) < tolerance)
     
 
-def test__validate__freeze_water():
+def freeze_water(endtime, s, tau, rx, nx, rt, nt, q, dim = 2, outdir = ""):
     
     mu_l__SI = 8.90e-4  # [Pa s]
     
@@ -78,7 +81,7 @@ def test__validate__freeze_water():
     
     nu_l__SI = mu_l__SI/rho_l__SI  # [m^2 / s]
     
-    t_f__SI = 2340.  # [s]
+    t_f__SI = endtime  # [s]
     
     L__SI = 0.038  # [m]
     
@@ -89,31 +92,6 @@ def test__validate__freeze_water():
     """ For Kowalewski's water freezing experiment,
     at t_f__SI 2340 s, t_f = 1.44.
     """
-    dim = 2
-    
-    
-    s = 1./200.
-    
-    tau = 1.e-12
-    
-    
-    rx = 2
-    
-    nx = 24
-    
-    
-    rt = 2
-    
-    nt = 4
-    
-    
-    q = 4
-    
-    
-    expected_liquid_area = 0.69
-    
-    tolerance = 0.01
-    
     
     model = fempy.benchmarks.freeze_water_in_cavity.Model(
         quadrature_degree = q,
@@ -121,12 +99,12 @@ def test__validate__freeze_water():
         time_stencil_size = rt + 1,
         spatial_dimensions = dim,
         meshsize = nx,
-        output_directory_path = "output/freeze_water/"
-            + "dim{0}".format(dim)
+        output_directory_path = str(outdir.join(
+            "freeze_water/"
+            + "dim{0}/".format(dim)
             + "s{0}_tau{1}/".format(s, tau)
             + "rx{0}_nx{1}_rt{2}_nt{3}/".format(rx, nx, rt, nt)
-            + "q{0}/".format(q))
-    
+            + "q{0}/".format(q))))
     
     model.timestep_size = model.timestep_size.assign(t_f/float(nt))
     
@@ -141,5 +119,21 @@ def test__validate__freeze_water():
     
     print("Liquid area = {0}".format(model.liquid_area))
     
-    assert(abs(model.liquid_area - expected_liquid_area) < tolerance)
+    return model
+    
+    
+def test__validate__freeze_water__regression(datadir):
+    
+    model = freeze_water(
+        outdir = datadir,
+        endtime = 2340.,
+        s = 1./200.,
+        tau = 1.e-12,
+        rx = 2,
+        nx = 24,
+        rt = 2,
+        nt = 4,
+        q = 4)
+    
+    assert(abs(model.liquid_area - 0.69) < 0.01)
     

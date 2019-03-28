@@ -13,7 +13,7 @@ def element(cell, degree):
     return fe.MixedElement(scalar, vector, scalar)
     
 
-tanh = fe.tanh
+erf, sqrt = fe.erf, fe.sqrt
 
 def liquid_volume_fraction(model, temperature):
     
@@ -21,18 +21,18 @@ def liquid_volume_fraction(model, temperature):
     
     T_L = model.liquidus_temperature
     
-    s = model.smoothing
+    sigma = model.smoothing
     
-    return 0.5*(1. + tanh((T - T_L)/s))
+    return 0.5*(1. + erf((T - T_L)/(sigma*sqrt(2.))))
     
     
 def phase_dependent_material_property(solid_to_liquid_ratio):
 
-    a_s = solid_to_liquid_ratio
+    a_sl = solid_to_liquid_ratio
     
     def a(phil):
     
-        return a_s + (1. - a_s)*phil
+        return a_sl + (1. - a_sl)*phil
     
     return a
     
@@ -81,19 +81,23 @@ def strong_residual(model, solution, buoyancy = linear_boussinesq_buoyancy):
     
     phil = liquid_volume_fraction(model = model, temperature = T)
     
-    cp = phase_dependent_material_property(
-        model.heat_capacity_solid_to_liquid_ratio)(phil)
+    rho_sl = model.density_solid_to_liquid_ratio
     
-    k = phase_dependent_material_property(
-        model.thermal_conductivity_solid_to_liquid_ratio)(phil)
-        
+    c_sl = model.heat_capacity_solid_to_liquid_ratio
+    
+    C = phase_dependent_material_property(rho_sl*c_sl)(phil)
+    
+    k_sl = model.thermal_conductivity_solid_to_liquid_ratio
+    
+    k = phase_dependent_material_property(k_sl)(phil)
+    
     r_p = div(u)
     
-    r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(sym(grad(u))) \
-        + b + d*u
+    r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(sym(grad(u))) + b + d*u
     
-    r_T = diff(cp*T, t) + dot(u, grad(cp*T)) \
-        - 1./Pr*div(k*grad(T)) + 1./Ste*diff(cp*phil, t)
+    r_T = diff(C*T, t) + 1./Ste*diff(phil, t) + dot(u, grad(C*T)) \
+        - 1./Pr*div(k*grad(T))
+        
     
     return r_p, r_u, r_T
     
@@ -112,19 +116,22 @@ def time_discrete_terms(model):
     def phil(T):
     
         return liquid_volume_fraction(model = model, temperature = T)
-    
-    cp = phase_dependent_material_property(
-        model.heat_capacity_solid_to_liquid_ratio)
         
-    cpT_t = fempy.time_discretization.bdf(
-        [cp(phil(T))*T for T in temperature_solutions],
+    rho_sl = model.density_solid_to_liquid_ratio
+    
+    c_sl = model.heat_capacity_solid_to_liquid_ratio
+    
+    C = phase_dependent_material_property(rho_sl*c_sl)
+    
+    CT_t = fempy.time_discretization.bdf(
+        [C(phil(T))*T for T in temperature_solutions],
         timestep_size = model.timestep_size)
     
-    cpphil_t = fempy.time_discretization.bdf(
-        [cp(phil(T))*phil(T) for T in temperature_solutions],
+    phil_t = fempy.time_discretization.bdf(
+        [phil(T) for T in temperature_solutions],
         timestep_size = model.timestep_size)
     
-    return u_t, cpT_t, cpphil_t
+    return u_t, CT_t, phil_t
     
 
 def mass(model, solution):
@@ -166,18 +173,22 @@ def energy(model, solution):
     
     phil = liquid_volume_fraction(model = model, temperature = T)
     
-    cp = phase_dependent_material_property(
-        model.heat_capacity_solid_to_liquid_ratio)(phil)
+    rho_sl = model.density_solid_to_liquid_ratio
     
-    k = phase_dependent_material_property(
-        model.thermal_conductivity_solid_to_liquid_ratio)(phil)
+    c_sl = model.heat_capacity_solid_to_liquid_ratio
     
-    _, cpT_t, cpphil_t = time_discrete_terms(model = model)
+    C = phase_dependent_material_property(rho_sl*c_sl)(phil)
+    
+    k_sl = model.thermal_conductivity_solid_to_liquid_ratio
+    
+    k = phase_dependent_material_property(k_sl)(phil)
+    
+    _, CT_t, phil_t = time_discrete_terms(model = model)
     
     _, _, psi_T = fe.TestFunctions(solution.function_space())
     
-    return psi_T*(cpT_t + dot(u, cp*grad(T)) + 1./Ste*cpphil_t) \
-        + dot(grad(psi_T), k/Pr*grad(T))
+    return psi_T*(CT_t + 1./Ste*phil_t + dot(u, grad(C*T))) \
+        + 1./Pr*dot(grad(psi_T), k*grad(T))
         
     
 def stabilization(model, solution):
@@ -233,6 +244,8 @@ class Model(fempy.model.Model):
         
         self.liquidus_temperature = fe.Constant(0.)
         
+        self.density_solid_to_liquid_ratio = fe.Constant(1.)
+        
         self.heat_capacity_solid_to_liquid_ratio = fe.Constant(1.)
         
         self.thermal_conductivity_solid_to_liquid_ratio = fe.Constant(1.)
@@ -260,6 +273,7 @@ class Model(fempy.model.Model):
                 "snes_type": "newtonls",
                 "snes_max_it": 24,
                 "snes_monitor": True,
+                "snes_converged_reason": False,
                 "ksp_type": "preonly", 
                 "pc_type": "lu", 
                 "mat_type": "aij",
