@@ -1,6 +1,6 @@
 """ A Laplace model class """
 import firedrake as fe
-import fempy.model
+import sunfire.model
 
     
 def variational_form_residual(model, solution):
@@ -30,7 +30,7 @@ def strong_residual(model, solution):
     return div(grad(u))
     
     
-class Model(fempy.model.Model):
+class Model(sunfire.model.Model):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
     

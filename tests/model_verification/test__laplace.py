@@ -1,6 +1,6 @@
 import firedrake as fe 
-import fempy.mms
-import fempy.models.laplace as model_module
+import sunfire.mms
+import sunfire.models.laplace as model_module
 
     
 def manufactured_solution(model):
@@ -15,7 +15,7 @@ def manufactured_solution(model):
 def test__verify_convergence_order_via_mms(
         mesh_sizes = (8, 16, 32), tolerance = 0.1):
     
-    fempy.mms.verify_spatial_order_of_accuracy(
+    sunfire.mms.verify_spatial_order_of_accuracy(
         model_module = model_module,
         model_constructor_kwargs = {"quadrature_degree": 2, "element_degree": 1},
         manufactured_solution = manufactured_solution,

@@ -1,6 +1,6 @@
 """ An enthalpy model class for melting and solidification """
 import firedrake as fe
-import fempy.model
+import sunfire.model
 
 
 diff, dot, div, grad, tanh = fe.diff, fe.dot, fe.div, fe.grad, fe.tanh
@@ -19,10 +19,10 @@ def liquid_volume_fraction(model, temperature):
     
 def time_discrete_terms(model):
     
-    T_t = fempy.model.time_discrete_terms(
+    T_t = sunfire.model.time_discrete_terms(
         solutions = model.solutions, timestep_size = model.timestep_size)
         
-    phil_t = fempy.time_discretization.bdf(
+    phil_t = sunfire.time_discretization.bdf(
         [liquid_volume_fraction(model = model, temperature = T_n)
             for T_n in model.solutions],
         timestep_size = model.timestep_size)
@@ -63,7 +63,7 @@ def element(cell, degree):
     return fe.FiniteElement("P", cell, degree)
     
     
-class Model(fempy.model.Model):
+class Model(sunfire.model.Model):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
         

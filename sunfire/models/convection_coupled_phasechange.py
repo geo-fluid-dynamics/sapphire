@@ -1,7 +1,7 @@
 """A enthalpy model class for convection-coupled melting and solidification"""
 import firedrake as fe
-import fempy.model
-import fempy.continuation
+import sunfire.model
+import sunfire.continuation
 
 
 def element(cell, degree):
@@ -43,7 +43,7 @@ def linear_boussinesq_buoyancy(model, temperature):
     
     Gr = model.grashof_number
     
-    ghat = fe.Constant(-fempy.model.unit_vectors(model.mesh)[1])
+    ghat = fe.Constant(-sunfire.model.unit_vectors(model.mesh)[1])
     
     return Gr*T*ghat
     
@@ -104,7 +104,7 @@ def strong_residual(model, solution, buoyancy = linear_boussinesq_buoyancy):
     
 def time_discrete_terms(model):
     
-    _, u_t, _ = fempy.model.time_discrete_terms(
+    _, u_t, _ = sunfire.model.time_discrete_terms(
         solutions = model.solutions, timestep_size = model.timestep_size)
     
     temperature_solutions = []
@@ -123,11 +123,11 @@ def time_discrete_terms(model):
     
     C = phase_dependent_material_property(rho_sl*c_sl)
     
-    CT_t = fempy.time_discretization.bdf(
+    CT_t = sunfire.time_discretization.bdf(
         [C(phil(T))*T for T in temperature_solutions],
         timestep_size = model.timestep_size)
     
-    phil_t = fempy.time_discretization.bdf(
+    phil_t = sunfire.time_discretization.bdf(
         [phil(T) for T in temperature_solutions],
         timestep_size = model.timestep_size)
     
@@ -230,7 +230,7 @@ def plotvars(model, solution = None):
         ("p", "u", "T", "phil")
     
     
-class Model(fempy.model.Model):
+class Model(sunfire.model.Model):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
         
@@ -286,7 +286,7 @@ class Model(fempy.model.Model):
         
         def solve_with_over_regularization(self, startval):
         
-            return fempy.continuation.solve_with_over_regularization(
+            return sunfire.continuation.solve_with_over_regularization(
                 solve = self.solve,
                 solution = self.solution,
                 regularization_parameter = self.smoothing,
@@ -294,7 +294,7 @@ class Model(fempy.model.Model):
         
         def solve_with_bounded_regularization_sequence(self):
         
-            return fempy.continuation.solve_with_bounded_regularization_sequence(
+            return sunfire.continuation.solve_with_bounded_regularization_sequence(
                 solve = self.solve,
                 solution = self.solution,
                 backup_solution = self.backup_solution,

@@ -1,6 +1,6 @@
 import firedrake as fe 
-import fempy.mms
-from fempy.models import convection_coupled_phasechange as model_module
+import sunfire.mms
+from sunfire.models import convection_coupled_phasechange as model_module
 
 
 def manufactured_solution(model):
@@ -13,7 +13,7 @@ def manufactured_solution(model):
     
     t_f = fe.Constant(1.)
     
-    ihat, jhat = fempy.model.unit_vectors(model.mesh)
+    ihat, jhat = sunfire.model.unit_vectors(model.mesh)
     
     u = exp(t)*sin(2.*pi*x[0])*sin(pi*x[1])*ihat + \
         exp(t)*sin(pi*x[0])*sin(2.*pi*x[1])*jhat
@@ -43,7 +43,7 @@ def test__verify__second_order_spatial_convergence__via_mms(
     
     rt = model_constructor_kwargs["time_stencil_size"] - 1
     
-    fempy.mms.verify_spatial_order_of_accuracy(
+    sunfire.mms.verify_spatial_order_of_accuracy(
         model_module = model_module,
         manufactured_solution = manufactured_solution,
         model_constructor_kwargs = model_constructor_kwargs,
@@ -77,7 +77,7 @@ def test__verify__second_order_temporal_convergence__via_mms(
     
     h = mesh.cell_sizes((0.,)*mesh.geometric_dimension())
     
-    fempy.mms.verify_temporal_order_of_accuracy(
+    sunfire.mms.verify_temporal_order_of_accuracy(
         model_module = model_module,
         manufactured_solution = manufactured_solution,
         model_constructor_kwargs = model_constructor_kwargs,
@@ -107,7 +107,7 @@ def test__verify__third_order_spatial_convergence__via_mms(
     
     rt = model_constructor_kwargs["time_stencil_size"] - 1
     
-    fempy.mms.verify_spatial_order_of_accuracy(
+    sunfire.mms.verify_spatial_order_of_accuracy(
         model_module = model_module,
         manufactured_solution = manufactured_solution,
         model_constructor_kwargs = model_constructor_kwargs,
@@ -141,7 +141,7 @@ def test__verify__third_order_temporal_convergence__via_mms(
     
     h = mesh.cell_sizes((0.,)*mesh.geometric_dimension())
     
-    fempy.mms.verify_temporal_order_of_accuracy(
+    sunfire.mms.verify_temporal_order_of_accuracy(
         model_module = model_module,
         manufactured_solution = manufactured_solution,
         model_constructor_kwargs = model_constructor_kwargs,

@@ -5,7 +5,7 @@ which approximates a strong form PDE.
 We verify that the solved problem approximates the strong form.
 """
 import firedrake as fe
-import fempy.table
+import sunfire.table
 import math
 import pathlib
 
@@ -158,7 +158,7 @@ def verify_spatial_order_of_accuracy(
         model_module = model_module,
         manufactured_solution = manufactured_solution)
     
-    table = fempy.table.Table(("h", "L2_error", "spatial_order"))
+    table = sunfire.table.Table(("h", "L2_error", "spatial_order"))
     
     print("")
     
@@ -225,7 +225,7 @@ def verify_temporal_order_of_accuracy(
         model_module = model_module,
         manufactured_solution = manufactured_solution)
     
-    table = fempy.table.Table(("Delta_t", "L2_error", "temporal_order"))
+    table = sunfire.table.Table(("Delta_t", "L2_error", "temporal_order"))
     
     print("")
     

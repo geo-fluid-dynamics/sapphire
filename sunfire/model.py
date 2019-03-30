@@ -1,13 +1,13 @@
 """ Contains the Model class """
 import pathlib
 import firedrake as fe
-import fempy.time_discretization
-import fempy.output
+import sunfire.time_discretization
+import sunfire.output
 
 
 time_tolerance = 1.e-8
 
-class Model(fempy.output.ObjectWithOrderedDict):
+class Model(sunfire.output.ObjectWithOrderedDict):
     """ A class on which to base finite element models """
     def __init__(self, 
             mesh, 
@@ -128,11 +128,11 @@ class Model(fempy.output.ObjectWithOrderedDict):
         
         self = self.postprocess()
         
-        fempy.output.report(model = self, write_header = write_headers)
+        sunfire.output.report(model = self, write_header = write_headers)
         
-        fempy.output.write_solution(model = self, file = self.solution_file)
+        sunfire.output.write_solution(model = self, file = self.solution_file)
         
-        fempy.output.plot(model = self, plotvars = plotvars)
+        sunfire.output.plot(model = self, plotvars = plotvars)
         
     def run(self,
             endtime,
@@ -188,7 +188,7 @@ def unit_vectors(mesh):
 def time_discrete_terms(solutions, timestep_size):
     
     time_discrete_terms = [
-        fempy.time_discretization.bdf(
+        sunfire.time_discretization.bdf(
             [fe.split(solutions[n])[i] for n in range(len(solutions))],
             timestep_size = timestep_size)
         for i in range(len(fe.split(solutions[0])))]

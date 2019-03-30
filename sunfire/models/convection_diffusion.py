@@ -1,6 +1,6 @@
 """ A convection-diffusion model class """
 import firedrake as fe
-import fempy.model
+import sunfire.model
 
 
 dot, grad, div = fe.dot, fe.grad, fe.div
@@ -38,7 +38,7 @@ def element(cell, degree):
     return fe.FiniteElement("P", cell, degree)
     
     
-class Model(fempy.model.Model):
+class Model(sunfire.model.Model):
     
     def __init__(self, *args,
             mesh, element_degree, advection_velocity,

@@ -1,5 +1,5 @@
 import firedrake as fe
-import fempy.models.navier_stokes_boussinesq
+import sunfire.models.navier_stokes_boussinesq
 
 
 def initial_values(model):
@@ -16,7 +16,7 @@ def dirichlet_boundary_conditions(model):
         fe.DirichletBC(W.sub(2), model.cold_wall_temperature, 2)]
 
         
-class Model(fempy.models.navier_stokes_boussinesq.Model):
+class Model(sunfire.models.navier_stokes_boussinesq.Model):
     
     def __init__(self, *args, meshsize, **kwargs):
         

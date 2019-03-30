@@ -1,5 +1,5 @@
 import firedrake as fe
-import fempy.models.convection_coupled_phasechange
+import sunfire.models.convection_coupled_phasechange
 
 
 def water_buoyancy(model, temperature):
@@ -32,7 +32,7 @@ def water_buoyancy(model, temperature):
     
     Gr = model.grashof_number
     
-    ghat = fe.Constant(-fempy.model.unit_vectors(model.mesh)[1])
+    ghat = fe.Constant(-sunfire.model.unit_vectors(model.mesh)[1])
     
     rho_0 = rho(T = 0.)
     
@@ -41,9 +41,9 @@ def water_buoyancy(model, temperature):
     
 def heat_driven_cavity_variational_form_residual(model, solution):
     
-    mass = fempy.models.convection_coupled_phasechange.mass(model, solution)
+    mass = sunfire.models.convection_coupled_phasechange.mass(model, solution)
     
-    stabilization = fempy.models.convection_coupled_phasechange.stabilization(
+    stabilization = sunfire.models.convection_coupled_phasechange.stabilization(
         model, solution)
     
     p, u, T = fe.split(solution)
@@ -128,7 +128,7 @@ def initial_values(model):
         return w
     
     w, _ = \
-        fempy.continuation.solve_with_bounded_regularization_sequence(
+        sunfire.continuation.solve_with_bounded_regularization_sequence(
             solve = solve,
             solution = w,
             backup_solution = fe.Function(w),
@@ -144,18 +144,18 @@ def variational_form_residual(model, solution):
     return sum(
     [r(model = model, solution = solution)
         for r in (
-            fempy.models.convection_coupled_phasechange.mass,
+            sunfire.models.convection_coupled_phasechange.mass,
             lambda model, solution: \
-                fempy.models.convection_coupled_phasechange.momentum(
+                sunfire.models.convection_coupled_phasechange.momentum(
                     model = model,
                     solution = solution,
                     buoyancy = water_buoyancy),
-            fempy.models.convection_coupled_phasechange.energy,
-            fempy.models.convection_coupled_phasechange.stabilization)])\
+            sunfire.models.convection_coupled_phasechange.energy,
+            sunfire.models.convection_coupled_phasechange.stabilization)])\
         *fe.dx(degree = model.quadrature_degree)
     
     
-class Model(fempy.models.convection_coupled_phasechange.Model):
+class Model(sunfire.models.convection_coupled_phasechange.Model):
 
     def __init__(self, *args, spatial_dimensions, meshsize, **kwargs):
         

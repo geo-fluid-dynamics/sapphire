@@ -1,11 +1,11 @@
 import firedrake as fe 
-import fempy.mms
-import fempy.benchmarks.melt_octadecane_in_cavity
-import fempy.benchmarks.freeze_water_in_cavity
-import fempy.test
+import sunfire.mms
+import sunfire.benchmarks.melt_octadecane_in_cavity
+import sunfire.benchmarks.freeze_water_in_cavity
+import sunfire.test
 
 
-datadir = fempy.test.datadir
+datadir = sunfire.test.datadir
 
 def test__validate__melt_octadecane__regression():
     
@@ -39,7 +39,7 @@ def test__validate__melt_octadecane__regression():
     tolerance = 0.01
     
     
-    model = fempy.benchmarks.melt_octadecane_in_cavity.Model(
+    model = sunfire.benchmarks.melt_octadecane_in_cavity.Model(
         quadrature_degree = q,
         element_degree = rx - 1,
         time_stencil_size = rt + 1,
@@ -93,7 +93,7 @@ def freeze_water(endtime, s, tau, rx, nx, rt, nt, q, dim = 2, outdir = ""):
     at t_f__SI 2340 s, t_f = 1.44.
     """
     
-    model = fempy.benchmarks.freeze_water_in_cavity.Model(
+    model = sunfire.benchmarks.freeze_water_in_cavity.Model(
         quadrature_degree = q,
         element_degree = rx - 1,
         time_stencil_size = rt + 1,
