@@ -1,9 +1,9 @@
-import fempy.table
+import sunfire.table
 
 
 def test__table():
 
-    table = fempy.table.Table(("foo", "bar"))
+    table = sunfire.table.Table(("foo", "bar"))
 
     print(str(table))
     

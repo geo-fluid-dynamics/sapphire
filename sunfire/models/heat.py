@@ -1,13 +1,13 @@
 """ A heat model class """
 import firedrake as fe
-import fempy.model
+import sunfire.model
 
     
 def variational_form_residual(model, solution):
     
     u = solution
     
-    u_t = fempy.model.time_discrete_terms(
+    u_t = sunfire.model.time_discrete_terms(
         solutions = model.solutions, timestep_size = model.timestep_size)
     
     v = fe.TestFunction(solution.function_space())
@@ -35,7 +35,7 @@ def strong_residual(model, solution):
         return diff(u, t) - div(grad(u))
         
     
-class Model(fempy.model.Model):
+class Model(sunfire.model.Model):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
         

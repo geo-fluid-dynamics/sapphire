@@ -1,6 +1,6 @@
 """ A steady incompressible Navier-Stokes-Boussinesq model class """
 import firedrake as fe
-import fempy.model
+import sunfire.model
 
 
 inner, dot, grad, div, sym = \
@@ -12,7 +12,7 @@ def variational_form_residual(model, solution):
     
     Pr = model.prandtl_number
     
-    ihat, jhat = fempy.model.unit_vectors(model.mesh)
+    ihat, jhat = sunfire.model.unit_vectors(model.mesh)
     
     model.gravity_direction = fe.Constant(-jhat)
     
@@ -62,7 +62,7 @@ def element(cell, degree):
     return fe.MixedElement(scalar, vector, scalar)
     
     
-class Model(fempy.model.Model):
+class Model(sunfire.model.Model):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
         

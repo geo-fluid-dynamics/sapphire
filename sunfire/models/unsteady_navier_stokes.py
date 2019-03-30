@@ -1,6 +1,6 @@
 """ Unsteady incompressible Navier-Stokes model """
 import firedrake as fe
-import fempy.model
+import sunfire.model
 
 
 diff, inner, dot, grad, div, sym = \
@@ -10,7 +10,7 @@ def variational_form_residual(model, solution):
     
     u, p = fe.split(model.solution)
     
-    u_t, _ = fempy.model.time_discrete_terms(
+    u_t, _ = sunfire.model.time_discrete_terms(
         solutions = model.solutions, timestep_size = model.timestep_size)
     
     psi_u, psi_p = fe.TestFunctions(model.solution.function_space())
@@ -47,7 +47,7 @@ def element(cell, degree):
     return fe.MixedElement(vector, scalar)
     
     
-class Model(fempy.model.Model):
+class Model(sunfire.model.Model):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
         

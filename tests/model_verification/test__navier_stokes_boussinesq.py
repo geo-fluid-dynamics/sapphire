@@ -1,7 +1,7 @@
 import firedrake as fe 
-import fempy.mms
-import fempy.models.navier_stokes_boussinesq as model_module
-import fempy.benchmarks.heat_driven_cavity
+import sunfire.mms
+import sunfire.models.navier_stokes_boussinesq as model_module
+import sunfire.benchmarks.heat_driven_cavity
 
 
 def manufactured_solution(model):
@@ -14,7 +14,7 @@ def manufactured_solution(model):
     
     u1 = sin(pi*x[0])*sin(2.*pi*x[1])
     
-    ihat, jhat = fempy.model.unit_vectors(model.mesh)
+    ihat, jhat = sunfire.model.unit_vectors(model.mesh)
     
     u = u0*ihat + u1*jhat
     
@@ -33,7 +33,7 @@ def test__verify_convergence_order_via_mms(
     
     Pr = 0.7
     
-    fempy.mms.verify_spatial_order_of_accuracy(
+    sunfire.mms.verify_spatial_order_of_accuracy(
         model_module = model_module,
         model_constructor_kwargs = {
             "quadrature_degree": 4, "element_degree": 1},
@@ -58,7 +58,7 @@ def verify_scalar_solution_component(
         
         Parameters
         ----------
-        model : fempy.Model
+        model : sunfire.Model
         
         component : integer
         
@@ -110,7 +110,7 @@ def verify_scalar_solution_component(
                 
 def test__verify_against_heat_driven_cavity_benchmark():
 
-    model = fempy.benchmarks.heat_driven_cavity.Model(
+    model = sunfire.benchmarks.heat_driven_cavity.Model(
         quadrature_degree = 4, element_degree = 1, meshsize = 40)
     
     model.solution = model.solve()

@@ -1,6 +1,6 @@
 import firedrake as fe 
-import fempy.mms
-from fempy.models import phasechange as model_module
+import sunfire.mms
+from sunfire.models import phasechange as model_module
 
 
 def manufactured_solution(model):
@@ -19,7 +19,7 @@ def test__verify_spatial_convergence__second_order__via_mms(
         timestep_size = 1./256.,
         tolerance = 0.1):
     
-    fempy.mms.verify_spatial_order_of_accuracy(
+    sunfire.mms.verify_spatial_order_of_accuracy(
         model_module = model_module,
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitIntervalMesh(size) for size in mesh_sizes],
@@ -41,7 +41,7 @@ def test__verify_temporal_convergence__first_order__via_mms(
         timestep_sizes = (1./16., 1./32., 1./64., 1./128.),
         tolerance = 0.1):
     
-    fempy.mms.verify_temporal_order_of_accuracy(
+    sunfire.mms.verify_temporal_order_of_accuracy(
         model_module = model_module,
         manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
@@ -63,7 +63,7 @@ def test__verify_temporal_convergence__second_order__via_mms(
         timestep_sizes = (1./64., 1./128., 1./256.),
         tolerance = 0.3):
     
-    fempy.mms.verify_temporal_order_of_accuracy(
+    sunfire.mms.verify_temporal_order_of_accuracy(
         model_module = model_module,
         manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
