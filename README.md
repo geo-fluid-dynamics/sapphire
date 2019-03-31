@@ -1,4 +1,4 @@
-# Sunfire
+# sunfire
 Sunfire is an engine for constructing PDE-based simulations 
 discretized in time with finite differences
 and in space with mixed finite elements.
