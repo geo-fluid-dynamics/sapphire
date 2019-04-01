@@ -1,4 +1,3 @@
-# sapphire
 Sapphire is an engine for constructing PDE-based simulations 
 discretized in space with mixed finite element using [Firedrake](https://www.firedrakeproject.org/)
 and in time with finite differences.
