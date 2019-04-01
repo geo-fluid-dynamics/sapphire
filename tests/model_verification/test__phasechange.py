@@ -1,13 +1,13 @@
 import firedrake as fe 
 import sunfire.mms
-from sunfire.models import phasechange as model_module
+from sunfire.simulations import phasechange as sim_module
 
 
-def manufactured_solution(model):
+def manufactured_solution(sim):
     
-    x = fe.SpatialCoordinate(model.mesh)[0]
+    x = fe.SpatialCoordinate(sim.mesh)[0]
     
-    t = model.time
+    t = sim.time
     
     sin, pi, exp = fe.sin, fe.pi, fe.exp
     
@@ -20,10 +20,10 @@ def test__verify_spatial_convergence__second_order__via_mms(
         tolerance = 0.1):
     
     sunfire.mms.verify_spatial_order_of_accuracy(
-        model_module = model_module,
+        sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitIntervalMesh(size) for size in mesh_sizes],
-        model_constructor_kwargs = {
+        sim_constructor_kwargs = {
             "quadrature_degree": 4,
             "element_degree": 1,
             "time_stencil_size": 2},
@@ -42,10 +42,10 @@ def test__verify_temporal_convergence__first_order__via_mms(
         tolerance = 0.1):
     
     sunfire.mms.verify_temporal_order_of_accuracy(
-        model_module = model_module,
+        sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
-        model_constructor_kwargs = {
+        sim_constructor_kwargs = {
             "quadrature_degree": 4,
             "element_degree": 1,
             "time_stencil_size": 2},
@@ -64,10 +64,10 @@ def test__verify_temporal_convergence__second_order__via_mms(
         tolerance = 0.3):
     
     sunfire.mms.verify_temporal_order_of_accuracy(
-        model_module = model_module,
+        sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
-        model_constructor_kwargs = {
+        sim_constructor_kwargs = {
             "quadrature_degree": 4,
             "element_degree": 2,
             "time_stencil_size": 3},

@@ -1,17 +1,18 @@
 import firedrake as fe 
 import sunfire.mms
-from sunfire.models import unsteady_navier_stokes as model_module
+from sunfire.simulation import unit_vectors
+from sunfire.simulations import unsteady_navier_stokes as sim_module
 
 
-def manufactured_solution(model):
+def manufactured_solution(sim):
     
     exp, sin, pi = fe.exp, fe.sin, fe.pi
     
-    x = fe.SpatialCoordinate(model.mesh)
+    x = fe.SpatialCoordinate(sim.mesh)
     
-    t = model.time
+    t = sim.time
     
-    ihat, jhat = sunfire.model.unit_vectors(model.mesh)
+    ihat, jhat = unit_vectors(sim.mesh)
     
     u = exp(t)*(sin(2.*pi*x[0])*sin(pi*x[1])*ihat + \
         sin(pi*x[0])*sin(2.*pi*x[1])*jhat)
@@ -27,10 +28,10 @@ def test__verify_spatial_convergence__second_order__via_mms(
         tolerance = 0.3):
     
     sunfire.mms.verify_spatial_order_of_accuracy(
-        model_module = model_module,
+        sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
-        model_constructor_kwargs = {
+        sim_constructor_kwargs = {
             "quadrature_degree": 4,
             "element_degree": 1,
             "time_stencil_size": 2},
@@ -46,10 +47,10 @@ def test__verify_temporal_convergence__first_order__via_mms(
         tolerance = 0.1):
     
     sunfire.mms.verify_temporal_order_of_accuracy(
-        model_module = model_module,
+        sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         mesh = fe.UnitSquareMesh(meshsize, meshsize),
-        model_constructor_kwargs = {
+        sim_constructor_kwargs = {
             "quadrature_degree": 4,
             "element_degree": 1,
             "time_stencil_size": 2},

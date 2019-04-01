@@ -1,22 +1,22 @@
-""" A steady incompressible Navier-Stokes-Boussinesq model class """
+""" A steady incompressible Navier-Stokes-Boussinesq simulation class """
 import firedrake as fe
-import sunfire.model
+import sunfire.simulation
 
 
 inner, dot, grad, div, sym = \
         fe.inner, fe.dot, fe.grad, fe.div, fe.sym
         
-def variational_form_residual(model, solution):
+def variational_form_residual(sim, solution):
     
-    Gr = model.grashof_number
+    Gr = sim.grashof_number
     
-    Pr = model.prandtl_number
+    Pr = sim.prandtl_number
     
-    ihat, jhat = sunfire.model.unit_vectors(model.mesh)
+    ihat, jhat = sunfire.simulation.unit_vectors(sim.mesh)
     
-    model.gravity_direction = fe.Constant(-jhat)
+    sim.gravity_direction = fe.Constant(-jhat)
     
-    ghat = model.gravity_direction
+    ghat = sim.gravity_direction
     
     p, u, T = fe.split(solution)
     
@@ -29,18 +29,18 @@ def variational_form_residual(model, solution):
     
     energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))
     
-    dx = fe.dx(degree = model.quadrature_degree)
+    dx = fe.dx(degree = sim.quadrature_degree)
     
     return (mass + momentum + energy)*dx
     
     
-def strong_residual(model, solution):
+def strong_residual(sim, solution):
     
-    Gr = model.grashof_number
+    Gr = sim.grashof_number
     
-    Pr = model.prandtl_number
+    Pr = sim.prandtl_number
     
-    ghat = model.gravity_direction
+    ghat = sim.gravity_direction
     
     p, u, T = solution
     
@@ -62,7 +62,7 @@ def element(cell, degree):
     return fe.MixedElement(scalar, vector, scalar)
     
     
-class Model(sunfire.model.Model):
+class Simulation(sunfire.simulation.Simulation):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
         

@@ -1,8 +1,7 @@
-""" Verify a FEM model via the Method of Manufactured Solution (MMS).
+""" Verify a FEM simulation via the Method of Manufactured Solution (MMS).
 
-This module assumes that the FEM model is for a weak form
-which approximates a strong form PDE.
-We verify that the solved problem approximates the strong form.
+This module assumes that the FEM simulation solves a variational problem
+which approximates solutions to a strong form PDE.
 """
 import firedrake as fe
 import sunfire.table
@@ -11,16 +10,15 @@ import pathlib
 
 
 def mms_source(
-        model,
+        sim,
         strong_residual,
         manufactured_solution):
     
-    V = model.solution.function_space()
+    V = sim.solution.function_space()
     
-    _r = strong_residual(
-        model = model, solution = manufactured_solution(model))
+    _r = strong_residual(sim = sim, solution = manufactured_solution(sim))
         
-    if type(model.element) is fe.FiniteElement:
+    if type(sim.element) is fe.FiniteElement:
     
         r = (_r,)
         
@@ -41,11 +39,11 @@ def mms_source(
     return s
     
     
-def mms_initial_values(model, manufactured_solution):
+def mms_initial_values(sim, manufactured_solution):
 
-    initial_values = fe.Function(model.function_space)
+    initial_values = fe.Function(sim.function_space)
     
-    if type(model.element) is fe.FiniteElement:
+    if type(sim.element) is fe.FiniteElement:
     
         w_m = (manufactured_solution,)
         
@@ -54,18 +52,18 @@ def mms_initial_values(model, manufactured_solution):
         w_m = manufactured_solution
         
     for u_m, V in zip(
-            w_m, model.function_space):
+            w_m, sim.function_space):
         
         initial_values.assign(fe.interpolate(u_m, V))
         
     return initial_values
     
     
-def mms_dirichlet_boundary_conditions(model, manufactured_solution):
+def mms_dirichlet_boundary_conditions(sim, manufactured_solution):
     
-    W = model.function_space
+    W = sim.function_space
     
-    if type(model.element) is fe.FiniteElement:
+    if type(sim.element) is fe.FiniteElement:
     
         w = (manufactured_solution,)
     
@@ -104,23 +102,23 @@ def L2_error(solution, true_solution, integration_measure):
     return e
 
     
-def make_mms_verification_model_class(
-        model_module,
+def make_mms_verification_sim_class(
+        sim_module,
         manufactured_solution):
     
-    def initial_values(model):
+    def initial_values(sim):
         
         return mms_initial_values(
-            model = model,
-            manufactured_solution = manufactured_solution(model))
+            sim = sim,
+            manufactured_solution = manufactured_solution(sim))
         
-    def dirichlet_boundary_conditions(model):
+    def dirichlet_boundary_conditions(sim):
     
         return mms_dirichlet_boundary_conditions(
-            model = model,
-            manufactured_solution = manufactured_solution(model))
+            sim = sim,
+            manufactured_solution = manufactured_solution(sim))
         
-    class MMSVerificationModel(model_module.Model):
+    class MMSVerificationSimulation(sim_module.Simulation):
             
         def __init__(self, *args, **kwargs):
             
@@ -130,8 +128,8 @@ def make_mms_verification_model_class(
                 **kwargs)
                 
             self.variational_form_residual -= mms_source(
-                    model = self,
-                    strong_residual = model_module.strong_residual,
+                    sim = self,
+                    strong_residual = sim_module.strong_residual,
                     manufactured_solution = manufactured_solution)\
                 *fe.dx(degree = self.quadrature_degree)
                 
@@ -139,23 +137,23 @@ def make_mms_verification_model_class(
         
             pass
         
-    return MMSVerificationModel
+    return MMSVerificationSimulation
     
     
 def verify_spatial_order_of_accuracy(
-        model_module,
+        sim_module,
         manufactured_solution,
         meshes,
         expected_order,
         tolerance,
-        model_constructor_kwargs = {},
+        sim_constructor_kwargs = {},
         parameters = {},
         timestep_size = 1.e32,
         endtime = 0.,
         starttime = 0.):
     
-    MMSVerificationModel = make_mms_verification_model_class(
-        model_module = model_module,
+    MMSVerificationSimulation = make_mms_verification_sim_class(
+        sim_module = sim_module,
         manufactured_solution = manufactured_solution)
     
     table = sunfire.table.Table(("h", "L2_error", "spatial_order"))
@@ -166,29 +164,29 @@ def verify_spatial_order_of_accuracy(
         
         h = mesh.cell_sizes((0.,)*mesh.geometric_dimension())
         
-        model = MMSVerificationModel(mesh = mesh, **model_constructor_kwargs)
+        sim = MMSVerificationSimulation(mesh = mesh, **sim_constructor_kwargs)
         
-        model = model.assign_parameters(parameters)
+        sim = sim.assign_parameters(parameters)
         
-        if model.time is not None:
+        if sim.time is not None:
             
-            model.time = model.time.assign(starttime)
+            sim.time = sim.time.assign(starttime)
             
-            model.timestep_size = model.timestep_size.assign(timestep_size)
+            sim.timestep_size = sim.timestep_size.assign(timestep_size)
             
-            model.solutions, _ = model.run(endtime = endtime)
+            sim.solutions, _ = sim.run(endtime = endtime)
             
         else:
         
-            model.solution = model.solve()
+            sim.solution = sim.solve()
             
         table.append({
             "h": h,
             "L2_error": L2_error(
-                solution = model.solution,
-                true_solution = manufactured_solution(model),
+                solution = sim.solution,
+                true_solution = manufactured_solution(sim),
                 integration_measure = fe.dx(
-                    degree = model.quadrature_degree))})
+                    degree = sim.quadrature_degree))})
             
         if len(table) > 1:
         
@@ -210,19 +208,19 @@ def verify_spatial_order_of_accuracy(
     
     
 def verify_temporal_order_of_accuracy(
-        model_module,
+        sim_module,
         manufactured_solution,
         mesh,
         timestep_sizes,
         endtime,
         expected_order,
         tolerance,
-        model_constructor_kwargs = {},
+        sim_constructor_kwargs = {},
         parameters = {},
         starttime = 0.):
     
-    MMSVerificationModel = make_mms_verification_model_class(
-        model_module = model_module,
+    MMSVerificationSimulation = make_mms_verification_sim_class(
+        sim_module = sim_module,
         manufactured_solution = manufactured_solution)
     
     table = sunfire.table.Table(("Delta_t", "L2_error", "temporal_order"))
@@ -231,28 +229,28 @@ def verify_temporal_order_of_accuracy(
     
     for timestep_size in timestep_sizes:
         
-        model = MMSVerificationModel(mesh = mesh, **model_constructor_kwargs)
+        sim = MMSVerificationSimulation(mesh = mesh, **sim_constructor_kwargs)
     
-        assert(len(model.solutions) > 1)
+        assert(len(sim.solutions) > 1)
         
-        model = model.assign_parameters(parameters)
+        sim = sim.assign_parameters(parameters)
     
-        model.timestep_size = model.timestep_size.assign(timestep_size)
+        sim.timestep_size = sim.timestep_size.assign(timestep_size)
         
-        model.time = model.time.assign(starttime)
+        sim.time = sim.time.assign(starttime)
         
-        for solution in model.solutions:
+        for solution in sim.solutions:
             
-            solution = solution.assign(model.initial_values)
+            solution = solution.assign(sim.initial_values)
             
-        model.solutions, _, = model.run(endtime = endtime)
+        sim.solutions, _, = sim.run(endtime = endtime)
         
         table.append({
             "Delta_t": timestep_size,
             "L2_error": L2_error(
-                solution = model.solution,
-                true_solution = manufactured_solution(model),
-                integration_measure = fe.dx(degree = model.quadrature_degree))})
+                solution = sim.solution,
+                true_solution = manufactured_solution(sim),
+                integration_measure = fe.dx(degree = sim.quadrature_degree))})
             
         if len(table) > 1:
         

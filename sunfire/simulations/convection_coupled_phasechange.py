@@ -1,6 +1,6 @@
-"""A enthalpy model class for convection-coupled melting and solidification"""
+"""A sim class for convection-coupled melting and solidification in enthalpy form"""
 import firedrake as fe
-import sunfire.model
+import sunfire.simulation
 import sunfire.continuation
 
 
@@ -15,13 +15,13 @@ def element(cell, degree):
 
 erf, sqrt = fe.erf, fe.sqrt
 
-def liquid_volume_fraction(model, temperature):
+def liquid_volume_fraction(sim, temperature):
     
     T = temperature
     
-    T_L = model.liquidus_temperature
+    T_L = sim.liquidus_temperature
     
-    sigma = model.smoothing
+    sigma = sim.smoothing
     
     return 0.5*(1. + erf((T - T_L)/(sigma*sqrt(2.))))
     
@@ -37,26 +37,26 @@ def phase_dependent_material_property(solid_to_liquid_ratio):
     return a
     
     
-def linear_boussinesq_buoyancy(model, temperature):
+def linear_boussinesq_buoyancy(sim, temperature):
     
     T = temperature
     
-    Gr = model.grashof_number
+    Gr = sim.grashof_number
     
-    ghat = fe.Constant(-sunfire.model.unit_vectors(model.mesh)[1])
+    ghat = fe.Constant(-sunfire.sim.unit_vectors(sim.mesh)[1])
     
     return Gr*T*ghat
     
     
-def solid_velocity_relaxation(model, temperature):
+def solid_velocity_relaxation(sim, temperature):
     
     T = temperature
     
-    phil = liquid_volume_fraction(model = model, temperature = T)
+    phil = liquid_volume_fraction(sim = sim, temperature = T)
     
     phis = 1. - phil
     
-    tau = model.solid_velocity_relaxation_factor
+    tau = sim.solid_velocity_relaxation_factor
     
     return 1./tau*phis
     
@@ -65,29 +65,29 @@ dot, inner, grad, div, sym = fe.dot, fe.inner, fe.grad, fe.div, fe.sym
 
 diff = fe.diff
 
-def strong_residual(model, solution, buoyancy = linear_boussinesq_buoyancy):
+def strong_residual(sim, solution, buoyancy = linear_boussinesq_buoyancy):
     
-    Pr = model.prandtl_number
+    Pr = sim.prandtl_number
     
-    Ste = model.stefan_number
+    Ste = sim.stefan_number
     
-    t = model.time
+    t = sim.time
     
     p, u, T = solution
     
-    b = buoyancy(model = model, temperature = T)
+    b = buoyancy(sim = sim, temperature = T)
     
-    d = solid_velocity_relaxation(model = model, temperature = T)
+    d = solid_velocity_relaxation(sim = sim, temperature = T)
     
-    phil = liquid_volume_fraction(model = model, temperature = T)
+    phil = liquid_volume_fraction(sim = sim, temperature = T)
     
-    rho_sl = model.density_solid_to_liquid_ratio
+    rho_sl = sim.density_solid_to_liquid_ratio
     
-    c_sl = model.heat_capacity_solid_to_liquid_ratio
+    c_sl = sim.heat_capacity_solid_to_liquid_ratio
     
     C = phase_dependent_material_property(rho_sl*c_sl)(phil)
     
-    k_sl = model.thermal_conductivity_solid_to_liquid_ratio
+    k_sl = sim.thermal_conductivity_solid_to_liquid_ratio
     
     k = phase_dependent_material_property(k_sl)(phil)
     
@@ -102,39 +102,39 @@ def strong_residual(model, solution, buoyancy = linear_boussinesq_buoyancy):
     return r_p, r_u, r_T
     
     
-def time_discrete_terms(model):
+def time_discrete_terms(sim):
     
-    _, u_t, _ = sunfire.model.time_discrete_terms(
-        solutions = model.solutions, timestep_size = model.timestep_size)
+    _, u_t, _ = sunfire.sim.time_discrete_terms(
+        solutions = sim.solutions, timestep_size = sim.timestep_size)
     
     temperature_solutions = []
     
-    for solution in model.solutions:
+    for solution in sim.solutions:
     
         temperature_solutions.append(fe.split(solution)[2])
     
     def phil(T):
     
-        return liquid_volume_fraction(model = model, temperature = T)
+        return liquid_volume_fraction(sim = sim, temperature = T)
         
-    rho_sl = model.density_solid_to_liquid_ratio
+    rho_sl = sim.density_solid_to_liquid_ratio
     
-    c_sl = model.heat_capacity_solid_to_liquid_ratio
+    c_sl = sim.heat_capacity_solid_to_liquid_ratio
     
     C = phase_dependent_material_property(rho_sl*c_sl)
     
     CT_t = sunfire.time_discretization.bdf(
         [C(phil(T))*T for T in temperature_solutions],
-        timestep_size = model.timestep_size)
+        timestep_size = sim.timestep_size)
     
     phil_t = sunfire.time_discretization.bdf(
         [phil(T) for T in temperature_solutions],
-        timestep_size = model.timestep_size)
+        timestep_size = sim.timestep_size)
     
     return u_t, CT_t, phil_t
     
 
-def mass(model, solution):
+def mass(sim, solution):
     
     _, u, _ = fe.split(solution)
     
@@ -147,15 +147,15 @@ def mass(model, solution):
     return mass
     
     
-def momentum(model, solution, buoyancy = linear_boussinesq_buoyancy):
+def momentum(sim, solution, buoyancy = linear_boussinesq_buoyancy):
     
     p, u, T = fe.split(solution)
     
-    u_t, _, _ = time_discrete_terms(model = model)
+    u_t, _, _ = time_discrete_terms(sim = sim)
     
-    b = buoyancy(model = model, temperature = T)
+    b = buoyancy(sim = sim, temperature = T)
     
-    d = solid_velocity_relaxation(model = model, temperature = T)
+    d = solid_velocity_relaxation(sim = sim, temperature = T)
     
     _, psi_u, _ = fe.TestFunctions(solution.function_space())
         
@@ -163,27 +163,27 @@ def momentum(model, solution, buoyancy = linear_boussinesq_buoyancy):
         - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), sym(grad(u)))
     
     
-def energy(model, solution):
+def energy(sim, solution):
     
-    Pr = model.prandtl_number
+    Pr = sim.prandtl_number
     
-    Ste = model.stefan_number
+    Ste = sim.stefan_number
     
     _, u, T = fe.split(solution)
     
-    phil = liquid_volume_fraction(model = model, temperature = T)
+    phil = liquid_volume_fraction(sim = sim, temperature = T)
     
-    rho_sl = model.density_solid_to_liquid_ratio
+    rho_sl = sim.density_solid_to_liquid_ratio
     
-    c_sl = model.heat_capacity_solid_to_liquid_ratio
+    c_sl = sim.heat_capacity_solid_to_liquid_ratio
     
     C = phase_dependent_material_property(rho_sl*c_sl)(phil)
     
-    k_sl = model.thermal_conductivity_solid_to_liquid_ratio
+    k_sl = sim.thermal_conductivity_solid_to_liquid_ratio
     
     k = phase_dependent_material_property(k_sl)(phil)
     
-    _, CT_t, phil_t = time_discrete_terms(model = model)
+    _, CT_t, phil_t = time_discrete_terms(sim = sim)
     
     _, _, psi_T = fe.TestFunctions(solution.function_space())
     
@@ -191,46 +191,46 @@ def energy(model, solution):
         + 1./Pr*dot(grad(psi_T), k*grad(T))
         
     
-def stabilization(model, solution):
+def stabilization(sim, solution):
 
     p, _, _ = fe.split(solution)
     
     psi_p, _, _ = fe.TestFunctions(solution.function_space())
     
-    gamma = model.pressure_penalty_factor
+    gamma = sim.pressure_penalty_factor
     
     return gamma*psi_p*p
     
     
-def variational_form_residual(model, solution):
+def variational_form_residual(sim, solution):
     
     return sum(
-            [r(model = model, solution = solution) 
+            [r(sim = sim, solution = solution) 
             for r in (mass, momentum, energy, stabilization)])\
-        *fe.dx(degree = model.quadrature_degree)
+        *fe.dx(degree = sim.quadrature_degree)
 
     
-def plotvars(model, solution = None):
+def plotvars(sim, solution = None):
     
     if solution is None:
     
-        solution = model.solution
+        solution = sim.solution
         
     V = fe.FunctionSpace(
         solution.function_space().mesh(),
-        fe.FiniteElement("P", model.mesh.ufl_cell(), 1))
+        fe.FiniteElement("P", sim.mesh.ufl_cell(), 1))
     
     p, u, T = solution.split()
     
     phil = fe.interpolate(liquid_volume_fraction(
-        model = model, temperature = T), V)
+        sim = sim, temperature = T), V)
     
     return (p, u, T, phil), \
         ("p", "\\mathbf{u}", "T", "\\phi_l"), \
         ("p", "u", "T", "phil")
     
     
-class Model(sunfire.model.Model):
+class Simulation(sunfire.simulation.Simulation):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
         
@@ -294,16 +294,18 @@ class Model(sunfire.model.Model):
         
         def solve_with_bounded_regularization_sequence(self):
         
-            return sunfire.continuation.solve_with_bounded_regularization_sequence(
-                solve = self.solve,
-                solution = self.solution,
-                backup_solution = self.backup_solution,
-                regularization_parameter = self.smoothing,
-                initial_regularization_sequence = self.smoothing_sequence)
-                
+            return sunfire.continuation.\
+                solve_with_bounded_regularization_sequence(
+                    solve = self.solve,
+                    solution = self.solution,
+                    backup_solution = self.backup_solution,
+                    regularization_parameter = self.smoothing,
+                    initial_regularization_sequence = self.smoothing_sequence)
+                    
         if self.smoothing_sequence is None:
         
-            self.solution, smax = solve_with_over_regularization(self, startval = None)
+            self.solution, smax = solve_with_over_regularization(
+                self, startval = None)
             
             self.smoothing_sequence = (smax, self.smoothing.__float__())
             
@@ -336,7 +338,7 @@ class Model(sunfire.model.Model):
         
         _, _, T = self.solution.split()
         
-        phil = liquid_volume_fraction(model = self, temperature = T)
+        phil = liquid_volume_fraction(sim = self, temperature = T)
         
         self.liquid_area = fe.assemble(phil*fe.dx)
         

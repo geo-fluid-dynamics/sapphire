@@ -1,8 +1,8 @@
 import firedrake as fe
-import sunfire.models.convection_coupled_phasechange
+import sunfire.simulations.convection_coupled_phasechange
 
 
-def water_buoyancy(model, temperature):
+def water_buoyancy(sim, temperature):
     """ Eq. (25) from @cite{danaila2014newton} """
     T = temperature
     
@@ -14,7 +14,7 @@ def water_buoyancy(model, temperature):
     
     q = fe.Constant(1.894816)
     
-    M = model.reference_temperature_range__degC
+    M = sim.reference_temperature_range__degC
     
     def T_degC(T):
         """ T = T_degC/M """
@@ -30,29 +30,30 @@ def water_buoyancy(model, temperature):
     
     beta = fe.Constant(6.91e-5)  # [K^-1]
     
-    Gr = model.grashof_number
+    Gr = sim.grashof_number
     
-    ghat = fe.Constant(-sunfire.model.unit_vectors(model.mesh)[1])
+    ghat = fe.Constant(-sunfire.sim.unit_vectors(sim.mesh)[1])
     
     rho_0 = rho(T = 0.)
     
     return Gr/(beta*M)*(rho_0 - rho(T))/rho_0*ghat
     
     
-def heat_driven_cavity_variational_form_residual(model, solution):
+def heat_driven_cavity_variational_form_residual(sim, solution):
     
-    mass = sunfire.models.convection_coupled_phasechange.mass(model, solution)
+    mass = sunfire.simulations.convection_coupled_phasechange.\
+        mass(sim, solution)
     
-    stabilization = sunfire.models.convection_coupled_phasechange.stabilization(
-        model, solution)
+    stabilization = sunfire.simulations.convection_coupled_phasechange.\
+        stabilization(sim, solution)
     
     p, u, T = fe.split(solution)
     
-    b = water_buoyancy(model = model, temperature = T)
+    b = water_buoyancy(sim = sim, temperature = T)
     
-    Pr = model.prandtl_number
+    Pr = sim.prandtl_number
     
-    _, psi_u, psi_T = fe.TestFunctions(model.function_space)
+    _, psi_u, psi_T = fe.TestFunctions(sim.function_space)
     
     inner, dot, grad, div, sym = \
         fe.inner, fe.dot, fe.grad, fe.div, fe.sym
@@ -65,19 +66,19 @@ def heat_driven_cavity_variational_form_residual(model, solution):
     return mass + momentum + energy + stabilization
     
     
-def dirichlet_boundary_conditions(model):
+def dirichlet_boundary_conditions(sim):
 
-    W = model.function_space
+    W = sim.function_space
     
-    dim = model.mesh.geometric_dimension()
+    dim = sim.mesh.geometric_dimension()
     
     return [fe.DirichletBC(
         W.sub(1), (0.,)*dim, "on_boundary"),
-        fe.DirichletBC(W.sub(2), model.hot_wall_temperature, 1),
-        fe.DirichletBC(W.sub(2), model.cold_wall_temperature, 2)]
+        fe.DirichletBC(W.sub(2), sim.hot_wall_temperature, 1),
+        fe.DirichletBC(W.sub(2), sim.cold_wall_temperature, 2)]
         
     
-def initial_values(model):
+def initial_values(sim):
     
     print("Solving steady heat driven cavity to obtain initial values")
     
@@ -85,30 +86,30 @@ def initial_values(model):
 
     Pr = 6.99
 
-    model.grashof_number = model.grashof_number.assign(Ra/Pr)
+    sim.grashof_number = sim.grashof_number.assign(Ra/Pr)
     
-    model.prandtl_number = model.prandtl_number.assign(Pr)
+    sim.prandtl_number = sim.prandtl_number.assign(Pr)
     
-    dim = model.mesh.geometric_dimension()
+    dim = sim.mesh.geometric_dimension()
     
-    T_c = model.cold_wall_temperature.__float__()
+    T_c = sim.cold_wall_temperature.__float__()
     
     w = fe.interpolate(
         fe.Expression(
             (0.,) + (0.,)*dim + (T_c,),
-            element = model.element),
-        model.function_space)
+            element = sim.element),
+        sim.function_space)
     
     F = heat_driven_cavity_variational_form_residual(
-        model = model,
-        solution = w)*fe.dx(degree = model.quadrature_degree)
+        sim = sim,
+        solution = w)*fe.dx(degree = sim.quadrature_degree)
         
-    T_h = model.hot_wall_temperature.__float__()
+    T_h = sim.hot_wall_temperature.__float__()
     
     problem = fe.NonlinearVariationalProblem(
         F = F,
         u = w,
-        bcs = dirichlet_boundary_conditions(model),
+        bcs = dirichlet_boundary_conditions(sim),
         J = fe.derivative(F, w))
     
     solver = fe.NonlinearVariationalSolver(
@@ -132,30 +133,30 @@ def initial_values(model):
             solve = solve,
             solution = w,
             backup_solution = fe.Function(w),
-            regularization_parameter = model.grashof_number,
+            regularization_parameter = sim.grashof_number,
             initial_regularization_sequence = (
-                0., model.grashof_number.__float__()))
+                0., sim.grashof_number.__float__()))
                 
     return w
 
     
-def variational_form_residual(model, solution):
+def variational_form_residual(sim, solution):
     
     return sum(
-    [r(model = model, solution = solution)
+    [r(sim = sim, solution = solution)
         for r in (
-            sunfire.models.convection_coupled_phasechange.mass,
-            lambda model, solution: \
-                sunfire.models.convection_coupled_phasechange.momentum(
-                    model = model,
+            sunfire.simulations.convection_coupled_phasechange.mass,
+            lambda sim, solution: \
+                sunfire.simulations.convection_coupled_phasechange.momentum(
+                    sim = sim,
                     solution = solution,
                     buoyancy = water_buoyancy),
-            sunfire.models.convection_coupled_phasechange.energy,
-            sunfire.models.convection_coupled_phasechange.stabilization)])\
-        *fe.dx(degree = model.quadrature_degree)
+            sunfire.simulations.convection_coupled_phasechange.energy,
+            sunfire.simulations.convection_coupled_phasechange.stabilization)])\
+        *fe.dx(degree = sim.quadrature_degree)
     
     
-class Model(sunfire.models.convection_coupled_phasechange.Model):
+class Simulation(sunfire.simulations.convection_coupled_phasechange.Simulation):
 
     def __init__(self, *args, spatial_dimensions, meshsize, **kwargs):
         

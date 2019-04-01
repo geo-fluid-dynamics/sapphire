@@ -1,12 +1,12 @@
-""" A steady incompressible Navier-Stokes model class """
+""" A steady incompressible Navier-Stokes simulation class """
 import firedrake as fe
-import sunfire.model
+import sunfire.simulation
 
 
 inner, dot, grad, div, sym = \
         fe.inner, fe.dot, fe.grad, fe.div, fe.sym
         
-def variational_form_residual(model, solution):
+def variational_form_residual(sim, solution):
     
     u, p = fe.split(solution)
     
@@ -17,7 +17,7 @@ def variational_form_residual(model, solution):
     momentum = dot(psi_u, grad(u)*u) - div(psi_u)*p + \
         2.*inner(sym(grad(psi_u)), sym(grad(u)))
     
-    dx = fe.dx(degree = model.quadrature_degree)
+    dx = fe.dx(degree = sim.quadrature_degree)
     
     return (mass + momentum)*dx
     
@@ -29,7 +29,7 @@ def element(cell, degree):
         fe.FiniteElement("P", cell, degree))
         
         
-def strong_residual(model, solution):
+def strong_residual(sim, solution):
     
     u, p = solution
     
@@ -40,7 +40,7 @@ def strong_residual(model, solution):
     return r_u, r_p
     
     
-class Model(sunfire.model.Model):
+class Simulation(sunfire.simulation.Simulation):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
         
