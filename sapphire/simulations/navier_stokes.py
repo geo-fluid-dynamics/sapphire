@@ -1,6 +1,6 @@
 """ A steady incompressible Navier-Stokes simulation class """
 import firedrake as fe
-import sunfire.simulation
+import sapphire.simulation
 
 
 inner, dot, grad, div, sym = \
@@ -40,7 +40,7 @@ def strong_residual(sim, solution):
     return r_u, r_p
     
     
-class Simulation(sunfire.simulation.Simulation):
+class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
         

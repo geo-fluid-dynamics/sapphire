@@ -1,13 +1,13 @@
 """ Contains the Simulation class """
 import pathlib
 import firedrake as fe
-import sunfire.time_discretization
-import sunfire.output
+import sapphire.time_discretization
+import sapphire.output
 
 
 time_tolerance = 1.e-8
 
-class Simulation(sunfire.output.ObjectWithOrderedDict):
+class Simulation(sapphire.output.ObjectWithOrderedDict):
     """ A class on which to base finite element simulations """
     def __init__(self, 
             mesh, 
@@ -128,11 +128,11 @@ class Simulation(sunfire.output.ObjectWithOrderedDict):
         
         self = self.postprocess()
         
-        sunfire.output.report(sim = self, write_header = write_headers)
+        sapphire.output.report(sim = self, write_header = write_headers)
         
-        sunfire.output.write_solution(sim = self, file = self.solution_file)
+        sapphire.output.write_solution(sim = self, file = self.solution_file)
         
-        sunfire.output.plot(sim = self, plotvars = plotvars)
+        sapphire.output.plot(sim = self, plotvars = plotvars)
         
     def run(self,
             endtime,
@@ -188,7 +188,7 @@ def unit_vectors(mesh):
 def time_discrete_terms(solutions, timestep_size):
     
     time_discrete_terms = [
-        sunfire.time_discretization.bdf(
+        sapphire.time_discretization.bdf(
             [fe.split(solutions[n])[i] for n in range(len(solutions))],
             timestep_size = timestep_size)
         for i in range(len(fe.split(solutions[0])))]

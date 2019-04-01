@@ -1,6 +1,6 @@
 import firedrake as fe 
-import sunfire.mms
-from sunfire.simulations import convection_coupled_phasechange as sim_module
+import sapphire.mms
+from sapphire.simulations import convection_coupled_phasechange as sim_module
 
 
 def manufactured_solution(sim):
@@ -13,7 +13,7 @@ def manufactured_solution(sim):
     
     t_f = fe.Constant(1.)
     
-    ihat, jhat = sunfire.simulation.unit_vectors(sim.mesh)
+    ihat, jhat = sapphire.simulation.unit_vectors(sim.mesh)
     
     u = exp(t)*sin(2.*pi*x[0])*sin(pi*x[1])*ihat + \
         exp(t)*sin(pi*x[0])*sin(2.*pi*x[1])*jhat
@@ -43,7 +43,7 @@ def test__verify__second_order_spatial_convergence__via_mms(
     
     rt = sim_constructor_kwargs["time_stencil_size"] - 1
     
-    sunfire.mms.verify_spatial_order_of_accuracy(
+    sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         sim_constructor_kwargs = sim_constructor_kwargs,
@@ -77,7 +77,7 @@ def test__verify__second_order_temporal_convergence__via_mms(
     
     h = mesh.cell_sizes((0.,)*mesh.geometric_dimension())
     
-    sunfire.mms.verify_temporal_order_of_accuracy(
+    sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         sim_constructor_kwargs = sim_constructor_kwargs,
@@ -107,7 +107,7 @@ def test__verify__third_order_spatial_convergence__via_mms(
     
     rt = sim_constructor_kwargs["time_stencil_size"] - 1
     
-    sunfire.mms.verify_spatial_order_of_accuracy(
+    sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         sim_constructor_kwargs = sim_constructor_kwargs,
@@ -141,7 +141,7 @@ def test__verify__third_order_temporal_convergence__via_mms(
     
     h = mesh.cell_sizes((0.,)*mesh.geometric_dimension())
     
-    sunfire.mms.verify_temporal_order_of_accuracy(
+    sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         sim_constructor_kwargs = sim_constructor_kwargs,

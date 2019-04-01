@@ -1,7 +1,7 @@
 import firedrake as fe 
-import sunfire.mms
-from sunfire.simulation import unit_vectors
-from sunfire.simulations import unsteady_navier_stokes as sim_module
+import sapphire.mms
+from sapphire.simulation import unit_vectors
+from sapphire.simulations import unsteady_navier_stokes as sim_module
 
 
 def manufactured_solution(sim):
@@ -27,7 +27,7 @@ def test__verify_spatial_convergence__second_order__via_mms(
         timestep_size = 1./32.,
         tolerance = 0.3):
     
-    sunfire.mms.verify_spatial_order_of_accuracy(
+    sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
@@ -46,7 +46,7 @@ def test__verify_temporal_convergence__first_order__via_mms(
         timestep_sizes = (1./2., 1./4., 1./8.),
         tolerance = 0.1):
     
-    sunfire.mms.verify_temporal_order_of_accuracy(
+    sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         mesh = fe.UnitSquareMesh(meshsize, meshsize),

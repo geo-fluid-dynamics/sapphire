@@ -1,6 +1,6 @@
 import firedrake as fe 
-import sunfire.mms
-import sunfire.simulations.laplace as sim_module
+import sapphire.mms
+import sapphire.simulations.laplace as sim_module
 
     
 def manufactured_solution(sim):
@@ -15,7 +15,7 @@ def manufactured_solution(sim):
 def test__verify_convergence_order_via_mms(
         mesh_sizes = (8, 16, 32), tolerance = 0.1):
     
-    sunfire.mms.verify_spatial_order_of_accuracy(
+    sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
         sim_constructor_kwargs = {"quadrature_degree": 2, "element_degree": 1},
         manufactured_solution = manufactured_solution,

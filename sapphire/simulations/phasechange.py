@@ -1,6 +1,6 @@
 """ A simulation class for melting and solidification in enthalpy form """
 import firedrake as fe
-import sunfire.simulation
+import sapphire.simulation
 
 
 diff, dot, div, grad, tanh = fe.diff, fe.dot, fe.div, fe.grad, fe.tanh
@@ -19,10 +19,10 @@ def liquid_volume_fraction(sim, temperature):
     
 def time_discrete_terms(sim):
     
-    T_t = sunfire.simulation.time_discrete_terms(
+    T_t = sapphire.simulation.time_discrete_terms(
         solutions = sim.solutions, timestep_size = sim.timestep_size)
         
-    phil_t = sunfire.time_discretization.bdf(
+    phil_t = sapphire.time_discretization.bdf(
         [liquid_volume_fraction(sim = sim, temperature = T_n)
             for T_n in sim.solutions],
         timestep_size = sim.timestep_size)
@@ -63,7 +63,7 @@ def element(cell, degree):
     return fe.FiniteElement("P", cell, degree)
     
     
-class Simulation(sunfire.simulation.Simulation):
+class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
         

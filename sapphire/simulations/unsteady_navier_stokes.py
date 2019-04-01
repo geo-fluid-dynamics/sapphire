@@ -1,6 +1,6 @@
 """ Unsteady incompressible Navier-Stokes simulation """
 import firedrake as fe
-import sunfire.simulation
+import sapphire.simulation
 
 
 diff, inner, dot, grad, div, sym = \
@@ -10,7 +10,7 @@ def variational_form_residual(sim, solution):
     
     u, p = fe.split(sim.solution)
     
-    u_t, _ = sunfire.simulation.time_discrete_terms(
+    u_t, _ = sapphire.simulation.time_discrete_terms(
         solutions = sim.solutions, timestep_size = sim.timestep_size)
     
     psi_u, psi_p = fe.TestFunctions(sim.solution.function_space())
@@ -47,7 +47,7 @@ def element(cell, degree):
     return fe.MixedElement(vector, scalar)
     
     
-class Simulation(sunfire.simulation.Simulation):
+class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
         

@@ -1,5 +1,5 @@
 import firedrake as fe
-import sunfire.simulations.navier_stokes_boussinesq
+import sapphire.simulations.navier_stokes_boussinesq
 
 
 def initial_values(sim):
@@ -16,7 +16,7 @@ def dirichlet_boundary_conditions(sim):
         fe.DirichletBC(W.sub(2), sim.cold_wall_temperature, 2)]
 
         
-class Simulation(sunfire.simulations.navier_stokes_boussinesq.Simulation):
+class Simulation(sapphire.simulations.navier_stokes_boussinesq.Simulation):
     
     def __init__(self, *args, meshsize, **kwargs):
         

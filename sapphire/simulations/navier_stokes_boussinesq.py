@@ -1,6 +1,6 @@
 """ A steady incompressible Navier-Stokes-Boussinesq simulation class """
 import firedrake as fe
-import sunfire.simulation
+import sapphire.simulation
 
 
 inner, dot, grad, div, sym = \
@@ -12,7 +12,7 @@ def variational_form_residual(sim, solution):
     
     Pr = sim.prandtl_number
     
-    ihat, jhat = sunfire.simulation.unit_vectors(sim.mesh)
+    ihat, jhat = sapphire.simulation.unit_vectors(sim.mesh)
     
     sim.gravity_direction = fe.Constant(-jhat)
     
@@ -62,7 +62,7 @@ def element(cell, degree):
     return fe.MixedElement(scalar, vector, scalar)
     
     
-class Simulation(sunfire.simulation.Simulation):
+class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
         

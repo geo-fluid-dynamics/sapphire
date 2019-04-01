@@ -1,6 +1,6 @@
 import firedrake as fe 
-import sunfire.mms
-import sunfire.simulations.navier_stokes as sim_module
+import sapphire.mms
+import sapphire.simulations.navier_stokes as sim_module
 
 
 def manufactured_solution(sim):
@@ -9,7 +9,7 @@ def manufactured_solution(sim):
     
     x = fe.SpatialCoordinate(sim.mesh)
     
-    ihat, jhat = sunfire.simulation.unit_vectors(sim.mesh)
+    ihat, jhat = sapphire.simulation.unit_vectors(sim.mesh)
     
     u = sin(2.*pi*x[0])*sin(pi*x[1])*ihat + \
         sin(pi*x[0])*sin(2.*pi*x[1])*jhat
@@ -22,7 +22,7 @@ def manufactured_solution(sim):
 def test__verify_convergence_order_via_mms(
         mesh_sizes = (16, 32), tolerance = 0.1):
     
-    sunfire.mms.verify_spatial_order_of_accuracy(
+    sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
         sim_constructor_kwargs = {"quadrature_degree": 4, "element_degree": 1},
         manufactured_solution = manufactured_solution,

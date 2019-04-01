@@ -1,7 +1,7 @@
 """A sim class for convection-coupled melting and solidification in enthalpy form"""
 import firedrake as fe
-import sunfire.simulation
-import sunfire.continuation
+import sapphire.simulation
+import sapphire.continuation
 
 
 def element(cell, degree):
@@ -43,7 +43,7 @@ def linear_boussinesq_buoyancy(sim, temperature):
     
     Gr = sim.grashof_number
     
-    ghat = fe.Constant(-sunfire.simulation.unit_vectors(sim.mesh)[1])
+    ghat = fe.Constant(-sapphire.simulation.unit_vectors(sim.mesh)[1])
     
     return Gr*T*ghat
     
@@ -104,7 +104,7 @@ def strong_residual(sim, solution, buoyancy = linear_boussinesq_buoyancy):
     
 def time_discrete_terms(sim):
     
-    _, u_t, _ = sunfire.simulation.time_discrete_terms(
+    _, u_t, _ = sapphire.simulation.time_discrete_terms(
         solutions = sim.solutions, timestep_size = sim.timestep_size)
     
     temperature_solutions = []
@@ -123,11 +123,11 @@ def time_discrete_terms(sim):
     
     C = phase_dependent_material_property(rho_sl*c_sl)
     
-    CT_t = sunfire.time_discretization.bdf(
+    CT_t = sapphire.time_discretization.bdf(
         [C(phil(T))*T for T in temperature_solutions],
         timestep_size = sim.timestep_size)
     
-    phil_t = sunfire.time_discretization.bdf(
+    phil_t = sapphire.time_discretization.bdf(
         [phil(T) for T in temperature_solutions],
         timestep_size = sim.timestep_size)
     
@@ -230,7 +230,7 @@ def plotvars(sim, solution = None):
         ("p", "u", "T", "phil")
     
     
-class Simulation(sunfire.simulation.Simulation):
+class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
         
@@ -286,7 +286,7 @@ class Simulation(sunfire.simulation.Simulation):
         
         def solve_with_over_regularization(self, startval):
         
-            return sunfire.continuation.solve_with_over_regularization(
+            return sapphire.continuation.solve_with_over_regularization(
                 solve = self.solve,
                 solution = self.solution,
                 regularization_parameter = self.smoothing,
@@ -294,7 +294,7 @@ class Simulation(sunfire.simulation.Simulation):
         
         def solve_with_bounded_regularization_sequence(self):
         
-            return sunfire.continuation.\
+            return sapphire.continuation.\
                 solve_with_bounded_regularization_sequence(
                     solve = self.solve,
                     solution = self.solution,

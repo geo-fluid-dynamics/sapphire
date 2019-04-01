@@ -1,7 +1,7 @@
 import firedrake as fe 
-import sunfire.mms
-import sunfire.simulations.navier_stokes_boussinesq as sim_module
-import sunfire.benchmarks.heat_driven_cavity
+import sapphire.mms
+import sapphire.simulations.navier_stokes_boussinesq as sim_module
+import sapphire.benchmarks.heat_driven_cavity
 
 
 def manufactured_solution(sim):
@@ -14,7 +14,7 @@ def manufactured_solution(sim):
     
     u1 = sin(pi*x[0])*sin(2.*pi*x[1])
     
-    ihat, jhat = sunfire.simulation.unit_vectors(sim.mesh)
+    ihat, jhat = sapphire.simulation.unit_vectors(sim.mesh)
     
     u = u0*ihat + u1*jhat
     
@@ -33,7 +33,7 @@ def test__verify_convergence_order_via_mms(
     
     Pr = 0.7
     
-    sunfire.mms.verify_spatial_order_of_accuracy(
+    sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
         sim_constructor_kwargs = {
             "quadrature_degree": 4, "element_degree": 1},
@@ -58,7 +58,7 @@ def verify_scalar_solution_component(
         
         Parameters
         ----------
-        sim : sunfire.Simulation
+        sim : sapphire.Simulation
         
         component : integer
         
@@ -110,7 +110,7 @@ def verify_scalar_solution_component(
                 
 def test__verify_against_heat_driven_cavity_benchmark():
 
-    sim = sunfire.benchmarks.heat_driven_cavity.Simulation(
+    sim = sapphire.benchmarks.heat_driven_cavity.Simulation(
         quadrature_degree = 4, element_degree = 1, meshsize = 40)
     
     sim.solution = sim.solve()

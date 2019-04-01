@@ -1,5 +1,5 @@
 import firedrake as fe
-import sunfire.simulations.convection_coupled_phasechange
+import sapphire.simulations.convection_coupled_phasechange
 
 
 def initial_values(sim):
@@ -21,7 +21,7 @@ def dirichlet_boundary_conditions(sim):
         fe.DirichletBC(W.sub(2), sim.cold_wall_temperature, 2)]
         
         
-class Simulation(sunfire.simulations.\
+class Simulation(sapphire.simulations.\
         convection_coupled_phasechange.Simulation):
     
     def __init__(self, *args, meshsize, **kwargs):

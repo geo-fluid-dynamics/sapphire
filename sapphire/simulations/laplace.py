@@ -1,6 +1,6 @@
 """ A Laplace simulation class """
 import firedrake as fe
-import sunfire.simulation
+import sapphire.simulation
 
     
 def variational_form_residual(sim, solution):
@@ -30,7 +30,7 @@ def strong_residual(sim, solution):
     return div(grad(u))
     
     
-class Simulation(sunfire.simulation.Simulation):
+class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
     
