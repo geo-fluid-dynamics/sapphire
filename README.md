@@ -35,7 +35,9 @@ Test with
 
 Install with
 
-    python3 sapphire/setup.py install
+    cd sapphire
+    
+    python3 setup.py install
     
     
 ## Development
