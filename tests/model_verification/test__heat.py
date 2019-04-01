@@ -1,6 +1,6 @@
 import firedrake as fe 
-import sunfire.mms
-import sunfire.simulations.heat as sim_module
+import sapphire.mms
+import sapphire.simulations.heat as sim_module
 
 
 def manufactured_solution(sim):
@@ -19,7 +19,7 @@ def test__verify_spatial_convergence__second_order__via_mms(
         timestep_size = 1./64.,
         tolerance = 0.1):
     
-    sunfire.mms.verify_spatial_order_of_accuracy(
+    sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitIntervalMesh(n) for n in mesh_sizes],
@@ -37,7 +37,7 @@ def test__verify_temporal_convergence__first_order__via_mms(
         timestep_sizes = (1./4., 1./8., 1./16., 1./32.),
         tolerance = 0.1):
     
-    sunfire.mms.verify_temporal_order_of_accuracy(
+    sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
@@ -56,7 +56,7 @@ def test__verify_temporal_convergence__second_order__via_mms(
             1./4., 1./8., 1./16., 1./32., 1./64., 1./128.),
         tolerance = 0.1):
     
-    sunfire.mms.verify_temporal_order_of_accuracy(
+    sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
@@ -74,7 +74,7 @@ def test__verify_temporal_convergence__third_order__via_mms(
         timestep_sizes = (1./4., 1./8., 1./16., 1./32.),
         tolerance = 0.1):
     
-    sunfire.mms.verify_temporal_order_of_accuracy(
+    sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),

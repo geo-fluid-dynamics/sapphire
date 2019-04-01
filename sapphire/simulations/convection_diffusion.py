@@ -1,6 +1,6 @@
 """ A convection-diffusion simulation class """
 import firedrake as fe
-import sunfire.simulation
+import sapphire.simulation
 
 
 dot, grad, div = fe.dot, fe.grad, fe.div
@@ -38,7 +38,7 @@ def element(cell, degree):
     return fe.FiniteElement("P", cell, degree)
     
     
-class Simulation(sunfire.simulation.Simulation):
+class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args,
             mesh, element_degree, advection_velocity,

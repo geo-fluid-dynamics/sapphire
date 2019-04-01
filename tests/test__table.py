@@ -1,9 +1,9 @@
-import sunfire.table
+import sapphire.table
 
 
 def test__table():
 
-    table = sunfire.table.Table(("foo", "bar"))
+    table = sapphire.table.Table(("foo", "bar"))
 
     print(str(table))
     

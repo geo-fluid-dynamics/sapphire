@@ -4,7 +4,7 @@ This module assumes that the FEM simulation solves a variational problem
 which approximates solutions to a strong form PDE.
 """
 import firedrake as fe
-import sunfire.table
+import sapphire.table
 import math
 import pathlib
 
@@ -156,7 +156,7 @@ def verify_spatial_order_of_accuracy(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution)
     
-    table = sunfire.table.Table(("h", "L2_error", "spatial_order"))
+    table = sapphire.table.Table(("h", "L2_error", "spatial_order"))
     
     print("")
     
@@ -223,7 +223,7 @@ def verify_temporal_order_of_accuracy(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution)
     
-    table = sunfire.table.Table(("Delta_t", "L2_error", "temporal_order"))
+    table = sapphire.table.Table(("Delta_t", "L2_error", "temporal_order"))
     
     print("")
     

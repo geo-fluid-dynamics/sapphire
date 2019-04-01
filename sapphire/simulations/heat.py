@@ -1,13 +1,13 @@
 """ A heat simulation class """
 import firedrake as fe
-import sunfire.simulation
+import sapphire.simulation
 
     
 def variational_form_residual(sim, solution):
     
     u = solution
     
-    u_t = sunfire.simulation.time_discrete_terms(
+    u_t = sapphire.simulation.time_discrete_terms(
         solutions = sim.solutions, timestep_size = sim.timestep_size)
     
     v = fe.TestFunction(solution.function_space())
@@ -35,7 +35,7 @@ def strong_residual(sim, solution):
         return diff(u, t) - div(grad(u))
         
     
-class Simulation(sunfire.simulation.Simulation):
+class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
         

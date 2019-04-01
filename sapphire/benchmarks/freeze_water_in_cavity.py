@@ -1,5 +1,5 @@
 import firedrake as fe
-import sunfire.simulations.convection_coupled_phasechange
+import sapphire.simulations.convection_coupled_phasechange
 
 
 def water_buoyancy(sim, temperature):
@@ -32,7 +32,7 @@ def water_buoyancy(sim, temperature):
     
     Gr = sim.grashof_number
     
-    ghat = fe.Constant(-sunfire.simulation.unit_vectors(sim.mesh)[1])
+    ghat = fe.Constant(-sapphire.simulation.unit_vectors(sim.mesh)[1])
     
     rho_0 = rho(T = 0.)
     
@@ -41,10 +41,10 @@ def water_buoyancy(sim, temperature):
     
 def heat_driven_cavity_variational_form_residual(sim, solution):
     
-    mass = sunfire.simulations.convection_coupled_phasechange.\
+    mass = sapphire.simulations.convection_coupled_phasechange.\
         mass(sim, solution)
     
-    stabilization = sunfire.simulations.convection_coupled_phasechange.\
+    stabilization = sapphire.simulations.convection_coupled_phasechange.\
         stabilization(sim, solution)
     
     p, u, T = fe.split(solution)
@@ -129,7 +129,7 @@ def initial_values(sim):
         return w
     
     w, _ = \
-        sunfire.continuation.solve_with_bounded_regularization_sequence(
+        sapphire.continuation.solve_with_bounded_regularization_sequence(
             solve = solve,
             solution = w,
             backup_solution = fe.Function(w),
@@ -145,18 +145,18 @@ def variational_form_residual(sim, solution):
     return sum(
     [r(sim = sim, solution = solution)
         for r in (
-            sunfire.simulations.convection_coupled_phasechange.mass,
+            sapphire.simulations.convection_coupled_phasechange.mass,
             lambda sim, solution: \
-                sunfire.simulations.convection_coupled_phasechange.momentum(
+                sapphire.simulations.convection_coupled_phasechange.momentum(
                     sim = sim,
                     solution = solution,
                     buoyancy = water_buoyancy),
-            sunfire.simulations.convection_coupled_phasechange.energy,
-            sunfire.simulations.convection_coupled_phasechange.stabilization)])\
+            sapphire.simulations.convection_coupled_phasechange.energy,
+            sapphire.simulations.convection_coupled_phasechange.stabilization)])\
         *fe.dx(degree = sim.quadrature_degree)
     
     
-class Simulation(sunfire.simulations.convection_coupled_phasechange.Simulation):
+class Simulation(sapphire.simulations.convection_coupled_phasechange.Simulation):
 
     def __init__(self, *args, spatial_dimensions, meshsize, **kwargs):
         

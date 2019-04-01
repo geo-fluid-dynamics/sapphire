@@ -1,7 +1,8 @@
-# sunfire
-Sunfire is an engine for constructing PDE-based simulations 
-discretized in time with finite differences
-and in space with mixed finite elements.
+# sapphire
+Sapphire is an engine for constructing PDE-based simulations 
+discretized in space with mixed finite element using [Firedrake](https://www.firedrakeproject.org/)
+and in time with finite differences.
+
 
 [![DOI](https://zenodo.org/badge/157389237.svg)](https://zenodo.org/badge/latestdoi/157389237)
 
@@ -9,7 +10,7 @@ and in space with mixed finite elements.
 ## Portfolio
 
 ### Water freezing
-![Water freezing benchmark](https://github.com/geo-fluid-dynamics/sunfire-docs/blob/master/WaterFreezing.gif?raw=true)
+![Water freezing benchmark](https://github.com/geo-fluid-dynamics/sapphire-docs/blob/master/WaterFreezing.gif?raw=true)
 
 
 ## Setup
@@ -22,20 +23,20 @@ Activate the Firedrake virtual environment with something like
     . ~/firedrake/bin/activate
     
 
-### Sunfire
+### Sapphire
 Download with 
 
-    git clone git@github.com:geo-fluid-dynamics/sunfire.git
+    git clone git@github.com:geo-fluid-dynamics/sapphire.git
 
 The following assumes that the Firedrake virtual environment is already activated.
 
 Test with
 
-    python3 -m pytest sunfire/
+    python3 -m pytest sapphire/
 
 Install with
 
-    python3 sunfire/setup.py install
+    python3 sapphire/setup.py install
     
     
 ## Development
