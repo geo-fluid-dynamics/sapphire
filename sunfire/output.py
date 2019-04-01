@@ -4,19 +4,19 @@ import matplotlib.pyplot as plt
 import firedrake as fe
 
 
-def write_solution(model, solution = None, time = None, file = None):
+def write_solution(sim, solution = None, time = None, file = None):
     
     if solution is None:
     
-        solution = model.solution
+        solution = sim.solution
         
     if time is None:
     
-        time = model.time
+        time = sim.time
         
     if file is None:
     
-        time = model.solution_file
+        time = sim.solution_file
         
         
     if time is None:
@@ -36,11 +36,11 @@ def write_solution(model, solution = None, time = None, file = None):
         file.write(*solution.split(), time = timefloat)
     
 
-def default_plotvars(model, solution = None):
+def default_plotvars(sim, solution = None):
     
     if solution is None:
     
-        solution = model.solution
+        solution = sim.solution
         
     subscripts, functions = enumerate(solution.split())
     
@@ -52,7 +52,7 @@ def default_plotvars(model, solution = None):
     
     
 def plot(
-        model,
+        sim,
         solution = None,
         time = None,
         outdir_path = None,
@@ -60,15 +60,15 @@ def plot(
     
     if solution is None:
     
-        solution = model.solution
+        solution = sim.solution
         
     if time is None:
     
-        time = model.time.__float__()
+        time = sim.time.__float__()
         
     if outdir_path is None:
     
-        outdir_path = model.output_directory_path
+        outdir_path = sim.output_directory_path
     
     if plotvars is None:
     
@@ -76,7 +76,7 @@ def plot(
     
     outdir_path.mkdir(parents = True, exist_ok = True)
     
-    for f, label, name in zip(*plotvars(model = model, solution = solution)):
+    for f, label, name in zip(*plotvars(sim = sim, solution = solution)):
         
         fe.plot(f)
         
@@ -130,9 +130,9 @@ class ObjectWithOrderedDict(object):
         return self.__odict__.iteritems()
         
         
-def report(model, write_header = True):
+def report(sim, write_header = True):
     
-    ordered_dict = model.__odict__.copy()
+    ordered_dict = sim.__odict__.copy()
     
     for key in ordered_dict.keys():
         
@@ -140,7 +140,7 @@ def report(model, write_header = True):
         
             ordered_dict[key] = ordered_dict[key].__float__()
     
-    with model.output_directory_path.joinpath(
+    with sim.output_directory_path.joinpath(
                 "report").with_suffix(".csv").open("a+") as csv_file:
         
         writer = csv.DictWriter(csv_file, fieldnames = ordered_dict.keys())

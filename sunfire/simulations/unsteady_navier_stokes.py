@@ -1,35 +1,35 @@
-""" Unsteady incompressible Navier-Stokes model """
+""" Unsteady incompressible Navier-Stokes simulation """
 import firedrake as fe
-import sunfire.model
+import sunfire.simulation
 
 
 diff, inner, dot, grad, div, sym = \
     fe.diff, fe.inner, fe.dot, fe.grad, fe.div, fe.sym
     
-def variational_form_residual(model, solution):
+def variational_form_residual(sim, solution):
     
-    u, p = fe.split(model.solution)
+    u, p = fe.split(sim.solution)
     
-    u_t, _ = sunfire.model.time_discrete_terms(
-        solutions = model.solutions, timestep_size = model.timestep_size)
+    u_t, _ = sunfire.simulation.time_discrete_terms(
+        solutions = sim.solutions, timestep_size = sim.timestep_size)
     
-    psi_u, psi_p = fe.TestFunctions(model.solution.function_space())
+    psi_u, psi_p = fe.TestFunctions(sim.solution.function_space())
     
     mass = psi_p*div(u)
     
     momentum = dot(psi_u, u_t + grad(u)*u) - div(psi_u)*p + \
         2.*inner(sym(grad(psi_u)), sym(grad(u)))
     
-    dx = fe.dx(degree = model.quadrature_degree)
+    dx = fe.dx(degree = sim.quadrature_degree)
     
     return (mass + momentum)*dx
     
     
-def strong_residual(model, solution):
+def strong_residual(sim, solution):
     
     u, p = solution
     
-    t = model.time
+    t = sim.time
     
     r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(sym(grad(u)))
     
@@ -47,7 +47,7 @@ def element(cell, degree):
     return fe.MixedElement(vector, scalar)
     
     
-class Model(sunfire.model.Model):
+class Simulation(sunfire.simulation.Simulation):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
         

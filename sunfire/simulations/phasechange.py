@@ -1,59 +1,59 @@
-""" An enthalpy model class for melting and solidification """
+""" A simulation class for melting and solidification in enthalpy form """
 import firedrake as fe
-import sunfire.model
+import sunfire.simulation
 
 
 diff, dot, div, grad, tanh = fe.diff, fe.dot, fe.div, fe.grad, fe.tanh
 
 
-def liquid_volume_fraction(model, temperature):
+def liquid_volume_fraction(sim, temperature):
     
     T = temperature
     
-    T_L = model.liquidus_temperature
+    T_L = sim.liquidus_temperature
     
-    s = model.smoothing
+    s = sim.smoothing
     
     return 0.5*(1. + tanh((T - T_L)/s))
 
     
-def time_discrete_terms(model):
+def time_discrete_terms(sim):
     
-    T_t = sunfire.model.time_discrete_terms(
-        solutions = model.solutions, timestep_size = model.timestep_size)
+    T_t = sunfire.simulation.time_discrete_terms(
+        solutions = sim.solutions, timestep_size = sim.timestep_size)
         
     phil_t = sunfire.time_discretization.bdf(
-        [liquid_volume_fraction(model = model, temperature = T_n)
-            for T_n in model.solutions],
-        timestep_size = model.timestep_size)
+        [liquid_volume_fraction(sim = sim, temperature = T_n)
+            for T_n in sim.solutions],
+        timestep_size = sim.timestep_size)
     
     return T_t, phil_t
     
     
-def variational_form_residual(model, solution):
+def variational_form_residual(sim, solution):
     
     T = solution
     
-    Ste = model.stefan_number
+    Ste = sim.stefan_number
     
-    T_t, phil_t = time_discrete_terms(model = model)
+    T_t, phil_t = time_discrete_terms(sim = sim)
     
     v = fe.TestFunction(T.function_space())
     
-    dx = fe.dx(degree = model.quadrature_degree)
+    dx = fe.dx(degree = sim.quadrature_degree)
     
     return (v*(T_t + 1./Ste*phil_t) + dot(grad(v), grad(T)))*dx
     
     
-def strong_residual(model, solution):
+def strong_residual(sim, solution):
     
     T = solution
     
-    t = model.time
+    t = sim.time
     
-    Ste = model.stefan_number
+    Ste = sim.stefan_number
     
-    phil = liquid_volume_fraction(model = model, temperature = T)
+    phil = liquid_volume_fraction(sim = sim, temperature = T)
     
     return diff(T, t) - div(grad(T)) + 1./Ste*diff(phil, t)
     
@@ -63,7 +63,7 @@ def element(cell, degree):
     return fe.FiniteElement("P", cell, degree)
     
     
-class Model(sunfire.model.Model):
+class Simulation(sunfire.simulation.Simulation):
     
     def __init__(self, *args, mesh, element_degree, **kwargs):
         

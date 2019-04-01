@@ -39,7 +39,7 @@ def test__validate__melt_octadecane__regression():
     tolerance = 0.01
     
     
-    model = sunfire.benchmarks.melt_octadecane_in_cavity.Model(
+    sim = sunfire.benchmarks.melt_octadecane_in_cavity.Simulation(
         quadrature_degree = q,
         element_degree = rx - 1,
         time_stencil_size = rt + 1,
@@ -51,26 +51,26 @@ def test__validate__melt_octadecane__regression():
             + "q{0}/".format(q))
     
     
-    model.timestep_size.assign(tf/float(nt))
+    sim.timestep_size.assign(tf/float(nt))
     
-    model.smoothing.assign(s)
+    sim.smoothing.assign(s)
     
-    model.solid_velocity_relaxation_factor.assign(tau)
+    sim.solid_velocity_relaxation_factor.assign(tau)
     
-    model.topwall_heatflux_switchtime = th
+    sim.topwall_heatflux_switchtime = th
     
-    model.topwall_heatflux_postswitch = h
+    sim.topwall_heatflux_postswitch = h
     
     
-    model.solutions, _, = model.run(
+    sim.solutions, _, = sim.run(
         endtime = tf,
         topwall_heatflux_poststart = h,
         topwall_heatflux_starttime = th)
     
     
-    print("Liquid area = {0}".format(model.liquid_area))
+    print("Liquid area = {0}".format(sim.liquid_area))
     
-    assert(abs(model.liquid_area - expected_liquid_area) < tolerance)
+    assert(abs(sim.liquid_area - expected_liquid_area) < tolerance)
     
 
 def freeze_water(endtime, s, tau, rx, nx, rt, nt, q, dim = 2, outdir = ""):
@@ -93,7 +93,7 @@ def freeze_water(endtime, s, tau, rx, nx, rt, nt, q, dim = 2, outdir = ""):
     at t_f__SI 2340 s, t_f = 1.44.
     """
     
-    model = sunfire.benchmarks.freeze_water_in_cavity.Model(
+    sim = sunfire.benchmarks.freeze_water_in_cavity.Simulation(
         quadrature_degree = q,
         element_degree = rx - 1,
         time_stencil_size = rt + 1,
@@ -106,25 +106,25 @@ def freeze_water(endtime, s, tau, rx, nx, rt, nt, q, dim = 2, outdir = ""):
             + "rx{0}_nx{1}_rt{2}_nt{3}/".format(rx, nx, rt, nt)
             + "q{0}/".format(q))))
     
-    model.timestep_size = model.timestep_size.assign(t_f/float(nt))
+    sim.timestep_size = sim.timestep_size.assign(t_f/float(nt))
     
-    model.solid_velocity_relaxation_factor = \
-        model.solid_velocity_relaxation_factor.assign(tau)
+    sim.solid_velocity_relaxation_factor = \
+        sim.solid_velocity_relaxation_factor.assign(tau)
     
-    model.smoothing = model.smoothing.assign(s)
-    
-    
-    model.solutions, _, = model.run(endtime = t_f)
+    sim.smoothing = sim.smoothing.assign(s)
     
     
-    print("Liquid area = {0}".format(model.liquid_area))
+    sim.solutions, _, = sim.run(endtime = t_f)
     
-    return model
+    
+    print("Liquid area = {0}".format(sim.liquid_area))
+    
+    return sim
     
     
 def test__validate__freeze_water__regression(datadir):
     
-    model = freeze_water(
+    sim = freeze_water(
         outdir = datadir,
         endtime = 2340.,
         s = 1./200.,
@@ -135,5 +135,5 @@ def test__validate__freeze_water__regression(datadir):
         nt = 4,
         q = 4)
     
-    assert(abs(model.liquid_area - 0.69) < 0.01)
+    assert(abs(sim.liquid_area - 0.69) < 0.01)
     

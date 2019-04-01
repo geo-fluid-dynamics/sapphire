@@ -1,20 +1,20 @@
 import firedrake as fe 
 import sunfire.mms
-import sunfire.models.navier_stokes_boussinesq as model_module
+import sunfire.simulations.navier_stokes_boussinesq as sim_module
 import sunfire.benchmarks.heat_driven_cavity
 
 
-def manufactured_solution(model):
+def manufactured_solution(sim):
     
     sin, pi = fe.sin, fe.pi
     
-    x = fe.SpatialCoordinate(model.mesh)
+    x = fe.SpatialCoordinate(sim.mesh)
     
     u0 = sin(2.*pi*x[0])*sin(pi*x[1])
     
     u1 = sin(pi*x[0])*sin(2.*pi*x[1])
     
-    ihat, jhat = sunfire.model.unit_vectors(model.mesh)
+    ihat, jhat = sunfire.simulation.unit_vectors(sim.mesh)
     
     u = u0*ihat + u1*jhat
     
@@ -34,8 +34,8 @@ def test__verify_convergence_order_via_mms(
     Pr = 0.7
     
     sunfire.mms.verify_spatial_order_of_accuracy(
-        model_module = model_module,
-        model_constructor_kwargs = {
+        sim_module = sim_module,
+        sim_constructor_kwargs = {
             "quadrature_degree": 4, "element_degree": 1},
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
@@ -47,7 +47,7 @@ def test__verify_convergence_order_via_mms(
     
     
 def verify_scalar_solution_component(
-            model, 
+            sim, 
             component, 
             coordinates, 
             verified_values, 
@@ -58,7 +58,7 @@ def verify_scalar_solution_component(
         
         Parameters
         ----------
-        model : sunfire.Model
+        sim : sunfire.Simulation
         
         component : integer
         
@@ -87,7 +87,7 @@ def verify_scalar_solution_component(
         
         for i, verified_value in enumerate(verified_values):
             
-            values = model.solution.at(coordinates[i])
+            values = sim.solution.at(coordinates[i])
             
             value = values[component]
             
@@ -110,15 +110,15 @@ def verify_scalar_solution_component(
                 
 def test__verify_against_heat_driven_cavity_benchmark():
 
-    model = sunfire.benchmarks.heat_driven_cavity.Model(
+    sim = sunfire.benchmarks.heat_driven_cavity.Simulation(
         quadrature_degree = 4, element_degree = 1, meshsize = 40)
     
-    model.solution = model.solve()
+    sim.solution = sim.solve()
     
     """ Verify against the result published in @cite{wang2010comprehensive}. """
-    Gr = model.grashof_number.__float__()
+    Gr = sim.grashof_number.__float__()
     
-    Pr = model.prandtl_number.__float__()
+    Pr = sim.prandtl_number.__float__()
     
     Ra = Gr*Pr
     
@@ -126,7 +126,7 @@ def test__verify_against_heat_driven_cavity_benchmark():
     because the Function evaluation fails arbitrarily at these points.
     See https://github.com/firedrakeproject/firedrake/issues/1340 """
     verify_scalar_solution_component(
-        model,
+        sim,
         component = 1,
         subcomponent = 0,
         coordinates = [(0.5, y) 

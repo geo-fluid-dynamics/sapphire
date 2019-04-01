@@ -1,4 +1,4 @@
-""" Contains the Model class """
+""" Contains the Simulation class """
 import pathlib
 import firedrake as fe
 import sunfire.time_discretization
@@ -7,8 +7,8 @@ import sunfire.output
 
 time_tolerance = 1.e-8
 
-class Model(sunfire.output.ObjectWithOrderedDict):
-    """ A class on which to base finite element models """
+class Simulation(sunfire.output.ObjectWithOrderedDict):
+    """ A class on which to base finite element simulations """
     def __init__(self, 
             mesh, 
             element, 
@@ -59,7 +59,7 @@ class Model(sunfire.output.ObjectWithOrderedDict):
         self.plotvars = None
         
         
-        self.initial_values = initial_values(model = self)
+        self.initial_values = initial_values(sim = self)
         
         for solution in self.solutions:
         
@@ -67,11 +67,11 @@ class Model(sunfire.output.ObjectWithOrderedDict):
         
         
         self.variational_form_residual = variational_form_residual(
-                model = self,
+                sim = self,
                 solution = self.solution)
                 
         self.dirichlet_boundary_conditions = \
-            dirichlet_boundary_conditions(model = self)
+            dirichlet_boundary_conditions(sim = self)
         
         
         self.snes_iteration_count = 0
@@ -128,11 +128,11 @@ class Model(sunfire.output.ObjectWithOrderedDict):
         
         self = self.postprocess()
         
-        sunfire.output.report(model = self, write_header = write_headers)
+        sunfire.output.report(sim = self, write_header = write_headers)
         
-        sunfire.output.write_solution(model = self, file = self.solution_file)
+        sunfire.output.write_solution(sim = self, file = self.solution_file)
         
-        sunfire.output.plot(model = self, plotvars = plotvars)
+        sunfire.output.plot(sim = self, plotvars = plotvars)
         
     def run(self,
             endtime,

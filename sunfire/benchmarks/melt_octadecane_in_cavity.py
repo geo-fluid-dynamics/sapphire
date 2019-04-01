@@ -1,27 +1,28 @@
 import firedrake as fe
-import sunfire.models.convection_coupled_phasechange
+import sunfire.simulations.convection_coupled_phasechange
 
 
-def initial_values(model):
+def initial_values(sim):
     
     return fe.interpolate(
         fe.Expression(
-            (0., 0., 0., model.cold_wall_temperature.__float__()),
-            element = model.element),
-        model.function_space)
+            (0., 0., 0., sim.cold_wall_temperature.__float__()),
+            element = sim.element),
+        sim.function_space)
         
         
-def dirichlet_boundary_conditions(model):
+def dirichlet_boundary_conditions(sim):
 
-    W = model.function_space
+    W = sim.function_space
     
     return [
         fe.DirichletBC(W.sub(1), (0., 0.), "on_boundary"),
-        fe.DirichletBC(W.sub(2), model.hot_wall_temperature, 1),
-        fe.DirichletBC(W.sub(2), model.cold_wall_temperature, 2)]
+        fe.DirichletBC(W.sub(2), sim.hot_wall_temperature, 1),
+        fe.DirichletBC(W.sub(2), sim.cold_wall_temperature, 2)]
         
         
-class Model(sunfire.models.convection_coupled_phasechange.Model):
+class Simulation(sunfire.simulations.\
+        convection_coupled_phasechange.Simulation):
     
     def __init__(self, *args, meshsize, **kwargs):
         

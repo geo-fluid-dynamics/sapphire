@@ -1,22 +1,22 @@
 import firedrake as fe
-import sunfire.models.navier_stokes_boussinesq
+import sunfire.simulations.navier_stokes_boussinesq
 
 
-def initial_values(model):
+def initial_values(sim):
 
-    return model.solution
+    return sim.solution
 
-def dirichlet_boundary_conditions(model):
+def dirichlet_boundary_conditions(sim):
     
-    W = model.function_space
+    W = sim.function_space
     
     return [
         fe.DirichletBC(W.sub(1), (0., 0.), "on_boundary"),
-        fe.DirichletBC(W.sub(2), model.hot_wall_temperature, 1),
-        fe.DirichletBC(W.sub(2), model.cold_wall_temperature, 2)]
+        fe.DirichletBC(W.sub(2), sim.hot_wall_temperature, 1),
+        fe.DirichletBC(W.sub(2), sim.cold_wall_temperature, 2)]
 
         
-class Model(sunfire.models.navier_stokes_boussinesq.Model):
+class Simulation(sunfire.simulations.navier_stokes_boussinesq.Simulation):
     
     def __init__(self, *args, meshsize, **kwargs):
         

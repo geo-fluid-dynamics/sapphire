@@ -1,34 +1,34 @@
-""" A convection-diffusion model class """
+""" A convection-diffusion simulation class """
 import firedrake as fe
-import sunfire.model
+import sunfire.simulation
 
 
 dot, grad, div = fe.dot, fe.grad, fe.div
     
-def variational_form_residual(model, solution):
+def variational_form_residual(sim, solution):
     
     u = solution
     
     v = fe.TestFunction(solution.function_space())
     
-    a = model.advection_velocity
+    a = sim.advection_velocity
     
-    nu = model.kinematic_viscosity
+    nu = sim.kinematic_viscosity
     
-    dx = fe.dx(degree = model.quadrature_degree)
+    dx = fe.dx(degree = sim.quadrature_degree)
     
     return (v*dot(a, grad(u)) + dot(grad(v), nu*grad(u)))*dx
     
     
-def strong_residual(model, solution):
+def strong_residual(sim, solution):
     
-    x = fe.SpatialCoordinate(model.mesh)
+    x = fe.SpatialCoordinate(sim.mesh)
     
     u = solution
     
-    a = model.advection_velocity
+    a = sim.advection_velocity
     
-    nu = model.kinematic_viscosity
+    nu = sim.kinematic_viscosity
     
     return dot(a, grad(u)) - div(nu*grad(u))
 
@@ -38,7 +38,7 @@ def element(cell, degree):
     return fe.FiniteElement("P", cell, degree)
     
     
-class Model(sunfire.model.Model):
+class Simulation(sunfire.simulation.Simulation):
     
     def __init__(self, *args,
             mesh, element_degree, advection_velocity,
