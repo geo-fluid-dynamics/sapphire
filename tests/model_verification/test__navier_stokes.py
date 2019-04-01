@@ -9,7 +9,7 @@ def manufactured_solution(sim):
     
     x = fe.SpatialCoordinate(sim.mesh)
     
-    ihat, jhat = sunfire.sim.unit_vectors(sim.mesh)
+    ihat, jhat = sunfire.simulation.unit_vectors(sim.mesh)
     
     u = sin(2.*pi*x[0])*sin(pi*x[1])*ihat + \
         sin(pi*x[0])*sin(2.*pi*x[1])*jhat

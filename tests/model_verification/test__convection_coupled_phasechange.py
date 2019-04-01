@@ -13,7 +13,7 @@ def manufactured_solution(sim):
     
     t_f = fe.Constant(1.)
     
-    ihat, jhat = sunfire.sim.unit_vectors(sim.mesh)
+    ihat, jhat = sunfire.simulation.unit_vectors(sim.mesh)
     
     u = exp(t)*sin(2.*pi*x[0])*sin(pi*x[1])*ihat + \
         exp(t)*sin(pi*x[0])*sin(2.*pi*x[1])*jhat

@@ -16,7 +16,7 @@ def advection_velocity(mesh):
 
     x = fe.SpatialCoordinate(mesh)
     
-    ihat, jhat = sunfire.sim.unit_vectors(mesh)
+    ihat, jhat = sunfire.simulation.unit_vectors(mesh)
     
     return sin(2.*pi*x[0])*sin(4.*pi*x[1])*ihat \
         + sin(pi*x[0])*sin(2.*pi*x[1])*jhat

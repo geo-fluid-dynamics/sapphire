@@ -43,7 +43,7 @@ def linear_boussinesq_buoyancy(sim, temperature):
     
     Gr = sim.grashof_number
     
-    ghat = fe.Constant(-sunfire.sim.unit_vectors(sim.mesh)[1])
+    ghat = fe.Constant(-sunfire.simulation.unit_vectors(sim.mesh)[1])
     
     return Gr*T*ghat
     
@@ -104,7 +104,7 @@ def strong_residual(sim, solution, buoyancy = linear_boussinesq_buoyancy):
     
 def time_discrete_terms(sim):
     
-    _, u_t, _ = sunfire.sim.time_discrete_terms(
+    _, u_t, _ = sunfire.simulation.time_discrete_terms(
         solutions = sim.solutions, timestep_size = sim.timestep_size)
     
     temperature_solutions = []

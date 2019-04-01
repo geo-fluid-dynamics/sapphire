@@ -32,7 +32,7 @@ def water_buoyancy(sim, temperature):
     
     Gr = sim.grashof_number
     
-    ghat = fe.Constant(-sunfire.sim.unit_vectors(sim.mesh)[1])
+    ghat = fe.Constant(-sunfire.simulation.unit_vectors(sim.mesh)[1])
     
     rho_0 = rho(T = 0.)
     
