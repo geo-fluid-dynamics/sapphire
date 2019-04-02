@@ -10,6 +10,8 @@ and in time with finite differences.
 
 ### Benchmarks
 
+[Melting Octadecane](https://www.researchgate.net/publication/245092223_Analysis_of_heat_transfer_during_melting_from_a_vertical_wall)
+
 ![Octadecane melting benchmark](https://github.com/geo-fluid-dynamics/sapphire-docs/blob/master/OctadecaneMelting.gif?raw=true)
 
 ### Applications
