@@ -8,8 +8,8 @@ and in time with finite differences.
 
 ## Portfolio
 
-### Water freezing
-![Water freezing benchmark](https://github.com/geo-fluid-dynamics/sapphire-docs/blob/master/WaterFreezing.gif?raw=true)
+### Octadecane melting
+![Octadecane melting benchmark](https://github.com/geo-fluid-dynamics/sapphire-docs/blob/master/OctadecaneMelting.gif?raw=true)
 
 
 ## Setup
