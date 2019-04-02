@@ -8,8 +8,13 @@ and in time with finite differences.
 
 ## Portfolio
 
-### Octadecane melting
+### Benchmarks
+
 ![Octadecane melting benchmark](https://github.com/geo-fluid-dynamics/sapphire-docs/blob/master/OctadecaneMelting.gif?raw=true)
+
+### Applications
+
+[Sapphire-Ice](https://github.com/geo-fluid-dynamics/sapphire-ice)
 
 
 ## Setup
