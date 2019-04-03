@@ -1,5 +1,6 @@
-Sapphire is an engine for constructing PDE-based simulations 
-discretized in space with mixed finite element using [Firedrake](https://www.firedrakeproject.org/)
+Sapphire (memnonically: Simulations automatically programmed with [Firedrake](https://www.firedrakeproject.org/)) 
+is an engine for constructing PDE-based simulations 
+discretized in space with mixed finite elements
 and in time with finite differences.
 
 
