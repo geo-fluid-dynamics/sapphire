@@ -10,5 +10,7 @@ setuptools.setup(
         'matplotlib',
         'numpy',
         'scipy',
-        'vtk']
+        'vtk'],
+     dependency_links = [
+        'https://github.com/firedrakeproject/firedrake',]
 )
