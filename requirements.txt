@@ -1,0 +1,5 @@
+firedrake
+matplotlib
+numpy
+scipy
+vtk
