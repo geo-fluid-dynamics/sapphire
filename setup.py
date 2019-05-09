@@ -9,5 +9,5 @@ setuptools.setup(
         'matplotlib',
         'numpy',
         'scipy',
-        'vtk']]
+        'vtk']
 )
