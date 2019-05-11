@@ -70,10 +70,8 @@ def dirichlet_boundary_conditions(sim):
 
     W = sim.function_space
     
-    dim = sim.mesh.geometric_dimension()
-    
     return [fe.DirichletBC(
-        W.sub(1), (0.,)*dim, "on_boundary"),
+        W.sub(1), (0., 0.), "on_boundary"),
         fe.DirichletBC(W.sub(2), sim.hot_wall_temperature, 1),
         fe.DirichletBC(W.sub(2), sim.cold_wall_temperature, 2)]
         
@@ -90,22 +88,22 @@ def initial_values(sim):
     
     sim.prandtl_number = sim.prandtl_number.assign(Pr)
     
-    dim = sim.mesh.geometric_dimension()
+    w = fe.Function(sim.function_space)
     
-    T_c = sim.cold_wall_temperature.__float__()
+    p, u, T = w.split()
     
-    w = fe.interpolate(
-        fe.Expression(
-            (0.,) + (0.,)*dim + (T_c,),
-            element = sim.element),
-        sim.function_space)
+    p.assign(0.)
+    
+    ihat, jhat = sim.unit_vectors()
+    
+    u.assign(0.*ihat + 0.*jhat)
+    
+    T.assign(sim.cold_wall_temperature)
     
     F = heat_driven_cavity_variational_form_residual(
         sim = sim,
         solution = w)*fe.dx(degree = sim.quadrature_degree)
         
-    T_h = sim.hot_wall_temperature.__float__()
-    
     problem = fe.NonlinearVariationalProblem(
         F = F,
         u = w,
@@ -158,7 +156,7 @@ def variational_form_residual(sim, solution):
     
 class Simulation(sapphire.simulations.convection_coupled_phasechange.Simulation):
 
-    def __init__(self, *args, spatial_dimensions, meshsize, **kwargs):
+    def __init__(self, *args, meshsize, **kwargs):
         
         self.reference_temperature_range__degC = fe.Constant(10.)
         
@@ -166,17 +164,9 @@ class Simulation(sapphire.simulations.convection_coupled_phasechange.Simulation)
         
         self.cold_wall_temperature = fe.Constant(0.)
         
-        if spatial_dimensions == 2:
-    
-            Mesh = fe.UnitSquareMesh
-            
-        elif spatial_dimensions == 3:
-        
-            Mesh = fe.UnitCubeMesh
-        
         super().__init__(
             *args,
-            mesh = Mesh(*(meshsize,)*spatial_dimensions),
+            mesh = fe.UnitSquareMesh(meshsize, meshsize),
             variational_form_residual = variational_form_residual,
             initial_values = initial_values,
             dirichlet_boundary_conditions = dirichlet_boundary_conditions,

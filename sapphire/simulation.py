@@ -177,6 +177,10 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 
         return self
         
+    def unit_vectors(self):
+    
+        return unit_vectors(self.mesh)
+        
         
 def unit_vectors(mesh):
     
