@@ -41,7 +41,7 @@ The following assumes that the Firedrake virtual environment is already activate
 
 Test with
 
-    python3 -m pytest sapphire/
+    python3 -m pytest sapphire/tests/
 
 Install with
 
