@@ -4,13 +4,21 @@ import sapphire.simulations.convection_coupled_phasechange
 
 def initial_values(sim):
     
-    return fe.interpolate(
-        fe.Expression(
-            (0., 0., 0., sim.cold_wall_temperature.__float__()),
-            element = sim.element),
-        sim.function_space)
-        
-        
+    w = fe.Function(sim.function_space)
+    
+    p, u, T = w.split()
+    
+    p.assign(0.)
+    
+    ihat, jhat = sim.unit_vectors()
+    
+    u.assign(0.*ihat + 0.*jhat)
+    
+    T.assign(sim.cold_wall_temperature)
+    
+    return w
+    
+    
 def dirichlet_boundary_conditions(sim):
 
     W = sim.function_space

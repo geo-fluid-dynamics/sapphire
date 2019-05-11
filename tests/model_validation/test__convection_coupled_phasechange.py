@@ -73,7 +73,7 @@ def test__validate__melt_octadecane__regression():
     assert(abs(sim.liquid_area - expected_liquid_area) < tolerance)
     
 
-def freeze_water(endtime, s, tau, rx, nx, rt, nt, q, dim = 2, outdir = ""):
+def freeze_water(endtime, s, tau, rx, nx, rt, nt, q, outdir = ""):
     
     mu_l__SI = 8.90e-4  # [Pa s]
     
@@ -97,11 +97,9 @@ def freeze_water(endtime, s, tau, rx, nx, rt, nt, q, dim = 2, outdir = ""):
         quadrature_degree = q,
         element_degree = rx - 1,
         time_stencil_size = rt + 1,
-        spatial_dimensions = dim,
         meshsize = nx,
         output_directory_path = str(outdir.join(
             "freeze_water/"
-            + "dim{0}/".format(dim)
             + "s{0}_tau{1}/".format(s, tau)
             + "rx{0}_nx{1}_rt{2}_nt{3}/".format(rx, nx, rt, nt)
             + "q{0}/".format(q))))
