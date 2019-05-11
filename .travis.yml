@@ -1,0 +1,17 @@
+services:
+  - docker
+
+branches:
+    only:
+        - master
+
+before_install:
+- docker pull firedrakeproject/firedrake
+- docker run -dti -v `pwd`:/home/firedrake/sapphire-ice -w /home/firedrake/ --name fd firedrakeproject/firedrake
+- docker exec fd ls
+- docker exec fd pip3 install pytest
+- docker exec fd git clone https://github.com/geo-fluid-dynamics/sapphire.git
+- docker exec fd bash -c "source firedrake/bin/activate && cd sapphire && python3 setup.py install"
+
+script:
+- docker exec fd bash -c "source firedrake/bin/activate && python3 -m pytest -v sapphire-ice"
