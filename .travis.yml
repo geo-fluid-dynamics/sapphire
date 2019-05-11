@@ -12,5 +12,4 @@ before_install:
 - docker exec fd pip3 install pytest
 
 script:
-- docker exec fd bash -c "source firedrake/bin/activate && cd sapphire && python3 setup.py install"
 - docker exec fd bash -c "source firedrake/bin/activate && python3 -m pytest -v sapphire/tests"
