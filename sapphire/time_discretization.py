@@ -1,4 +1,15 @@
-""" Time discretization formulas """
+""" Time discretization formulas 
+
+Derived from 
+
+    @book{ascher1998computer,
+      title={Computer methods for ordinary differential equations and differential-algebraic equations},
+      author={Ascher, Uri M and Petzold, Linda R},
+      volume={61},
+      year={1998},
+      publisher={Siam}
+    }
+"""
 
 
 def bdf(ys, timestep_size):
