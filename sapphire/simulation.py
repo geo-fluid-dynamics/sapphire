@@ -79,7 +79,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
     def solve(self,
             parameters = {
                 "snes_type": "newtonls",
-                "snes_monitor": True,
+                "snes_monitor": None,
                 "ksp_type": "preonly", 
                 "pc_type": "lu", 
                 "mat_type": "aij",
