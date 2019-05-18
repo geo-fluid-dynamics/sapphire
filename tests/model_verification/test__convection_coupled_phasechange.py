@@ -24,23 +24,39 @@ def manufactured_solution(sim):
     
     return p, u, T
     
-    
+
+Gr = 2.
+
+Pr = 5.
+
+Ste = 0.2
+
+rhos_over_rhol = 0.92
+
+cs_over_cl = 0.50
+
+kappas_over_kappal = 3.8
+
+sigma = 1/16
+
+endtime = 0.5
+
 def test__verify__second_order_spatial_convergence__via_mms(
         sim_constructor_kwargs = {
             "quadrature_degree": 4,
             "element_degree": 1,
             "time_stencil_size": 3},
         parameters = {
-            "grashof_number": 2.,
-            "prandtl_number": 5.,
-            "stefan_number": 0.2,
-            "density_solid_to_liquid_ratio": 916.70/999.84,
-            "heat_capacity_solid_to_liquid_ratio": 0.500,
-            "thermal_conductivity_solid_to_liquid_ratio": 2.14/0.561,
-            "smoothing": 1./16.},
+            "grashof_number": Gr,
+            "prandtl_number": Pr,
+            "stefan_number": Ste,
+            "density_solid_to_liquid_ratio": rhos_over_rhol,
+            "heat_capacity_solid_to_liquid_ratio": cs_over_cl,
+            "thermal_conductivity_solid_to_liquid_ratio": kappas_over_kappal,
+            "smoothing": sigma},
         mesh_sizes = (2, 4, 8),
         timestep_size = 1./64.,
-        tolerance = 0.13):
+        tolerance = 0.2):
     
     rt = sim_constructor_kwargs["time_stencil_size"] - 1
     
@@ -53,7 +69,7 @@ def test__verify__second_order_spatial_convergence__via_mms(
         expected_order = 2,
         tolerance = tolerance,
         timestep_size = timestep_size,
-        endtime = 0.5)
+        endtime = endtime)
         
         
 def test__verify__second_order_temporal_convergence__via_mms(
@@ -62,13 +78,13 @@ def test__verify__second_order_temporal_convergence__via_mms(
             "element_degree": 1,
             "time_stencil_size": 3},
         parameters = {
-            "grashof_number": 2.,
-            "prandtl_number": 5.,
-            "stefan_number": 0.2,
-            "density_solid_to_liquid_ratio": 916.70/999.84,
-            "heat_capacity_solid_to_liquid_ratio": 0.500,
-            "thermal_conductivity_solid_to_liquid_ratio": 2.14/0.561,
-            "smoothing": 1./16.},
+            "grashof_number": Gr,
+            "prandtl_number": Pr,
+            "stefan_number": Ste,
+            "density_solid_to_liquid_ratio": rhos_over_rhol,
+            "heat_capacity_solid_to_liquid_ratio": cs_over_cl,
+            "thermal_conductivity_solid_to_liquid_ratio": kappas_over_kappal,
+            "smoothing": sigma},
         meshsize = 24,
         timestep_sizes = (1./3., 1./9., 1./27.),
         tolerance = 0.3):
@@ -88,7 +104,7 @@ def test__verify__second_order_temporal_convergence__via_mms(
         expected_order = 2,
         tolerance = tolerance,
         timestep_sizes = timestep_sizes,
-        endtime = 0.5)
+        endtime = endtime)
 
         
 def test__verify__third_order_spatial_convergence__via_mms(
@@ -97,16 +113,16 @@ def test__verify__third_order_spatial_convergence__via_mms(
             "element_degree": 2,
             "time_stencil_size": 4},
         parameters = {
-            "grashof_number": 2.,
-            "prandtl_number": 5.,
-            "stefan_number": 0.2,
-            "density_solid_to_liquid_ratio": 916.70/999.84,
-            "heat_capacity_solid_to_liquid_ratio": 0.500,
-            "thermal_conductivity_solid_to_liquid_ratio": 2.14/0.561,
-            "smoothing": 1./16.},
+            "grashof_number": Gr,
+            "prandtl_number": Pr,
+            "stefan_number": Ste,
+            "density_solid_to_liquid_ratio": rhos_over_rhol,
+            "heat_capacity_solid_to_liquid_ratio": cs_over_cl,
+            "thermal_conductivity_solid_to_liquid_ratio": kappas_over_kappal,
+            "smoothing": sigma},
         mesh_sizes = (3, 6, 12, 24),
         timestep_size = 1./64.,
-        tolerance = 0.32):
+        tolerance = 0.25):
     
     rt = sim_constructor_kwargs["time_stencil_size"] - 1
     
@@ -119,7 +135,7 @@ def test__verify__third_order_spatial_convergence__via_mms(
         expected_order = 3,
         tolerance = tolerance,
         timestep_size = timestep_size,
-        endtime = 0.32)
+        endtime = endtime)
         
         
 def test__verify__third_order_temporal_convergence__via_mms(
@@ -128,13 +144,13 @@ def test__verify__third_order_temporal_convergence__via_mms(
             "element_degree": 2,
             "time_stencil_size": 4},
         parameters = {
-            "grashof_number": 2.,
-            "prandtl_number": 5.,
-            "stefan_number": 0.2,
-            "density_solid_to_liquid_ratio": 916.70/999.84,
-            "heat_capacity_solid_to_liquid_ratio": 0.500,
-            "thermal_conductivity_solid_to_liquid_ratio": 2.14/0.561,
-            "smoothing": 1./16.},
+            "grashof_number": Gr,
+            "prandtl_number": Pr,
+            "stefan_number": Ste,
+            "density_solid_to_liquid_ratio": rhos_over_rhol,
+            "heat_capacity_solid_to_liquid_ratio": cs_over_cl,
+            "thermal_conductivity_solid_to_liquid_ratio": kappas_over_kappal,
+            "smoothing": sigma},
         meshsize = 32,
         timestep_sizes = (1./2., 1./4., 1./8., 1./16.),
         tolerance = 0.3):
@@ -154,5 +170,5 @@ def test__verify__third_order_temporal_convergence__via_mms(
         expected_order = 3,
         tolerance = tolerance,
         timestep_sizes = timestep_sizes,
-        endtime = 0.5)
+        endtime = endtime)
         
