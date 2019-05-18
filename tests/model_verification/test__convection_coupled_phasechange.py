@@ -41,9 +41,11 @@ sigma = 1/16
 
 endtime = 0.5
 
+q = None
+
 def test__verify__second_order_spatial_convergence__via_mms(
         sim_constructor_kwargs = {
-            "quadrature_degree": 4,
+            "quadrature_degree": q,
             "element_degree": 1,
             "time_stencil_size": 3},
         parameters = {
@@ -74,7 +76,7 @@ def test__verify__second_order_spatial_convergence__via_mms(
         
 def test__verify__second_order_temporal_convergence__via_mms(
         sim_constructor_kwargs = {
-            "quadrature_degree": 4,
+            "quadrature_degree": q,
             "element_degree": 1,
             "time_stencil_size": 3},
         parameters = {
@@ -121,7 +123,7 @@ def test__verify__third_order_spatial_convergence__via_mms(
             "thermal_conductivity_solid_to_liquid_ratio": kappas_over_kappal,
             "smoothing": sigma},
         mesh_sizes = (3, 6, 12, 24),
-        timestep_size = 1./64.,
+        timestep_size = 1/64,
         tolerance = 0.25):
     
     rt = sim_constructor_kwargs["time_stencil_size"] - 1
@@ -140,7 +142,7 @@ def test__verify__third_order_spatial_convergence__via_mms(
         
 def test__verify__third_order_temporal_convergence__via_mms(
         sim_constructor_kwargs = {
-            "quadrature_degree": 2,
+            "quadrature_degree": q,
             "element_degree": 2,
             "time_stencil_size": 4},
         parameters = {
@@ -151,8 +153,8 @@ def test__verify__third_order_temporal_convergence__via_mms(
             "heat_capacity_solid_to_liquid_ratio": cs_over_cl,
             "thermal_conductivity_solid_to_liquid_ratio": kappas_over_kappal,
             "smoothing": sigma},
-        meshsize = 32,
-        timestep_sizes = (1./2., 1./4., 1./8., 1./16.),
+        meshsize = 24,
+        timestep_sizes = (1./4., 1./8., 1./16.),
         tolerance = 0.3):
     
     rx = sim_constructor_kwargs["element_degree"] + 1
