@@ -25,7 +25,7 @@ def manufactured_solution(sim):
     return p, u, T
     
 
-Gr = 2.
+Gr = 3.6e5
 
 Pr = 5.
 
@@ -111,7 +111,7 @@ def test__verify__second_order_temporal_convergence__via_mms(
         
 def test__verify__third_order_spatial_convergence__via_mms(
         sim_constructor_kwargs = {
-            "quadrature_degree": 2,
+            "quadrature_degree": q,
             "element_degree": 2,
             "time_stencil_size": 4},
         parameters = {
@@ -122,9 +122,9 @@ def test__verify__third_order_spatial_convergence__via_mms(
             "heat_capacity_solid_to_liquid_ratio": cs_over_cl,
             "thermal_conductivity_solid_to_liquid_ratio": kappas_over_kappal,
             "smoothing": sigma},
-        mesh_sizes = (3, 6, 12, 24),
+        mesh_sizes = (4, 8, 16, 32),
         timestep_size = 1/64,
-        tolerance = 0.25):
+        tolerance = 0.2):
     
     rt = sim_constructor_kwargs["time_stencil_size"] - 1
     
