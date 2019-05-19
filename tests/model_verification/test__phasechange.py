@@ -24,7 +24,6 @@ def test__verify_spatial_convergence__second_order__via_mms(
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitIntervalMesh(size) for size in mesh_sizes],
         sim_constructor_kwargs = {
-            "quadrature_degree": 4,
             "element_degree": 1,
             "time_stencil_size": 2},
         parameters = {
@@ -46,7 +45,6 @@ def test__verify_temporal_convergence__first_order__via_mms(
         manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
         sim_constructor_kwargs = {
-            "quadrature_degree": 4,
             "element_degree": 1,
             "time_stencil_size": 2},
         parameters = {
@@ -68,7 +66,6 @@ def test__verify_temporal_convergence__second_order__via_mms(
         manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
         sim_constructor_kwargs = {
-            "quadrature_degree": 4,
             "element_degree": 2,
             "time_stencil_size": 3},
         parameters = {
