@@ -74,34 +74,6 @@ def mms_dirichlet_boundary_conditions(sim, manufactured_solution):
     return [fe.DirichletBC(V, g, "on_boundary") for V, g in zip(W, w)]
     
     
-def L2_error(solution, true_solution, integration_measure):
-    
-    dx = integration_measure
-    
-    w_h = solution.split()
-    
-    if len(w_h) == 1:
-        
-        u_h = w_h[0]
-        
-        u = true_solution
-        
-        e = math.sqrt(fe.assemble(fe.inner(u_h - u, u_h - u)*dx))
-        
-    else:
-        
-        e = 0.
-        
-        for u_h, u in zip(
-                w_h, true_solution):
-            
-            e += fe.assemble(fe.inner(u_h - u, u_h - u)*dx)
-
-        e = math.sqrt(e)
-        
-    return e
-
-    
 def make_mms_verification_sim_class(
         sim_module,
         manufactured_solution):
@@ -138,6 +110,23 @@ def make_mms_verification_sim_class(
             pass
         
     return MMSVerificationSimulation
+    
+    
+def errornorm(w, wh, *args, **kwargs):
+    """ Extends fe.errornorm to handle mixed FEM functions """
+    if len(wh.split()) == 1:
+    
+        return fe.errornorm(w, wh.split()[0], *args, **kwargs)
+    
+    else:
+        
+        e = 0.
+        
+        for w_i, wh_i in zip(w, wh.split()):
+            
+            e += fe.errornorm(w_i, wh_i, *args, **kwargs)
+        
+        return e
     
     
 def verify_spatial_order_of_accuracy(
@@ -182,11 +171,11 @@ def verify_spatial_order_of_accuracy(
             
         table.append({
             "h": h,
-            "L2_error": L2_error(
-                solution = sim.solution,
-                true_solution = manufactured_solution(sim),
-                integration_measure = fe.dx(
-                    degree = sim.quadrature_degree))})
+            "L2_error": 
+                errornorm(
+                    manufactured_solution(sim),
+                    sim.solution,
+                    norm_type = "L2")})
             
         if len(table) > 1:
         
@@ -247,10 +236,10 @@ def verify_temporal_order_of_accuracy(
         
         table.append({
             "Delta_t": timestep_size,
-            "L2_error": L2_error(
-                solution = sim.solution,
-                true_solution = manufactured_solution(sim),
-                integration_measure = fe.dx(degree = sim.quadrature_degree))})
+            "L2_error": errornorm(
+                    manufactured_solution(sim),
+                    sim.solution,
+                    norm_type = "L2")})
             
         if len(table) > 1:
         
