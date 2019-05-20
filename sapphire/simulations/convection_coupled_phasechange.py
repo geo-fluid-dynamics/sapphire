@@ -232,7 +232,7 @@ def plotvars(sim, solution = None):
     
 class Simulation(sapphire.simulation.Simulation):
     
-    def __init__(self, *args, mesh, element_degree, **kwargs):
+    def __init__(self, *args, mesh, element_degree = 1, **kwargs):
         
         self.grashof_number = fe.Constant(1.)
         
@@ -260,6 +260,10 @@ class Simulation(sapphire.simulation.Simulation):
         
             kwargs["variational_form_residual"] = variational_form_residual
         
+        if "time_stencil_size" not in kwargs:
+        
+            kwargs["time_stencil_size"] = 3  # BDF2
+            
         super().__init__(*args,
             mesh = mesh,
             element = element(
