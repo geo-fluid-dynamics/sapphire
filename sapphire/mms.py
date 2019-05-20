@@ -139,7 +139,8 @@ def verify_spatial_order_of_accuracy(
         parameters = {},
         timestep_size = 1.e32,
         endtime = 0.,
-        starttime = 0.):
+        starttime = 0.,
+        outfile = None):
     
     MMSVerificationSimulation = make_mms_verification_sim_class(
         sim_module = sim_module,
@@ -193,6 +194,12 @@ def verify_spatial_order_of_accuracy(
     
     print("Last observed spatial order of accuracy is {0}".format(order))
     
+    if outfile:
+        
+        print("Writing convergence table to {}".format(outfile.name))
+        
+        outfile.write(str(table))
+    
     assert(abs(order - expected_order) < tolerance)
     
     
@@ -206,7 +213,8 @@ def verify_temporal_order_of_accuracy(
         tolerance,
         sim_constructor_kwargs = {},
         parameters = {},
-        starttime = 0.):
+        starttime = 0.,
+        outfile = None):
     
     MMSVerificationSimulation = make_mms_verification_sim_class(
         sim_module = sim_module,
@@ -257,5 +265,11 @@ def verify_temporal_order_of_accuracy(
         
     print("Last observed temporal order of accuracy is {0}".format(order))
     
+    if outfile:
+        
+        print("Writing convergence table to {}".format(outfile.name))
+        
+        outfile.write(str(table))
+        
     assert(abs(order - expected_order) < tolerance)
     

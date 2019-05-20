@@ -1,7 +1,12 @@
+import sys
+import pathlib
 import firedrake as fe 
 import sapphire.mms
+import sapphire.test
 from sapphire.simulations import convection_coupled_phasechange as sim_module
 
+
+tempdir = sapphire.test.datadir
 
 def manufactured_solution(sim):
 
@@ -44,6 +49,7 @@ endtime = 0.5
 q = None
 
 def test__verify__second_order_spatial_convergence__via_mms(
+        tempdir,
         sim_constructor_kwargs = {
             "quadrature_degree": q,
             "element_degree": 1,
@@ -62,6 +68,11 @@ def test__verify__second_order_spatial_convergence__via_mms(
     
     rt = sim_constructor_kwargs["time_stencil_size"] - 1
     
+    outpath = tempdir.join("{}/{}/".format(
+        __loader__.fullname,  sys._getframe().f_code.co_name))
+    
+    outpath.mkdir(parents = True, exist_ok = True)
+    
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
@@ -71,10 +82,13 @@ def test__verify__second_order_spatial_convergence__via_mms(
         expected_order = 2,
         tolerance = tolerance,
         timestep_size = timestep_size,
-        endtime = endtime)
+        endtime = endtime,
+        outfile = open(outpath.join("convergence_rt{}_Deltat{}.csv".format(
+            rt, timestep_size))))
         
         
 def test__verify__second_order_temporal_convergence__via_mms(
+        tempdir,
         sim_constructor_kwargs = {
             "quadrature_degree": q,
             "element_degree": 1,
@@ -106,10 +120,13 @@ def test__verify__second_order_temporal_convergence__via_mms(
         expected_order = 2,
         tolerance = tolerance,
         timestep_sizes = timestep_sizes,
-        endtime = endtime)
+        endtime = endtime,
+        outfile = open(tempdir.join("{}/rt2_rx{}_h{}.csv".format(
+            outdir, rx, h))))
 
         
 def test__verify__third_order_spatial_convergence__via_mms(
+        tempdir,
         sim_constructor_kwargs = {
             "quadrature_degree": q,
             "element_degree": 2,
@@ -126,21 +143,38 @@ def test__verify__third_order_spatial_convergence__via_mms(
         timestep_size = 1/64,
         tolerance = 0.2):
     
+    tempdir_path = pathlib.Path(tempdir)
+    
+    testdir = "{}/{}/".format(
+        __name__.replace(".", "/"), sys._getframe().f_code.co_name)
+    
+    outdir_path = tempdir_path / testdir
+    
+    outdir_path.mkdir(parents = True, exist_ok = True) 
+    
     rt = sim_constructor_kwargs["time_stencil_size"] - 1
     
-    sapphire.mms.verify_spatial_order_of_accuracy(
-        sim_module = sim_module,
-        manufactured_solution = manufactured_solution,
-        sim_constructor_kwargs = sim_constructor_kwargs,
-        meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
-        parameters = parameters,
-        expected_order = 3,
-        tolerance = tolerance,
-        timestep_size = timestep_size,
-        endtime = endtime)
+    filename = "rt{}_Deltat{}.csv".format(rt, timestep_size)
+    
+    outfile_path = outdir_path / filename
+    
+    with open(outfile_path, "w") as outfile:
         
+        sapphire.mms.verify_spatial_order_of_accuracy(
+            sim_module = sim_module,
+            manufactured_solution = manufactured_solution,
+            sim_constructor_kwargs = sim_constructor_kwargs,
+            meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
+            parameters = parameters,
+            expected_order = 3,
+            tolerance = tolerance,
+            timestep_size = timestep_size,
+            endtime = endtime,
+            outfile = outfile)
+            
         
 def test__verify__third_order_temporal_convergence__via_mms(
+        tempdir,
         sim_constructor_kwargs = {
             "quadrature_degree": q,
             "element_degree": 2,
@@ -172,5 +206,7 @@ def test__verify__third_order_temporal_convergence__via_mms(
         expected_order = 3,
         tolerance = tolerance,
         timestep_sizes = timestep_sizes,
-        endtime = endtime)
+        endtime = endtime,
+        outfile = open(tempdir.join("{}/rt3_rx{}_h{}.csv".format(
+            outdir, rx, h))))
         
