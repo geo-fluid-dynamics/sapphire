@@ -50,8 +50,6 @@ cs_over_cl = 0.50
 
 kappas_over_kappal = 3.8
 
-sigma = 0.1
-
 endtime = 1.
 
 def test__verify__second_order_spatial_convergence__via_mms(
@@ -63,8 +61,8 @@ def test__verify__second_order_spatial_convergence__via_mms(
             "density_solid_to_liquid_ratio": rhos_over_rhol,
             "heat_capacity_solid_to_liquid_ratio": cs_over_cl,
             "thermal_conductivity_solid_to_liquid_ratio": kappas_over_kappal,
-            "smoothing": sigma},
-        mesh_sizes = (8, 16, 32, 64),
+            "smoothing": 0.01},
+        mesh_sizes = (4, 8, 16, 32, 64),
         tolerance = 0.1):
     
     testdir = "{}/{}/".format(
@@ -97,9 +95,9 @@ def test__verify__second_order_temporal_convergence__via_mms(
             "density_solid_to_liquid_ratio": rhos_over_rhol,
             "heat_capacity_solid_to_liquid_ratio": cs_over_cl,
             "thermal_conductivity_solid_to_liquid_ratio": kappas_over_kappal,
-            "smoothing": sigma},
-        meshsize = 48,
-        timestep_sizes = (1/2, 1/4, 1/8, 1/16),
+            "smoothing": 0.1},
+        meshsize = 64,
+        timestep_sizes = (1/2, 1/4, 1/8, 1/16, 1/32),
         tolerance = 0.2):
     
     testdir = "{}/{}/".format(
