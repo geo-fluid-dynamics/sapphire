@@ -99,7 +99,7 @@ def test__verify__second_order_temporal_convergence__via_mms(
             "thermal_conductivity_solid_to_liquid_ratio": kappas_over_kappal,
             "smoothing": sigma},
         meshsize = 48,
-        timestep_sizes = (1, 1/2, 1/4, 1/8, 1/16),
+        timestep_sizes = (1/2, 1/4, 1/8, 1/16),
         tolerance = 0.2):
     
     testdir = "{}/{}/".format(
