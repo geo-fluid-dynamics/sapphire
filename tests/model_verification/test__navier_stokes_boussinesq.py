@@ -35,12 +35,9 @@ def test__verify_convergence_order_via_mms(
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
-        sim_constructor_kwargs = {"element_degree": 1},
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
-        parameters = {
-            "grashof_number": Ra/Pr,
-            "prandtl_number": Pr},
+        parameters = {"grashof_number": Ra/Pr, "prandtl_number": Pr},
         expected_order = 2,
         tolerance = tolerance)
     
