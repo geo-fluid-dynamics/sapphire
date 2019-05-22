@@ -49,7 +49,7 @@ def test__verify_temporal_convergence__first_order__via_mms(
 def test__verify_temporal_convergence__second_order__via_mms(
         meshsize = 128,
         timestep_sizes = (1./64., 1./128., 1./256.),
-        tolerance = 0.3):
+        tolerance = 0.1):
     
     sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
