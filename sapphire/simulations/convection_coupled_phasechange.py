@@ -232,7 +232,7 @@ def plotvars(sim, solution = None):
     
 class Simulation(sapphire.simulation.Simulation):
     
-    def __init__(self, *args, mesh, element_degree, **kwargs):
+    def __init__(self, *args, mesh, element_degree = 1, **kwargs):
         
         self.grashof_number = fe.Constant(1.)
         
@@ -260,6 +260,10 @@ class Simulation(sapphire.simulation.Simulation):
         
             kwargs["variational_form_residual"] = variational_form_residual
         
+        if "time_stencil_size" not in kwargs:
+        
+            kwargs["time_stencil_size"] = 3  # BDF2
+            
         super().__init__(*args,
             mesh = mesh,
             element = element(
@@ -272,8 +276,8 @@ class Simulation(sapphire.simulation.Simulation):
             parameters = {
                 "snes_type": "newtonls",
                 "snes_max_it": 24,
-                "snes_monitor": True,
-                "snes_converged_reason": False,
+                "snes_monitor": None,
+                "snes_rtol": 0.,
                 "ksp_type": "preonly", 
                 "pc_type": "lu", 
                 "mat_type": "aij",
@@ -307,7 +311,15 @@ class Simulation(sapphire.simulation.Simulation):
             self.solution, smax = solve_with_over_regularization(
                 self, startval = None)
             
-            self.smoothing_sequence = (smax, self.smoothing.__float__())
+            s = self.smoothing.__float__()
+            
+            if s == smax:
+            
+                self.smoothing_sequence = (s,)
+                
+            else:
+            
+                self.smoothing_sequence = (smax, s)
             
         try:
             
@@ -325,7 +337,7 @@ class Simulation(sapphire.simulation.Simulation):
                 solve_with_bounded_regularization_sequence(self)
                
         assert(self.smoothing.__float__() == s0)
-               
+        
         return self.solution
     
     def run(self, *args, **kwargs):

@@ -64,7 +64,7 @@ def element(cell, degree):
     
 class Simulation(sapphire.simulation.Simulation):
     
-    def __init__(self, *args, mesh, element_degree, **kwargs):
+    def __init__(self, *args, mesh, element_degree = 1, **kwargs):
         
         self.grashof_number = fe.Constant(1.)
         

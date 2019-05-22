@@ -26,7 +26,7 @@ def manufactured_solution(sim):
     
     
 def test__verify_convergence_order_via_mms(
-        mesh_sizes = (4, 8, 16, 32, 64), 
+        mesh_sizes = (4, 8, 16, 32), 
         tolerance = 0.1):
     
     Ra = 10.
@@ -35,13 +35,9 @@ def test__verify_convergence_order_via_mms(
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
-        sim_constructor_kwargs = {
-            "quadrature_degree": 4, "element_degree": 1},
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
-        parameters = {
-            "grashof_number": Ra/Pr,
-            "prandtl_number": Pr},
+        parameters = {"grashof_number": Ra/Pr, "prandtl_number": Pr},
         expected_order = 2,
         tolerance = tolerance)
     
@@ -111,7 +107,7 @@ def verify_scalar_solution_component(
 def test__verify_against_heat_driven_cavity_benchmark():
 
     sim = sapphire.benchmarks.heat_driven_cavity.Simulation(
-        quadrature_degree = 4, element_degree = 1, meshsize = 40)
+        element_degree = 1, meshsize = 40)
     
     sim.solution = sim.solve()
     

@@ -20,11 +20,10 @@ def manufactured_solution(sim):
     
     
 def test__verify_convergence_order_via_mms(
-        mesh_sizes = (16, 32), tolerance = 0.1):
+        mesh_sizes = (8, 16, 32), tolerance = 0.2):
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
-        sim_constructor_kwargs = {"quadrature_degree": 4, "element_degree": 1},
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
         expected_order = 2,

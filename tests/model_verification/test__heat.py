@@ -23,9 +23,6 @@ def test__verify_spatial_convergence__second_order__via_mms(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitIntervalMesh(n) for n in mesh_sizes],
-        sim_constructor_kwargs = {
-            "element_degree": 1,
-            "time_stencil_size": 2},
         expected_order = 2,
         tolerance = tolerance,
         timestep_size = timestep_size,
@@ -41,9 +38,6 @@ def test__verify_temporal_convergence__first_order__via_mms(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
-        sim_constructor_kwargs = {
-            "element_degree": 1,
-            "time_stencil_size": 2},
         expected_order = 1,
         endtime = 1.,
         timestep_sizes = timestep_sizes,
@@ -52,8 +46,7 @@ def test__verify_temporal_convergence__first_order__via_mms(
     
 def test__verify_temporal_convergence__second_order__via_mms(
         meshsize = 128,
-        timestep_sizes = (
-            1./4., 1./8., 1./16., 1./32., 1./64., 1./128.),
+        timestep_sizes = (1./16., 1./32., 1./64., 1./128.),
         tolerance = 0.1):
     
     sapphire.mms.verify_temporal_order_of_accuracy(
