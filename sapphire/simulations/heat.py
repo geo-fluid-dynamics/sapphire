@@ -37,7 +37,7 @@ def strong_residual(sim, solution):
     
 class Simulation(sapphire.simulation.Simulation):
     
-    def __init__(self, *args, mesh, element_degree, **kwargs):
+    def __init__(self, *args, mesh, element_degree = 1, **kwargs):
         
         super().__init__(*args,
             mesh = mesh,
