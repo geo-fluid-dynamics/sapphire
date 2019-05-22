@@ -3,18 +3,18 @@ import firedrake as fe
 import sapphire.simulation
 
 
-diff, dot, div, grad, tanh = fe.diff, fe.dot, fe.div, fe.grad, fe.tanh
+diff, dot, div, grad, erf, sqrt = fe.diff, fe.dot, fe.div, fe.grad, fe.erf, fe.sqrt
 
 
 def liquid_volume_fraction(sim, temperature):
     
     T = temperature
     
-    T_L = sim.liquidus_temperature
+    T_m = sim.liquidus_temperature
     
-    s = sim.smoothing
+    sigma = sim.smoothing
     
-    return 0.5*(1. + tanh((T - T_L)/s))
+    return 0.5*(1. + erf((T - T_m)/(sigma*sqrt(2))))
 
     
 def time_discrete_terms(sim):
@@ -65,7 +65,7 @@ def element(cell, degree):
     
 class Simulation(sapphire.simulation.Simulation):
     
-    def __init__(self, *args, mesh, element_degree, **kwargs):
+    def __init__(self, *args, mesh, element_degree = 1, **kwargs):
         
         self.stefan_number = fe.Constant(1.)
         
