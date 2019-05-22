@@ -3,8 +3,8 @@ import firedrake as fe
 import sapphire.simulation
 
 
-diff, dot, div, grad, erf, sqrt = fe.diff, fe.dot, fe.div, fe.grad, fe.erf, fe.sqrt
-
+diff, dot, div, grad, erf, sqrt = \
+    fe.diff, fe.dot, fe.div, fe.grad, fe.erf, fe.sqrt
 
 def liquid_volume_fraction(sim, temperature):
     
