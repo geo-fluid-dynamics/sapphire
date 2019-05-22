@@ -29,9 +29,7 @@ def test__verify_convergence_order_via_mms(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
-        sim_constructor_kwargs = {
-            "element_degree": 1,
-            "advection_velocity": advection_velocity},
-        parameters = {"kinematic_viscosity": 0.1},
+        sim_constructor_kwargs = {"advection_velocity": advection_velocity},
+        parameters = {"diffusion_coefficient": 0.1},
         expected_order = 2,
         tolerance = tolerance)

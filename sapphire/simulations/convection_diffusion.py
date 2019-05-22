@@ -13,11 +13,11 @@ def variational_form_residual(sim, solution):
     
     a = sim.advection_velocity
     
-    nu = sim.kinematic_viscosity
+    d = sim.diffusion_coefficient
     
     dx = fe.dx(degree = sim.quadrature_degree)
     
-    return (v*dot(a, grad(u)) + dot(grad(v), nu*grad(u)))*dx
+    return (v*dot(a, grad(u)) + dot(grad(v), d*grad(u)))*dx
     
     
 def strong_residual(sim, solution):
@@ -28,9 +28,9 @@ def strong_residual(sim, solution):
     
     a = sim.advection_velocity
     
-    nu = sim.kinematic_viscosity
+    d = sim.diffusion_coefficient
     
-    return dot(a, grad(u)) - div(nu*grad(u))
+    return dot(a, grad(u)) - d*div(grad(u))
 
 
 def element(cell, degree):
@@ -41,10 +41,10 @@ def element(cell, degree):
 class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args,
-            mesh, element_degree, advection_velocity,
+            mesh, advection_velocity, element_degree = 1,
             **kwargs):
         
-        self.kinematic_viscosity = fe.Constant(1.)
+        self.diffusion_coefficient = fe.Constant(1.)
         
         self.advection_velocity = advection_velocity(mesh)
     
