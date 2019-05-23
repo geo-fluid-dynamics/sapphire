@@ -14,7 +14,7 @@ def manufactured_solution(sim):
     
     u1 = sin(pi*x[0])*sin(2.*pi*x[1])
     
-    ihat, jhat = sapphire.simulation.unit_vectors(sim.mesh)
+    ihat, jhat = sim.unit_vectors()
     
     u = u0*ihat + u1*jhat
     

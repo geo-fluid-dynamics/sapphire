@@ -3,28 +3,34 @@ import firedrake as fe
 import sapphire.simulation
 
 
-inner, dot, grad, div, sym = \
-        fe.inner, fe.dot, fe.grad, fe.div, fe.sym
-        
-def variational_form_residual(sim, solution):
+def linear_boussinesq_buoyancy(sim, temperature):
+    
+    T = temperature
     
     Gr = sim.grashof_number
     
+    ghat = fe.Constant(-sim.unit_vectors()[1])
+    
+    return Gr*T*ghat
+    
+    
+inner, dot, grad, div, sym = \
+        fe.inner, fe.dot, fe.grad, fe.div, fe.sym
+        
+def variational_form_residual(
+        sim, solution, buoyancy = linear_boussinesq_buoyancy):
+    
     Pr = sim.prandtl_number
-    
-    ihat, jhat = sapphire.simulation.unit_vectors(sim.mesh)
-    
-    sim.gravity_direction = fe.Constant(-jhat)
-    
-    ghat = sim.gravity_direction
     
     p, u, T = fe.split(solution)
     
     psi_p, psi_u, psi_T = fe.TestFunctions(solution.function_space())
     
+    b = buoyancy(sim = sim, temperature = T)
+    
     mass = psi_p*div(u)
     
-    momentum = dot(psi_u, grad(u)*u + Gr*T*ghat) \
+    momentum = dot(psi_u, grad(u)*u + b) \
         - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), sym(grad(u)))
     
     energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))
@@ -34,19 +40,17 @@ def variational_form_residual(sim, solution):
     return (mass + momentum + energy)*dx
     
     
-def strong_residual(sim, solution):
-    
-    Gr = sim.grashof_number
+def strong_residual(sim, solution, buoyancy = linear_boussinesq_buoyancy):
     
     Pr = sim.prandtl_number
     
-    ghat = sim.gravity_direction
-    
     p, u, T = solution
+    
+    b = buoyancy(sim = sim, temperature = T)
     
     r_p = div(u)
     
-    r_u = grad(u)*u + grad(p) - 2.*div(sym(grad(u))) + Gr*T*ghat
+    r_u = grad(u)*u + grad(p) - 2.*div(sym(grad(u))) + b
     
     r_T = dot(u, grad(T)) - 1./Pr*div(grad(T))
     
@@ -60,7 +64,7 @@ def element(cell, degree):
     vector = fe.VectorElement("P", cell, degree + 1)
     
     return fe.MixedElement(scalar, vector, scalar)
-    
+
     
 class Simulation(sapphire.simulation.Simulation):
     
