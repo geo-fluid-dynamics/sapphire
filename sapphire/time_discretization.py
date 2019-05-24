@@ -12,9 +12,9 @@ Derived from
 """
 
 
-def bdf(ys, timestep_size):
+def bdf(solutions, timestep_size):
     """ Backward difference formulas """
-    order = len(ys) - 1
+    order = len(solutions) - 1
     
     """ Table of BDF method coefficients """
     if order == 1:
@@ -46,14 +46,13 @@ def bdf(ys, timestep_size):
         raise("BDF is not zero-stable with order > 6.")
         
     
-    y_t = alphas[-1]*ys[-1]
+    u_t = alphas[-1]*solutions[-1]
     
-    for alpha, y in zip(alphas[:-1], ys[:-1]):
+    for alpha, u in zip(alphas[:-1], solutions[:-1]):
     
-        y_t += alpha*y
+        u_t += alpha*u
     
-    y_t /= timestep_size
+    u_t /= timestep_size
     
-    
-    return y_t
+    return u_t
     

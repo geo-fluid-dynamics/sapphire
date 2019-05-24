@@ -6,6 +6,7 @@ def initial_values(sim):
 
     return sim.solution
 
+    
 def dirichlet_boundary_conditions(sim):
     
     W = sim.function_space
@@ -14,7 +15,7 @@ def dirichlet_boundary_conditions(sim):
         fe.DirichletBC(W.sub(1), (0., 0.), "on_boundary"),
         fe.DirichletBC(W.sub(2), sim.hot_wall_temperature, 1),
         fe.DirichletBC(W.sub(2), sim.cold_wall_temperature, 2)]
-
+        
         
 class Simulation(sapphire.simulations.navier_stokes_boussinesq.Simulation):
     
