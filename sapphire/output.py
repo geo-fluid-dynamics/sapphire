@@ -1,5 +1,7 @@
 import csv
 from collections import OrderedDict
+import matplotlib
+matplotlib.use('Agg')  # Only use back-end to prevent displaying image
 import matplotlib.pyplot as plt
 import firedrake as fe
 
