@@ -14,7 +14,7 @@ def initial_values(sim):
     
     u.assign(0.*ihat + 0.*jhat)
     
-    T.assign(sim.cold_wall_temperature)
+    T.assign(sim.initial_temperature)
     
     return w
     
@@ -26,17 +26,17 @@ def dirichlet_boundary_conditions(sim):
     return [
         fe.DirichletBC(W.sub(1), (0., 0.), "on_boundary"),
         fe.DirichletBC(W.sub(2), sim.hot_wall_temperature, 1),
-        fe.DirichletBC(W.sub(2), sim.cold_wall_temperature, 2)]
+        fe.DirichletBC(W.sub(2), sim.initial_temperature, 2)]
         
         
 class Simulation(sapphire.simulations.\
         convection_coupled_phasechange.Simulation):
     
-    def __init__(self, *args, meshsize, **kwargs):
+    def __init__(self, *args, meshsize, initial_temperature = -0.01, **kwargs):
         
         self.hot_wall_temperature = fe.Constant(1.)
-    
-        self.cold_wall_temperature = fe.Constant(-0.01)
+        
+        self.initial_temperature = fe.Constant(initial_temperature)
         
         self.topwall_heatflux = fe.Constant(0.)
         
