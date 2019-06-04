@@ -81,13 +81,13 @@ def freeze_water(endtime, s, tau, rx, nx, rt, nt, q, outdir = ""):
     
     nu_l__SI = mu_l__SI/rho_l__SI  # [m^2 / s]
     
+    X__SI = 0.038  # [m]
+    
+    U__SI = nu_l__SI/X__SI
+    
     t_f__SI = endtime  # [s]
     
-    L__SI = 0.038  # [m]
-    
-    Tau = pow(L__SI, 2)/nu_l__SI
-    
-    t_f = t_f__SI/Tau
+    t_f = t_f__SI*U__SI/X__SI
     
     """ For Kowalewski's water freezing experiment,
     at t_f__SI 2340 s, t_f = 1.44.
