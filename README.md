@@ -5,7 +5,7 @@ is an engine for constructing PDE-based simulations
 discretized in space with mixed finite elements
 and in time with finite differences.
 
-![](https://travis-ci.org/geo-fluid-dynamics/sapphire.svg?branch=master)
+[![Build Status](https://travis-ci.org/geo-fluid-dynamics/sapphire.svg?branch=master)](https://travis-ci.org/geo-fluid-dynamics/sapphire)
 [![DOI](https://zenodo.org/badge/157389237.svg)](https://zenodo.org/badge/latestdoi/157389237)
 
 
