@@ -75,24 +75,6 @@ def test__validate__melt_octadecane__regression():
 
 def freeze_water(endtime, s, tau, rx, nx, rt, nt, q, outdir = ""):
     
-    mu_l__SI = 8.90e-4  # [Pa s]
-    
-    rho_l__SI = 999.84  # [kg / m^3]
-    
-    nu_l__SI = mu_l__SI/rho_l__SI  # [m^2 / s]
-    
-    t_f__SI = endtime  # [s]
-    
-    L__SI = 0.038  # [m]
-    
-    Tau = pow(L__SI, 2)/nu_l__SI
-    
-    t_f = t_f__SI/Tau
-    
-    """ For Kowalewski's water freezing experiment,
-    at t_f__SI 2340 s, t_f = 1.44.
-    """
-    
     sim = sapphire.benchmarks.freeze_water_in_cavity.Simulation(
         quadrature_degree = q,
         element_degree = rx - 1,
@@ -104,7 +86,7 @@ def freeze_water(endtime, s, tau, rx, nx, rt, nt, q, outdir = ""):
             + "rx{0}_nx{1}_rt{2}_nt{3}/".format(rx, nx, rt, nt)
             + "q{0}/".format(q))))
     
-    sim.timestep_size = sim.timestep_size.assign(t_f/float(nt))
+    sim.timestep_size = sim.timestep_size.assign(endtime/float(nt))
     
     sim.solid_velocity_relaxation_factor = \
         sim.solid_velocity_relaxation_factor.assign(tau)
@@ -112,7 +94,7 @@ def freeze_water(endtime, s, tau, rx, nx, rt, nt, q, outdir = ""):
     sim.smoothing = sim.smoothing.assign(s)
     
     
-    sim.solutions, _, = sim.run(endtime = t_f)
+    sim.solutions, _, = sim.run(endtime = endtime)
     
     
     print("Liquid area = {0}".format(sim.liquid_area))
@@ -124,7 +106,7 @@ def test__validate__freeze_water__regression(datadir):
     
     sim = freeze_water(
         outdir = datadir,
-        endtime = 2340.,
+        endtime = 1.44,
         s = 1./200.,
         tau = 1.e-12,
         rx = 2,
