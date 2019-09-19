@@ -70,11 +70,11 @@ def test__verify_spatial_convergence__second_order__via_mms(
         endtime = endtime,
         tolerance = tolerance,
         write_simulation_outputs = False)
-        
-        
+
+
 def test__verify_temporal_convergence__first_order__via_mms(
-        meshsize = 32,
-        timestep_sizes = (0.002, 0.001, 0.001/2.),
+        meshsize = 16,
+        timestep_sizes = (endtime, endtime/2., endtime/4.),
         tolerance = 0.1):
     
     sapphire.mms.verify_temporal_order_of_accuracy(
@@ -95,8 +95,8 @@ def test__verify_temporal_convergence__first_order__via_mms(
 
     
 def test__verify_temporal_convergence__second_order__via_mms(
-        meshsize = 64,
-        timestep_sizes = (0.004, 0.002, 0.001),
+        meshsize = 16,
+        timestep_sizes = (endtime, endtime/2., endtime/4.),
         tolerance = 0.1):
     
     sapphire.mms.verify_temporal_order_of_accuracy(
@@ -104,7 +104,7 @@ def test__verify_temporal_convergence__second_order__via_mms(
         manufactured_solution = time_manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
         sim_constructor_kwargs = {
-            "element_degree": 2,
+            "element_degree": 1,
             "time_stencil_size": 3,
             "quadrature_degree": q},
         parameters = {
