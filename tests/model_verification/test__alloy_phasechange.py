@@ -58,13 +58,13 @@ def test__verify_spatial_convergence__second_order__via_mms(
         sim_module = sim_module,
         manufactured_solution = space_manufactured_solution,
         meshes = [fe.UnitIntervalMesh(size) for size in mesh_sizes],
+        sim_constructor_kwargs = {"quadrature_degree": q},
         parameters = {
             "pure_liquidus_temperature": T_m,
             "stefan_number": Ste,
             "lewis_number": Le,
             "heat_capacity_solid_to_liquid_ratio": c_sl,
-            "thermal_conductivity_solid_to_liquid_ratio": k_sl,
-            "quadrature_degree": q},
+            "thermal_conductivity_solid_to_liquid_ratio": k_sl},
         expected_order = 2,
         timestep_size = endtime,
         endtime = endtime,
@@ -73,21 +73,21 @@ def test__verify_spatial_convergence__second_order__via_mms(
         
         
 def test__verify_temporal_convergence__first_order__via_mms(
-        meshsize = 128,
-        timestep_sizes = (1./4., 1./8., 1./16., 1./32.),
+        meshsize = 32,
+        timestep_sizes = (0.002, 0.001, 0.001/2.),
         tolerance = 0.1):
     
     sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
         manufactured_solution = time_manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
+        sim_constructor_kwargs = {"quadrature_degree": q},
         parameters = {
             "pure_liquidus_temperature": T_m,
             "stefan_number": Ste,
             "lewis_number": Le,
             "heat_capacity_solid_to_liquid_ratio": c_sl,
-            "thermal_conductivity_solid_to_liquid_ratio": k_sl,
-            "quadrature_degree": q},
+            "thermal_conductivity_solid_to_liquid_ratio": k_sl},
         expected_order = 1,
         endtime = endtime,
         timestep_sizes = timestep_sizes,
@@ -95,17 +95,18 @@ def test__verify_temporal_convergence__first_order__via_mms(
 
     
 def test__verify_temporal_convergence__second_order__via_mms(
-        meshsize = 128,
-        timestep_sizes = (1./4., 1./8., 1./16., 1./32.),
+        meshsize = 64,
+        timestep_sizes = (0.004, 0.002, 0.001),
         tolerance = 0.1):
     
     sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
-        manufactured_solution = manufactured_solution,
+        manufactured_solution = time_manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
         sim_constructor_kwargs = {
             "element_degree": 2,
-            "time_stencil_size": 3},
+            "time_stencil_size": 3,
+            "quadrature_degree": q},
         parameters = {
             "pure_liquidus_temperature": T_m,
             "stefan_number": Ste,
