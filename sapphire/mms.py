@@ -51,11 +51,11 @@ def mms_initial_values(sim, manufactured_solution):
     
         w_m = manufactured_solution
         
-    for u_m, V in zip(
-            w_m, sim.function_space):
+    for iv, w_mi, W_i in zip(
+            initial_values.split(), w_m, sim.function_space):
         
-        initial_values.assign(fe.interpolate(u_m, V))
-        
+        iv.assign(fe.interpolate(w_mi, W_i))
+    
     return initial_values
     
     
@@ -76,7 +76,8 @@ def mms_dirichlet_boundary_conditions(sim, manufactured_solution):
     
 def make_mms_verification_sim_class(
         sim_module,
-        manufactured_solution):
+        manufactured_solution,
+        write_simulation_outputs = False):
     
     def initial_values(sim):
         
@@ -105,10 +106,12 @@ def make_mms_verification_sim_class(
                     manufactured_solution = manufactured_solution)\
                 *fe.dx(degree = self.quadrature_degree)
                 
-        def write_outputs(self, *args, **kwargs):
+        if not write_simulation_outputs:
         
-            pass
-        
+            def write_outputs(self, *args, **kwargs):
+            
+                pass
+            
     return MMSVerificationSimulation
     
     
@@ -140,11 +143,13 @@ def verify_spatial_order_of_accuracy(
         timestep_size = 1.e32,
         endtime = 0.,
         starttime = 0.,
-        outfile = None):
+        outfile = None,
+        write_simulation_outputs = False):
     
     MMSVerificationSimulation = make_mms_verification_sim_class(
         sim_module = sim_module,
-        manufactured_solution = manufactured_solution)
+        manufactured_solution = manufactured_solution,
+        write_simulation_outputs = write_simulation_outputs)
     
     table = sapphire.table.Table(("h", "L2_error", "spatial_order"))
     

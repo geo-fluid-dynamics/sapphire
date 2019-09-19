@@ -44,13 +44,17 @@ def default_plotvars(sim, solution = None):
     
         solution = sim.solution
         
-    subscripts, functions = enumerate(solution.split())
+    solution_functions = solution.split()
     
-    labels = [r"$w_{0}$".format(i) for i in subscripts]
+    labels = []
     
-    filenames = ["w{0}".format(i) for i in subscripts]
+    for i in range(len(solution_functions)):
     
-    return functions, labels, filenames
+        labels.append("w{0}".format(i))
+    
+    filenames = labels
+    
+    return solution_functions, labels, filenames
     
     
 def plot(
