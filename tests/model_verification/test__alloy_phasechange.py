@@ -5,13 +5,13 @@ from sapphire.simulations import alloy_phasechange as sim_module
 
 T_m = 1.
 
-Ste = 0.4
+Ste = 0.1
 
-Le = 8.
+Le = 80.
 
 c_sl = 0.5
 
-k_sl = 3.
+k_sl = 4.
 
 q = 2
 
@@ -19,11 +19,11 @@ endtime = 0.0001
 
 def manufactured_solution(sim, time):
     
-    hmin = 0.
+    hmin = 0.2
     
     hmax = 1. - T_m + 1./Ste
     
-    Smin = 0.
+    Smin = 0.01
     
     Smax = 1.
     
