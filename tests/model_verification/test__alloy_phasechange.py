@@ -13,10 +13,6 @@ c_sl = 0.5
 
 k_sl = 4.
 
-q = 2
-
-endtime = 0.0001
-
 def manufactured_solution(sim, time):
     
     hmin = 0.2
@@ -50,6 +46,8 @@ def time_manufactured_solution(sim):
     return manufactured_solution(sim = sim, time = sim.time)
     
     
+endtime = 0.0001
+
 def test__verify_spatial_convergence__second_order__via_mms(
         mesh_sizes = (2, 4, 8, 16),
         tolerance = 0.1):
@@ -58,7 +56,7 @@ def test__verify_spatial_convergence__second_order__via_mms(
         sim_module = sim_module,
         manufactured_solution = space_manufactured_solution,
         meshes = [fe.UnitIntervalMesh(size) for size in mesh_sizes],
-        sim_constructor_kwargs = {"quadrature_degree": q},
+        sim_constructor_kwargs = {"quadrature_degree": 2},
         parameters = {
             "pure_liquidus_temperature": T_m,
             "stefan_number": Ste,
@@ -73,7 +71,7 @@ def test__verify_spatial_convergence__second_order__via_mms(
 
 
 def test__verify_temporal_convergence__first_order__via_mms(
-        meshsize = 16,
+        meshsize = 32,
         timestep_sizes = (endtime, endtime/2., endtime/4.),
         tolerance = 0.1):
     
@@ -81,7 +79,7 @@ def test__verify_temporal_convergence__first_order__via_mms(
         sim_module = sim_module,
         manufactured_solution = time_manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
-        sim_constructor_kwargs = {"quadrature_degree": q},
+        sim_constructor_kwargs = {"quadrature_degree": 2},
         parameters = {
             "pure_liquidus_temperature": T_m,
             "stefan_number": Ste,
@@ -92,30 +90,3 @@ def test__verify_temporal_convergence__first_order__via_mms(
         endtime = endtime,
         timestep_sizes = timestep_sizes,
         tolerance = tolerance)
-
-    
-def test__verify_temporal_convergence__second_order__via_mms(
-        meshsize = 16,
-        timestep_sizes = (endtime, endtime/2., endtime/4.),
-        tolerance = 0.1):
-    
-    sapphire.mms.verify_temporal_order_of_accuracy(
-        sim_module = sim_module,
-        manufactured_solution = time_manufactured_solution,
-        mesh = fe.UnitIntervalMesh(meshsize),
-        sim_constructor_kwargs = {
-            "element_degree": 1,
-            "time_stencil_size": 3,
-            "quadrature_degree": q},
-        parameters = {
-            "pure_liquidus_temperature": T_m,
-            "stefan_number": Ste,
-            "lewis_number": Le,
-            "heat_capacity_solid_to_liquid_ratio": c_sl,
-            "thermal_conductivity_solid_to_liquid_ratio": k_sl,
-            "quadrature_degree": q},
-        expected_order = 2,
-        endtime = endtime,
-        timestep_sizes = timestep_sizes,
-        tolerance = tolerance)
-    
