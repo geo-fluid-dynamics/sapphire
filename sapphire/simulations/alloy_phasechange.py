@@ -141,9 +141,13 @@ def plotvars(sim, solution = None):
     phil = fe.interpolate(liquid_volume_fraction(
         sim = sim, enthalpy = h, solute_concentration = S), V)
     
-    return (h, S, phil), \
-        ("h", "S", "\\phi_l"), \
-        ("h", "S", "phil")
+    h_over_hmax = fe.Function(h)
+    
+    h_over_hmax.vector()[:] = h.vector().array()/h.vector().array().max()
+    
+    return (h, S, phil, h_over_hmax), \
+        ("h", "S", "\\phi_l", "h/h_{max}"), \
+        ("h", "S", "phil", "hoverhmax")
         
     
 class Simulation(sapphire.simulation.Simulation):
