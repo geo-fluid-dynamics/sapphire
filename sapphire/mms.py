@@ -219,11 +219,13 @@ def verify_temporal_order_of_accuracy(
         sim_constructor_kwargs = {},
         parameters = {},
         starttime = 0.,
-        outfile = None):
+        outfile = None,
+        write_simulation_outputs = False):
     
     MMSVerificationSimulation = make_mms_verification_sim_class(
         sim_module = sim_module,
-        manufactured_solution = manufactured_solution)
+        manufactured_solution = manufactured_solution,
+        write_simulation_outputs = write_simulation_outputs)
     
     table = sapphire.table.Table(("Delta_t", "L2_error", "temporal_order"))
     
