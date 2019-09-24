@@ -89,4 +89,5 @@ def test__verify_temporal_convergence__first_order__via_mms(
         expected_order = 1,
         endtime = endtime,
         timestep_sizes = timestep_sizes,
-        tolerance = tolerance)
+        tolerance = tolerance,
+        write_simulation_outputs = False)
