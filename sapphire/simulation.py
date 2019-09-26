@@ -1,5 +1,6 @@
 """ Contains the Simulation class """
 import pathlib
+import logging
 import firedrake as fe
 import sapphire.time_discretization
 import sapphire.output
@@ -53,6 +54,9 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             
             
         self.output_directory_path = pathlib.Path(output_directory_path)
+        
+        self.output_directory_path.mkdir(parents = True, exist_ok = True)
+        
         
         self.solution_file = None
         
@@ -115,9 +119,6 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         return self
         
     def write_outputs(self, write_headers, plotvars = None):
-        
-        self.output_directory_path.mkdir(
-            parents = True, exist_ok = True)
         
         if self.solution_file is None:
             
