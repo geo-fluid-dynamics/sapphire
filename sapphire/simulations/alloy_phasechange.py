@@ -61,6 +61,23 @@ def temperature(sim, enthalpy, solute_concentration):
     
     return (h - 1./Ste*phi_l)/c + T_m
     
+    
+def enthalpy(sim, temperature, porosity):
+    
+    T = temperature
+    
+    phi_l = porosity
+    
+    c_sl = sim.heat_capacity_solid_to_liquid_ratio
+    
+    c = phase_dependent_material_property(c_sl)(phi_l)
+    
+    T_m = sim.pure_liquidus_temperature
+    
+    Ste = sim.stefan_number
+    
+    return c*(T - T_m) + 1./Ste*phi_l
+    
 
 dot, grad = fe.dot, fe.grad
     
@@ -152,17 +169,30 @@ def plotvars(sim, solution = None):
     
 class Simulation(sapphire.simulation.Simulation):
     
-    def __init__(self, *args, mesh, element_degree = 1, **kwargs):
+    def __init__(self, *args, 
+            mesh, 
+            element_degree = 1, 
+            stefan_number = 1.,
+            lewis_number = 1.,
+            pure_liquidus_temperature = 1.,
+            heat_capacity_solid_to_liquid_ratio = 1.,
+            thermal_conductivity_solid_to_liquid_ratio = 1.,
+            **kwargs):
         
-        self.stefan_number = fe.Constant(1.)
+        self.stefan_number = fe.Constant(stefan_number)
         
-        self.lewis_number = fe.Constant(1.)
+        self.lewis_number = fe.Constant(lewis_number)
         
-        self.pure_liquidus_temperature = fe.Constant(1.)
+        self.pure_liquidus_temperature = fe.Constant(
+            pure_liquidus_temperature)
         
-        self.heat_capacity_solid_to_liquid_ratio = fe.Constant(1.)
+        self.heat_capacity_solid_to_liquid_ratio = fe.Constant(
+            heat_capacity_solid_to_liquid_ratio)
         
-        self.thermal_conductivity_solid_to_liquid_ratio = fe.Constant(1.)
+        self.thermal_conductivity_solid_to_liquid_ratio = fe.Constant(
+            thermal_conductivity_solid_to_liquid_ratio)
+            
+        self.farfield_temperature = fe.Constant(1.)   # (T_i - T_e)/(T_i - T_e)
         
         super().__init__(*args,
             mesh = mesh,
