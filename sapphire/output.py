@@ -86,8 +86,6 @@ def plot(
         
         fe.plot(f)
         
-        plt.axis("square")
-        
         title = "${0}$".format(label)
         
         if time is not None:
