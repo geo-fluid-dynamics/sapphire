@@ -31,7 +31,7 @@ def test__validate__diffusive_solidification():
     
     mesh_cellcount = nx = 40
     
-    timestep_count = nt = 200
+    timestep_count = nt = 400
     
     quadrature_degree = q = 2
     
@@ -40,7 +40,20 @@ def test__validate__diffusive_solidification():
     
     T_e = -21.1  # [deg C]
     
-    T_h = T_m # [deg C]
+    S_e = 0.27  # [% wt. NaCl]
+    
+    
+    S_h = 0.035
+    
+    m = (T_e - T_m)/S_e
+    
+    def T_L(S):
+        
+        return T_m + m*S
+    
+    T_h = T_L(S_h) # [deg C]
+    
+    
     
     def T(T__degC):
         
@@ -66,14 +79,9 @@ def test__validate__diffusive_solidification():
     
     Ste = C_p*(T_h - T_e)/h_m
     
-    S_e = 0.27
-    
     def S(S__wtperc):
     
         return S__wtperc/S_e
-    
-    
-    S_h = 0.035
     
     phi_lc = 0.
     
