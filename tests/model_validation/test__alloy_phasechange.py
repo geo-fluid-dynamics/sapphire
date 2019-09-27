@@ -4,11 +4,11 @@ import sapphire.benchmarks.diffusive_solidification_of_alloy
 
 def test__validate__diffusive_solidification():
     
-    endtime = 1.
+    endtime = 10.
     
-    mesh_cellcount = 10
+    mesh_cellcount = 100
     
-    timestep_count = 1
+    timestep_count = 100
     
     quadrature_degree = 4
     
@@ -49,17 +49,20 @@ def test__validate__diffusive_solidification():
         return S__wtperc/S_e
     
     
+    phi_lc = 0.
+    
     sim = sapphire.benchmarks.diffusive_solidification_of_alloy.Simulation(
         lewis_number = Le,
         stefan_number = Ste,
         farfield_concentration = S(0.14),
         pure_liquidus_temperature = T(0.),
         cold_boundary_temperature = T(-18.6),
+        cold_boundary_porosity = phi_lc,
         quadrature_degree = quadrature_degree,
         mesh_cellcount = mesh_cellcount,
         output_directory_path = "output/diffusive_solidification/" 
-            + "nx{}_nt{}_q{}".format(
-                mesh_cellcount, timestep_count, quadrature_degree))
+            + "tf{}_philc{}_nx{}_nt{}_q{}".format(
+                endtime, phi_lc, mesh_cellcount, timestep_count, quadrature_degree))
     
     
     sim.timestep_size.assign(endtime/float(timestep_count))
