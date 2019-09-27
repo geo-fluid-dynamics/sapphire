@@ -2,9 +2,17 @@ import firedrake as fe
 import sapphire.benchmarks.diffusive_solidification_of_alloy
 
 
+class DebugSim(sapphire.benchmarks.diffusive_solidification_of_alloy.Simulation):
+    
+    def write_outputs(self, *args, **kwargs):
+        
+        sapphire.simulation.Simulation.write_outputs(
+            self, *args, plotvars = None, **kwargs)
+        
+    
 def test__validate__diffusive_solidification():
     
-    endtime = 10.
+    endtime = 1000.
     
     mesh_cellcount = 100
     
@@ -51,7 +59,7 @@ def test__validate__diffusive_solidification():
     
     phi_lc = 0.
     
-    sim = sapphire.benchmarks.diffusive_solidification_of_alloy.Simulation(
+    sim = DebugSim(
         lewis_number = Le,
         stefan_number = Ste,
         farfield_concentration = S(0.14),
