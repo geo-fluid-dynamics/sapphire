@@ -26,15 +26,13 @@ def initial_values(sim):
     
     
 def dirichlet_boundary_conditions(sim):
-
-    minimum_porosity = 0.01
+    
+    phi_lc = sim.cold_boundary_porosity
     
     h_c = sapphire.simulations.alloy_phasechange.enthalpy(
         sim = sim,
         temperature = sim.cold_boundary_temperature,
-        porosity = minimum_porosity)
-    
-    phi_lc = sim.cold_boundary_porosity
+        porosity = phi_lc)
     
     Ste = sim.stefan_number
     
