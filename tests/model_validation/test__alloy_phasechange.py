@@ -6,9 +6,9 @@ def test__validate__diffusive_solidification():
     
     endtime = 1.
     
-    mesh_cellcount = 1000
+    mesh_cellcount = 10
     
-    timestep_count = 100000
+    timestep_count = 1
     
     quadrature_degree = 4
     
