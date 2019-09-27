@@ -52,9 +52,7 @@ def dirichlet_boundary_conditions(sim):
     
     return [
         fe.DirichletBC(W.sub(0), h_c, 1),
-        fe.DirichletBC(W.sub(1), S_c, 1),
-        fe.DirichletBC(W.sub(0), h_h, 2),
-        fe.DirichletBC(W.sub(1), S_h, 2)]
+        fe.DirichletBC(W.sub(1), S_c, 1)]
     
 
 class Simulation(sapphire.simulations.alloy_phasechange.Simulation):
@@ -63,7 +61,7 @@ class Simulation(sapphire.simulations.alloy_phasechange.Simulation):
             farfield_concentration,
             pure_liquidus_temperature,
             cold_boundary_temperature,
-            cold_boundary_porosity = 0.01,
+            cold_boundary_porosity = 0.,
             mesh_cellcount = 100, 
             cutoff_length = 1., 
             **kwargs):

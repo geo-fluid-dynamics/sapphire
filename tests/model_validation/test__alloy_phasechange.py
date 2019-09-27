@@ -4,74 +4,100 @@ import sapphire.benchmarks.diffusive_solidification_of_alloy
 
 class DebugSim(sapphire.benchmarks.diffusive_solidification_of_alloy.Simulation):
     
-    def write_outputs(self, *args, **kwargs):
+    """
+    def write_outputs(self, write_headers, plotvars = None):
         
-        sapphire.simulation.Simulation.write_outputs(
-            self, *args, plotvars = None, **kwargs)
+        if self.solution_file is None:
+            
+            solution_filepath = self.output_directory_path.joinpath(
+                "solution").with_suffix(".pvd")
+            
+            self.solution_file = fe.File(str(solution_filepath))
         
+        self = self.postprocess()
+        
+        sapphire.output.report(sim = self, write_header = write_headers)
+        
+        sapphire.output.write_solution(sim = self, file = self.solution_file)
+        
+        #sapphire.output.plot(sim = self, plotvars = plotvars)
+    """    
     
 def test__validate__diffusive_solidification():
     
-    endtime = 1000.
+    endtime = t_f = 1.
     
-    mesh_cellcount = 100
+    cutoff_length = xmax = 1.
     
-    timestep_count = 100
+    mesh_cellcount = nx = 20
     
-    quadrature_degree = 4
+    timestep_count = nt = 2
+    
+    quadrature_degree = q = 4
     
     
     T_m = 0.  # [deg C]
     
-    T_e = -32.  # [deg C]
+    T_e = -21.1  # [deg C]
     
-    T_i = 15.  # [deg C]
+    T_h = T_m # [deg C]
     
     def T(T__degC):
         
-        return (T__degC - T_e)/(T_i - T_e)
+        return (T__degC - T_e)/(T_h - T_e)
     
     
-    k = 0.5442  # [W/(m K)]
+    #k = 0.5442  # [W/(m K)]
     
     rho = 1000.  # [kg/m^3]
     
     C_p = 4.186e6  # [J/(m^3 K)]
     
-    c_p = C_p/rho
+    c_p = C_p/rho # [J/(kg K)]
     
-    alpha = k/(rho*c_p)
+    #alpha = k/(rho*c_p)
     
-    D = 1.e-9  # [m^2/s]
+    #D = 1.e-9  # [m^2/s]
     
-    Le = alpha/D
+    #Le = alpha/D
+    Le = 80.
     
     h_m = 3.3488e8  # [J/m^3]
     
-    Ste = c_p*(T_i - T_e)/h_m
+    Ste = C_p*(T_h - T_e)/h_m
     
-    S_e = 0.80
+    S_e = 0.27
     
     def S(S__wtperc):
     
         return S__wtperc/S_e
     
     
+    S_h = 0.035
+    
     phi_lc = 0.
+    
+    T_c = T_e
+    
+    outdir_path = "output/diffusive_solidification/"\
+    + "Le{}_Ste{}_Te{}_Se{}_Tc{}_Th{}_Sh{}"\
+    + "__tf{}_philc{}_xmax{}_nx{}_nt{}_q{}"
+    
+    outdir_path = outdir_path.format(
+        Le, Ste, T_e, S_e, T_c, T_h, S_h,
+        t_f, phi_lc, xmax, nx, nt, q)
     
     sim = DebugSim(
         lewis_number = Le,
         stefan_number = Ste,
-        farfield_concentration = S(0.14),
-        pure_liquidus_temperature = T(0.),
-        cold_boundary_temperature = T(-18.6),
+        farfield_concentration = S(S_h),
+        pure_liquidus_temperature = T(T_m),
+        cold_boundary_temperature = T(T_c),
         cold_boundary_porosity = phi_lc,
-        quadrature_degree = quadrature_degree,
-        mesh_cellcount = mesh_cellcount,
-        output_directory_path = "output/diffusive_solidification/" 
-            + "tf{}_philc{}_nx{}_nt{}_q{}".format(
-                endtime, phi_lc, mesh_cellcount, timestep_count, quadrature_degree))
-    
+        quadrature_degree = q,
+        mesh_cellcount = nx,
+        cutoff_length = xmax,
+        output_directory_path = outdir_path)
     
     sim.timestep_size.assign(endtime/float(timestep_count))
     
