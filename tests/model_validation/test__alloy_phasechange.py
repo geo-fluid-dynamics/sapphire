@@ -29,11 +29,11 @@ def test__validate__diffusive_solidification():
     
     cutoff_length = xmax = 1.
     
-    mesh_cellcount = nx = 20
+    mesh_cellcount = nx = 40
     
-    timestep_count = nt = 2
+    timestep_count = nt = 200
     
-    quadrature_degree = q = 4
+    quadrature_degree = q = 2
     
     
     T_m = 0.  # [deg C]
