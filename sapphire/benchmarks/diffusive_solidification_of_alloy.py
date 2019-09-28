@@ -59,7 +59,6 @@ class Simulation(sapphire.simulations.alloy_phasechange.Simulation):
     
     def __init__(self, *args, 
             farfield_concentration,
-            pure_liquidus_temperature,
             cold_boundary_temperature,
             cold_boundary_porosity = 0.,
             mesh_cellcount = 100, 
