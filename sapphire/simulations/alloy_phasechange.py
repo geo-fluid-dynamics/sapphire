@@ -155,12 +155,23 @@ def plotvars(sim, solution = None):
     
     h, S = solution.split()
     
-    phil = fe.interpolate(liquid_volume_fraction(
-        sim = sim, enthalpy = h, solute_concentration = S), V)
+    phil = fe.interpolate(
+        liquid_volume_fraction(
+            sim = sim,
+            enthalpy = h,
+            solute_concentration = S), 
+        V)
     
-    return (h, S, phil), \
-        ("h", "S", "\\phi_l"), \
-        ("h", "S", "phil")
+    T = fe.interpolate(
+        temperature(
+            sim = sim,
+            enthalpy = h,
+            solute_concentration = S),
+        V)
+    
+    return (h, S, phil, T), \
+        ("h", "S", "\\phi_l", "T"), \
+        ("h", "S", "phil", "T")
      
     
 class Simulation(sapphire.simulation.Simulation):
