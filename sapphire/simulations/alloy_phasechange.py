@@ -202,7 +202,7 @@ class Simulation(sapphire.simulation.Simulation):
         return super().solve(*args,
             parameters = {
                 "snes_type": "newtonls",
-                "snes_max_it": 50,
+                "snes_max_it": 100,
                 "snes_monitor": None,
                 #"snes_linesearch_type": "l2",
                 #"snes_linesearch_maxstep": 1.0,
