@@ -60,9 +60,9 @@ class Simulation(sapphire.simulations.alloy_phasechange.Simulation):
     def __init__(self, *args, 
             farfield_concentration,
             cold_boundary_temperature,
-            cold_boundary_porosity = 0.,
-            mesh_cellcount = 100, 
-            cutoff_length = 1., 
+            cold_boundary_porosity,
+            mesh_cellcount, 
+            cutoff_length, 
             **kwargs):
         
         self.farfield_concentration = fe.Constant(farfield_concentration)
