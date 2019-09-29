@@ -37,6 +37,11 @@ def test__validate__diffusive_solidification():
     quadrature_degree = q = 2
     
     
+    k_sl = 1.
+    
+    c_sl = 1.
+    
+    
     T_m = 0.  # [deg C]
     
     T_e = -21.1  # [deg C]
@@ -99,6 +104,8 @@ def test__validate__diffusive_solidification():
     sim = DebugSim(
         lewis_number = Le,
         stefan_number = Ste,
+        heat_capacity_solid_to_liquid_ratio = c_sl,
+        thermal_conductivity_solid_to_liquid_ratio = k_sl,
         farfield_concentration = S(S_h),
         pure_liquidus_temperature = T(T_m),
         cold_boundary_temperature = T(T_c),
