@@ -21,7 +21,8 @@ class DebugSim(sapphire.benchmarks.diffusive_solidification_of_alloy.Simulation)
         sapphire.output.write_solution(sim = self, file = self.solution_file)
         
         #sapphire.output.plot(sim = self, plotvars = plotvars)
-    """    
+    """
+    
     
 def test__validate__diffusive_solidification():
     
@@ -31,7 +32,7 @@ def test__validate__diffusive_solidification():
     
     mesh_cellcount = nx = 40
     
-    timestep_count = nt = 400
+    timestep_count = nt = 200
     
     quadrature_degree = q = 2
     
@@ -42,22 +43,25 @@ def test__validate__diffusive_solidification():
     
     S_e = 0.27  # [% wt. NaCl]
     
-    
-    S_h = 0.035
-    
     m = (T_e - T_m)/S_e
     
     def T_L(S):
         
         return T_m + m*S
-    
-    T_h = T_L(S_h) # [deg C]
-    
-    
+        
     
     def T(T__degC):
         
         return (T__degC - T_e)/(T_h - T_e)
+        
+    
+    S_h = 0.035
+    
+    T_h = 0.  # [deg C]
+    
+    phi_lc = 0.
+    
+    T_c = T_e  # [deg C]
     
     
     #k = 0.5442  # [W/(m K)]
@@ -83,9 +87,6 @@ def test__validate__diffusive_solidification():
     
         return S__wtperc/S_e
     
-    phi_lc = 0.
-    
-    T_c = T_e
     
     outdir_path = "output/diffusive_solidification/"\
     + "Le{}_Ste{}_Te{}_Se{}_Tc{}_Th{}_Sh{}"\
