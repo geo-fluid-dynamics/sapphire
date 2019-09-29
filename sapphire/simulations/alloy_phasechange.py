@@ -167,12 +167,12 @@ class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args, 
             mesh, 
+            stefan_number,
+            lewis_number,
+            pure_liquidus_temperature,
+            heat_capacity_solid_to_liquid_ratio,
+            thermal_conductivity_solid_to_liquid_ratio,
             element_degree = 1, 
-            stefan_number = 1.,
-            lewis_number = 1.,
-            pure_liquidus_temperature = 1.,
-            heat_capacity_solid_to_liquid_ratio = 1.,
-            thermal_conductivity_solid_to_liquid_ratio = 1.,
             **kwargs):
         
         self.stefan_number = fe.Constant(stefan_number)
