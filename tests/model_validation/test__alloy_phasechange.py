@@ -26,27 +26,22 @@ class DebugSim(sapphire.benchmarks.diffusive_solidification_of_alloy.Simulation)
     
 def test__validate__diffusive_solidification():
     
-    endtime = t_f = 1.
+    endtime = t_f = 0.1
     
     cutoff_length = xmax = 1.
     
-    mesh_cellcount = nx = 40
+    mesh_cellcount = nx = 80
     
-    timestep_count = nt = 200
+    timestep_size = Delta_t = 0.00125
     
     quadrature_degree = q = 2
-    
-    
-    k_sl = 1.
-    
-    c_sl = 1.
     
     
     T_m = 0.  # [deg C]
     
     T_e = -21.1  # [deg C]
     
-    S_e = 0.27  # [% wt. NaCl]
+    S_e = 0.233  # [% wt. NaCl]
     
     m = (T_e - T_m)/S_e
     
@@ -60,24 +55,37 @@ def test__validate__diffusive_solidification():
         return (T__degC - T_e)/(T_h - T_e)
         
     
-    S_h = 0.035
+    S_h = 0.038
     
-    T_h = 0.  # [deg C]
+    T_h = T_L(S_h)  # [deg C]
     
     phi_lc = 0.
     
-    T_c = T_e  # [deg C]
+    T_c = T_e + 1.  # [deg C]
     
     
-    #k = 0.5442  # [W/(m K)]
+    k_l = 0.544  # [W/(m K)]
     
-    rho = 1000.  # [kg/m^3]
+    #k_s = 2.14  # [W/(m K)]
+    k_s = k_l
+    
+    k_sl = k_s/k_l
+    
     
     C_p = 4.186e6  # [J/(m^3 K)]
     
+    rho = 1000.  # [kg/m^3]
+    
     c_p = C_p/rho # [J/(kg K)]
     
-    #alpha = k/(rho*c_p)
+    c_l = c_p
+    
+    c_s = 2110.  # [J /(kg deg C)]
+    
+    c_sl = c_s/c_l
+    
+    
+    #alpha = k_l/(rho*c_p)
     
     #D = 1.e-9  # [m^2/s]
     
@@ -94,12 +102,12 @@ def test__validate__diffusive_solidification():
     
     
     outdir_path = "output/diffusive_solidification/"\
-    + "Le{}_Ste{}_Te{}_Se{}_Tc{}_Th{}_Sh{}"\
-    + "__tf{}_philc{}_xmax{}_nx{}_nt{}_q{}"
+    + "Le{}_csl{:.3f}_ksl{}_Ste{:.3f}_Te{}_Se{}_Tc{}_Th{:.3f}_Sh{:.3f}"\
+    + "__tf{}_philc{}_xmax{}_nx{}_Deltat{}_q{}"
     
     outdir_path = outdir_path.format(
-        Le, Ste, T_e, S_e, T_c, T_h, S_h,
-        t_f, phi_lc, xmax, nx, nt, q)
+        Le, c_sl, k_sl, Ste, T_e, S_e, T_c, T_h, S_h,
+        t_f, phi_lc, xmax, nx, Delta_t, q)
     
     sim = DebugSim(
         lewis_number = Le,
@@ -115,6 +123,6 @@ def test__validate__diffusive_solidification():
         cutoff_length = xmax,
         output_directory_path = outdir_path)
     
-    sim.timestep_size.assign(endtime/float(timestep_count))
+    sim.timestep_size.assign(Delta_t)
     
     sim.solutions, sim.time, = sim.run(endtime = endtime)
