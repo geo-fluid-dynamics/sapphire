@@ -141,33 +141,19 @@ def element(cell, degree):
     scalar_element = fe.FiniteElement("P", cell, degree)
     
     return fe.MixedElement(scalar_element, scalar_element)
-    
+
     
 def plotvars(sim, solution = None):
     
     if solution is None:
     
         solution = sim.solution
-        
-    V = fe.FunctionSpace(
-        solution.function_space().mesh(),
-        fe.FiniteElement("P", sim.mesh.ufl_cell(), 1))
     
     h, S = solution.split()
     
-    phil = fe.interpolate(
-        liquid_volume_fraction(
-            sim = sim,
-            enthalpy = h,
-            solute_concentration = S), 
-        V)
+    phil = sim.postprocessed_liquid_volume_fraction
     
-    T = fe.interpolate(
-        temperature(
-            sim = sim,
-            enthalpy = h,
-            solute_concentration = S),
-        V)
+    T = sim.postprocessed_temperature
     
     return (h, S, phil, T), \
         ("h", "S", "\\phi_l", "T"), \
@@ -226,13 +212,28 @@ class Simulation(sapphire.simulation.Simulation):
             **kwargs)
             
     def postprocess(self):
-        
+    
         h, S = self.solution.split()
         
-        phil = liquid_volume_fraction(
-            sim = self, enthalpy = h, solute_concentration = S)
+        phi_l = fe.interpolate(
+            liquid_volume_fraction(
+                sim = self,
+                enthalpy = h,
+                solute_concentration = S), 
+            self.postprocessing_function_space)
+            
+        self.postprocessed_liquid_volume_fraction = \
+            self.postprocessed_liquid_volume_fraction.assign(phi_l)
         
-        self.liquid_area = fe.assemble(phil*fe.dx)
+        T = fe.interpolate(
+            temperature(
+                sim = self,
+                enthalpy = h,
+                solute_concentration = S),
+            self.postprocessing_function_space)
+        
+        self.postprocessed_temperature = \
+            self.postprocessed_temperature.assign(T)
         
         return self
         

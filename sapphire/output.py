@@ -6,7 +6,11 @@ import matplotlib.pyplot as plt
 import firedrake as fe
 
 
-def write_solution(sim, solution = None, time = None, file = None):
+def write_solution(sim, 
+        solution = None, 
+        dependent_functions = None, 
+        time = None, 
+        file = None):
     
     if solution is None:
     
@@ -20,10 +24,19 @@ def write_solution(sim, solution = None, time = None, file = None):
     
         time = sim.solution_file
         
+    functions_to_write = solution.split()
+    
+    if dependent_functions is None:
+    
+        dependent_functions = sim.postprocessed_functions
+        
+    if dependent_functions is not None:
+    
+        functions_to_write += dependent_functions
         
     if time is None:
         
-        file.write(*solution.split())
+        file.write(functions_to_write)
         
     else:
     
@@ -34,8 +47,8 @@ def write_solution(sim, solution = None, time = None, file = None):
         elif type(time) is fe.Constant:
         
             timefloat = time.__float__()
-        
-        file.write(*solution.split(), time = timefloat)
+            
+        file.write(*functions_to_write, time = timefloat)
     
 
 def default_plotvars(sim, solution = None):
