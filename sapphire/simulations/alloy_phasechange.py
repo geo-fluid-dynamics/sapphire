@@ -170,6 +170,7 @@ class Simulation(sapphire.simulation.Simulation):
             heat_capacity_solid_to_liquid_ratio,
             thermal_conductivity_solid_to_liquid_ratio,
             element_degree = 1, 
+            snes_linesearch_damping = 1.,
             **kwargs):
         
         self.stefan_number = fe.Constant(stefan_number)
@@ -187,6 +188,8 @@ class Simulation(sapphire.simulation.Simulation):
             
         self.farfield_temperature = fe.Constant(1.)   # (T_i - T_e)/(T_i - T_e)
         
+        self.snes_linesearch_damping = snes_linesearch_damping
+        
         super().__init__(*args,
             mesh = mesh,
             element = element(
@@ -195,15 +198,15 @@ class Simulation(sapphire.simulation.Simulation):
             **kwargs)
             
     def solve(self, *args, **kwargs):
-    
+        
         return super().solve(*args,
             parameters = {
                 "snes_type": "newtonls",
                 "snes_max_it": 100,
                 "snes_monitor": None,
-                #"snes_linesearch_type": "l2",
-                #"snes_linesearch_maxstep": 1.0,
-                #"snes_linesearch_damping": 0.9,
+                "snes_linesearch_type": "l2",
+                "snes_linesearch_maxstep": 1.0,
+                "snes_linesearch_damping": self.snes_linesearch_damping,
                 "snes_rtol": 0.,
                 "ksp_type": "preonly", 
                 "pc_type": "lu", 
