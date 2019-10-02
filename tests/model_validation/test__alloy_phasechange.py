@@ -4,7 +4,6 @@ import sapphire.benchmarks.diffusive_solidification_of_alloy
 
 class DebugSim(sapphire.benchmarks.diffusive_solidification_of_alloy.Simulation):
     
-    """
     def write_outputs(self, write_headers, plotvars = None):
         
         if self.solution_file is None:
@@ -21,7 +20,7 @@ class DebugSim(sapphire.benchmarks.diffusive_solidification_of_alloy.Simulation)
         sapphire.output.write_solution(sim = self, file = self.solution_file)
         
         #sapphire.output.plot(sim = self, plotvars = plotvars)
-    """
+    
     
     
 def test__validate__diffusive_solidification():
@@ -30,11 +29,13 @@ def test__validate__diffusive_solidification():
     
     cutoff_length = xmax = 1.
     
-    mesh_cellcount = nx = 80
+    mesh_cellcount = nx = 160
     
-    timestep_size = Delta_t = 0.00125
+    timestep_size = Delta_t = 0.01
     
     quadrature_degree = q = 2
+    
+    omega = 0.6
     
     
     T_m = 0.  # [deg C]
@@ -50,24 +51,24 @@ def test__validate__diffusive_solidification():
         return T_m + m*S
         
     
+    S_h = 0.038
+    
+    T_h = T_L(S_h)  # [deg C]
+    
+    
     def T(T__degC):
         
         return (T__degC - T_e)/(T_h - T_e)
         
     
-    S_h = 0.038
-    
-    T_h = T_L(S_h)  # [deg C]
-    
-    phi_lc = 0.
+    phi_lc = 0.01
     
     T_c = T_e + 1.  # [deg C]
     
     
     k_l = 0.544  # [W/(m K)]
     
-    #k_s = 2.14  # [W/(m K)]
-    k_s = k_l
+    k_s = 2.14  # [W/(m K)]
     
     k_sl = k_s/k_l
     
@@ -92,6 +93,7 @@ def test__validate__diffusive_solidification():
     #Le = alpha/D
     Le = 80.
     
+    
     h_m = 3.3488e8  # [J/m^3]
     
     Ste = C_p*(T_h - T_e)/h_m
@@ -102,7 +104,7 @@ def test__validate__diffusive_solidification():
     
     
     outdir_path = "output/diffusive_solidification/"\
-    + "Le{}_csl{:.3f}_ksl{}_Ste{:.3f}_Te{}_Se{}_Tc{}_Th{:.3f}_Sh{:.3f}"\
+    + "Le{}_csl{:.3f}_ksl{:.3f}_Ste{:.3f}_Te{}_Se{}_Tc{}_Th{:.3f}_Sh{:.3f}"\
     + "__tf{}_philc{}_xmax{}_nx{}_Deltat{}_q{}"
     
     outdir_path = outdir_path.format(
@@ -121,6 +123,7 @@ def test__validate__diffusive_solidification():
         quadrature_degree = q,
         mesh_cellcount = nx,
         cutoff_length = xmax,
+        snes_linesearch_damping = omega,
         output_directory_path = outdir_path)
     
     sim.timestep_size.assign(Delta_t)
