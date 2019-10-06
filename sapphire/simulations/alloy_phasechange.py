@@ -186,7 +186,7 @@ class Simulation(sapphire.simulation.Simulation):
         self.thermal_conductivity_solid_to_liquid_ratio = fe.Constant(
             thermal_conductivity_solid_to_liquid_ratio)
             
-        self.farfield_temperature = fe.Constant(1.)   # (T_i - T_e)/(T_i - T_e)
+        self.initial_temperature = fe.Constant(1.)   # (T_i - T_e)/(T_i - T_e)
         
         self.snes_linesearch_damping = snes_linesearch_damping
         
