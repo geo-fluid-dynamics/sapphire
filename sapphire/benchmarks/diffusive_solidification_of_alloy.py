@@ -2,25 +2,41 @@ import firedrake as fe
 import sapphire.simulations.alloy_phasechange
 
     
-def farfield_enthalpy(sim):
-    
-    return sapphire.simulations.alloy_phasechange.enthalpy(
-        sim = sim,
-        temperature = sim.farfield_temperature,
-        porosity = 1.)
-
-
 def initial_values(sim):
     
     w0 = fe.Function(sim.function_space)
     
     h0, S0 = w0.split()
     
-    h_h = farfield_enthalpy(sim = sim)
+    assumed_initial_porosity = 1.
     
-    h0 = h0.assign(h_h)
+    constant_initial_enthalpy = \
+        sapphire.simulations.alloy_phasechange.enthalpy(
+            sim = sim,
+            temperature = sim.initial_temperature,
+            porosity = assumed_initial_porosity)
     
-    S0 = S0.assign(sim.farfield_concentration)
+    h0 = h0.assign(constant_initial_enthalpy)
+    
+    S0 = S0.assign(sim.initial_concentration)
+    
+    constant_initial_porosity = \
+        sapphire.simulations.alloy_phasechange.liquid_volume_fraction(
+            sim = sim,
+            enthalpy = constant_initial_enthalpy,
+            solute_concentration = sim.initial_concentration)
+    
+    epsilon = 1.e-4
+    
+    phi_l0 = constant_initial_porosity.__float__()
+    
+    if abs(phi_l0 - assumed_initial_porosity) >= epsilon:
+    
+        raise ValueError(
+            "For this test, it is assumed that the initial porosity is equal to {} +/- {}.".format(
+                assumed_initial_porosity, epsilon)
+            +"\nWhen setting initial values, the initial porosity was computed to be {}.".format(
+                phi_l0))
     
     return w0
     
@@ -44,10 +60,6 @@ def dirichlet_boundary_conditions(sim):
     
     S_c = (h_c - phi_lc/Ste)/((1. - c_sl)*m + c_sl*m/phi_lc)
     
-    h_h = farfield_enthalpy(sim = sim)
-    
-    S_h = sim.farfield_concentration
-    
     W = sim.function_space
     
     return [
@@ -58,14 +70,14 @@ def dirichlet_boundary_conditions(sim):
 class Simulation(sapphire.simulations.alloy_phasechange.Simulation):
     
     def __init__(self, *args, 
-            farfield_concentration,
+            initial_concentration,
             cold_boundary_temperature,
             cold_boundary_porosity,
             mesh_cellcount, 
             cutoff_length, 
             **kwargs):
         
-        self.farfield_concentration = fe.Constant(farfield_concentration)
+        self.initial_concentration = fe.Constant(initial_concentration)
         
         self.cold_boundary_temperature = fe.Constant(cold_boundary_temperature)
         
