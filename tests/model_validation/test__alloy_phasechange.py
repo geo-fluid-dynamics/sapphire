@@ -33,9 +33,9 @@ def test__validate__diffusive_solidification():
     
     timestep_size = Delta_t = 0.01
     
-    quadrature_degree = q = 2
+    quadrature_degree = q = 4
     
-    omega = 0.6
+    omega = 0.8
     
     
     T_m = 0.  # [deg C]
@@ -51,14 +51,14 @@ def test__validate__diffusive_solidification():
         return T_m + m*S
         
     
-    S_h = 0.038
+    S_0 = 0.038
     
-    T_h = T_L(S_h)  # [deg C]
-    
+    T_0 = T_L(S_0)  # [deg C]
+    #T_0 = -3.441
     
     def T(T__degC):
         
-        return (T__degC - T_e)/(T_h - T_e)
+        return (T__degC - T_e)/(T_0 - T_e)
         
     
     phi_lc = 0.01
@@ -94,9 +94,10 @@ def test__validate__diffusive_solidification():
     Le = 80.
     
     
-    h_m = 3.3488e8  # [J/m^3]
+    H_m = 3.3488e8  # [J/m^3]
     
-    Ste = C_p*(T_h - T_e)/h_m
+    Ste = C_p*(T_0 - T_e)/H_m
+    #Ste = 0.221
     
     def S(S__wtperc):
     
@@ -105,18 +106,18 @@ def test__validate__diffusive_solidification():
     
     outdir_path = "output/diffusive_solidification/"\
     + "Le{}_csl{:.3f}_ksl{:.3f}_Ste{:.3f}_Te{}_Se{}_Tc{}_Th{:.3f}_Sh{:.3f}"\
-    + "__tf{}_philc{}_xmax{}_nx{}_Deltat{}_q{}"
+    + "__tf{}_philc{}_xmax{}_nx{}_Deltat{}"
     
     outdir_path = outdir_path.format(
-        Le, c_sl, k_sl, Ste, T_e, S_e, T_c, T_h, S_h,
-        t_f, phi_lc, xmax, nx, Delta_t, q)
+        Le, c_sl, k_sl, Ste, T_e, S_e, T_c, T_0, S_0,
+        t_f, phi_lc, xmax, nx, Delta_t)
     
     sim = DebugSim(
         lewis_number = Le,
         stefan_number = Ste,
         heat_capacity_solid_to_liquid_ratio = c_sl,
         thermal_conductivity_solid_to_liquid_ratio = k_sl,
-        farfield_concentration = S(S_h),
+        initial_concentration = S(S_0),
         pure_liquidus_temperature = T(T_m),
         cold_boundary_temperature = T(T_c),
         cold_boundary_porosity = phi_lc,
