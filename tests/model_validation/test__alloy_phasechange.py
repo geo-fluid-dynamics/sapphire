@@ -30,7 +30,8 @@ def test__validate__diffusive_solidification__planar():
     
     mesh_cellcount = nx = 4000
     
-    timestep_size = Delta_t = 0.0005
+    #timestep_size = Delta_t = 0.0005
+    timestep_size = Delta_t = 0.001
     
     quadrature_degree = q = 4
     
