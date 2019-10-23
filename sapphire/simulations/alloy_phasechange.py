@@ -238,6 +238,8 @@ class Simulation(sapphire.simulation.Simulation):
         self.postprocessed_temperature = \
             self.postprocessed_temperature.assign(T)
         
+        self.total_solute = fe.assemble(S*fe.dx)
+        
         return self
         
     def write_outputs(self, *args, **kwargs):
