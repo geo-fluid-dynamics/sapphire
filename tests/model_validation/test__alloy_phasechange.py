@@ -28,14 +28,16 @@ def test__validate__diffusive_solidification__planar():
     
     cutoff_length = xmax = 1.
     
-    mesh_cellcount = nx = 4000
     
-    #timestep_size = Delta_t = 0.0005
-    timestep_size = Delta_t = 0.001
+    mesh_cellcount = nx = 160
+    
+    timestep_size = Delta_t = 0.01
     
     quadrature_degree = q = 4
     
-    omega = 1.
+    omega = 0.5
+    
+    phi_lc = 0.001
     
     
     T_m = 0.  # [deg C]
@@ -54,16 +56,13 @@ def test__validate__diffusive_solidification__planar():
     S_0 = 0.038
     
     T_0 = T_L(S_0)  # [deg C]
-    #T_0 = -3.441
     
     def T(T__degC):
         
         return (T__degC - T_e)/(T_0 - T_e)
         
     
-    phi_lc = 0.001
-    
-    T_c = T_e  # [deg C]
+    T_c = T_e + 1.  # [deg C]
     
     
     k_l = 0.544  # [W/(m K)]
@@ -96,9 +95,9 @@ def test__validate__diffusive_solidification__planar():
     #Le = 80.
     Le = 2.
     
-    H_m = 3.3488e8  # [J/m^3]
+    h_m = 3.3488e5  # [J/kg]
     
-    Ste = C_p*(T_0 - T_e)/H_m
+    Ste = c_l*(T_0 - T_e)/h_m
     #Ste = 0.221
     
     def S(S__wtperc):
