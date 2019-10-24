@@ -170,6 +170,9 @@ class Simulation(sapphire.simulation.Simulation):
             heat_capacity_solid_to_liquid_ratio,
             thermal_conductivity_solid_to_liquid_ratio,
             element_degree = 1, 
+            snes_max_iterations = 100,
+            snes_absolute_tolerance = 1.e-9,
+            snes_step_tolerance = 1.e-9,
             snes_linesearch_damping = 1.,
             **kwargs):
         
@@ -188,6 +191,12 @@ class Simulation(sapphire.simulation.Simulation):
             
         self.initial_temperature = fe.Constant(1.)   # (T_i - T_e)/(T_i - T_e)
         
+        self.snes_max_iterations = snes_max_iterations
+        
+        self.snes_absolute_tolerance = snes_absolute_tolerance
+        
+        self.snes_step_tolerance = snes_step_tolerance
+        
         self.snes_linesearch_damping = snes_linesearch_damping
         
         super().__init__(*args,
@@ -202,12 +211,14 @@ class Simulation(sapphire.simulation.Simulation):
         return super().solve(*args,
             parameters = {
                 "snes_type": "newtonls",
-                "snes_max_it": 100,
+                "snes_max_it": self.snes_max_iterations,
                 "snes_monitor": None,
+                "snes_abstol": self.snes_absolute_tolerance,
+                "snes_stol": self.snes_step_tolerance,
+                "snes_rtol": 0.,
                 "snes_linesearch_type": "l2",
                 "snes_linesearch_maxstep": 1.0,
                 "snes_linesearch_damping": self.snes_linesearch_damping,
-                "snes_rtol": 0.,
                 "ksp_type": "preonly", 
                 "pc_type": "lu", 
                 "mat_type": "aij",
