@@ -22,7 +22,9 @@ def enthalpy(sim, temperature, porosity):
 
 def liquidus_enthalpy(sim, solute_concentration):
     
-    m = sim.pure_liquidus_temperature
+    T_m = sim.pure_liquidus_temperature
+    
+    m = -T_m
     
     Ste = sim.stefan_number
     
