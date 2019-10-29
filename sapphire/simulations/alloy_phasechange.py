@@ -2,7 +2,35 @@
 import firedrake as fe
 import sapphire.simulation
 
+
+def enthalpy(sim, temperature, porosity):
+
+    T = temperature
+
+    phi_l = porosity
+
+    c_sl = sim.heat_capacity_solid_to_liquid_ratio
+
+    c = phase_dependent_material_property(c_sl)(phi_l)
+
+    T_m = sim.pure_liquidus_temperature
+
+    Ste = sim.stefan_number
+
+    return c*(T - T_m) + 1./Ste*phi_l
+
+
+def liquidus_enthalpy(sim, solute_concentration):
     
+    m = sim.pure_liquidus_temperature
+    
+    Ste = sim.stefan_number
+    
+    S = solute_concentration
+    
+    return m*S + 1./Ste
+    
+   
 def liquid_volume_fraction(sim, enthalpy, solute_concentration):
     
     h = enthalpy
@@ -15,7 +43,7 @@ def liquid_volume_fraction(sim, enthalpy, solute_concentration):
     
     Ste = sim.stefan_number
     
-    h_L = m*S + 1./Ste
+    h_L = liquidus_enthalpy(sim = sim, solute_concentration = S)
     
     c_sl = sim.heat_capacity_solid_to_liquid_ratio
     
@@ -30,6 +58,22 @@ def liquid_volume_fraction(sim, enthalpy, solute_concentration):
     return fe.conditional(
         h >= h_L, 1., (-B + sqrt(B**2. - 4.*A*C))/(2.*A))
 
+
+def liquidus_temperature(sim, enthalpy, solute_concentration):
+    
+    T_m = sim.pure_liquidus_temperature
+    
+    h = enthalpy
+    
+    S = solute_concentration
+    
+    phi_l = liquid_volume_fraction(
+        sim = sim, enthalpy = h, solute_concentration = S)
+    
+    S_l = S/phi_l
+    
+    return T_m*(1. - S_l)
+    
 
 def phase_dependent_material_property(solid_to_liquid_ratio):
 
@@ -60,24 +104,7 @@ def temperature(sim, enthalpy, solute_concentration):
     T_m = sim.pure_liquidus_temperature
     
     return (h - 1./Ste*phi_l)/c + T_m
-    
-    
-def enthalpy(sim, temperature, porosity):
-    
-    T = temperature
-    
-    phi_l = porosity
-    
-    c_sl = sim.heat_capacity_solid_to_liquid_ratio
-    
-    c = phase_dependent_material_property(c_sl)(phi_l)
-    
-    T_m = sim.pure_liquidus_temperature
-    
-    Ste = sim.stefan_number
-    
-    return c*(T - T_m) + 1./Ste*phi_l
-    
+
 
 dot, grad = fe.dot, fe.grad
     
@@ -155,9 +182,13 @@ def plotvars(sim, solution = None):
     
     T = sim.postprocessed_temperature
     
-    return (h, S, phil, T), \
-        ("h", "S", "\\phi_l", "T"), \
-        ("h", "S", "phil", "T")
+    T_L = sim.postprocessed_liquidus_temperature
+    
+    h_L = sim.postprocessed_liquidus_enthalpy
+    
+    return (h, S, phil, T, T_L, h_L), \
+        ("h", "S", "\\phi_l", "T", "T_L", "h_L"), \
+        ("h", "S", "phil", "T", "T_L", "h_L")
      
     
 class Simulation(sapphire.simulation.Simulation):
@@ -206,6 +237,28 @@ class Simulation(sapphire.simulation.Simulation):
             variational_form_residual = variational_form_residual,
             **kwargs)
             
+        self.postprocessed_liquid_volume_fraction = \
+            fe.Function(self.postprocessing_function_space)
+        
+        self.postprocessed_temperature = \
+            fe.Function(self.postprocessing_function_space)
+            
+        self.postprocessed_liquid_concentration = \
+            fe.Function(self.postprocessing_function_space)
+            
+        self.postprocessed_liquidus_temperature = \
+            fe.Function(self.postprocessing_function_space)
+        
+        self.postprocessed_liquidus_enthalpy = \
+            fe.Function(self.postprocessing_function_space)
+            
+        self.postprocessed_functions = (
+            self.postprocessed_liquid_volume_fraction,
+            self.postprocessed_temperature,
+            self.postprocessed_liquid_concentration,
+            self.postprocessed_liquidus_temperature,
+            self.postprocessed_liquidus_enthalpy)
+            
     def solve(self, *args, **kwargs):
         
         return super().solve(*args,
@@ -249,6 +302,30 @@ class Simulation(sapphire.simulation.Simulation):
         self.postprocessed_temperature = \
             self.postprocessed_temperature.assign(T)
         
+        S_l = S/phi_l
+        
+        self.postprocessed_liquid_concentration = \
+            self.postprocessed_liquid_concentration.assign(S_l)
+        
+        T_L = fe.interpolate(
+            liquidus_temperature(
+                sim = self,
+                enthalpy = h,
+                solute_concentration = S),
+            self.postprocessing_function_space)
+            
+        self.postprocessed_liquidus_temperature = \
+            self.postprocessed_liquidus_temperature.assign(T_L)
+            
+        h_L = fe.interpolate(
+            liquidus_enthalpy(
+                sim = self,
+                solute_concentration = S),
+            self.postprocessing_function_space)
+            
+        self.postprocessed_liquidus_enthalpy = \
+            self.postprocessed_liquidus_enthalpy.assign(h_L)
+            
         self.total_solute = fe.assemble(S*fe.dx)
         
         return self

@@ -41,16 +41,6 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             fe.FunctionSpace(
                 self.mesh,
                 fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
-        
-        self.postprocessed_liquid_volume_fraction = \
-            fe.Function(self.postprocessing_function_space)
-        
-        self.postprocessed_temperature = \
-            fe.Function(self.postprocessing_function_space)
-            
-        self.postprocessed_functions = (
-            self.postprocessed_liquid_volume_fraction,
-            self.postprocessed_temperature)
             
         if time_dependent:
             
