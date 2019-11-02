@@ -20,6 +20,17 @@ def enthalpy(sim, temperature, porosity):
     return c*(T - T_m) + 1./Ste*phi_l
 
 
+def liquidus_temperature(sim, solute_concentration):
+    
+    T_m = sim.pure_liquidus_temperature
+    
+    m = -T_m
+    
+    S = solute_concentration
+    
+    return T_m + m*S
+    
+    
 def liquidus_enthalpy(sim, solute_concentration):
     
     T_m = sim.pure_liquidus_temperature
@@ -60,22 +71,6 @@ def liquid_volume_fraction(sim, enthalpy, solute_concentration):
     return fe.conditional(
         h >= h_L, 1., (-B + sqrt(B**2. - 4.*A*C))/(2.*A))
 
-
-def liquidus_temperature(sim, enthalpy, solute_concentration):
-    
-    T_m = sim.pure_liquidus_temperature
-    
-    h = enthalpy
-    
-    S = solute_concentration
-    
-    phi_l = liquid_volume_fraction(
-        sim = sim, enthalpy = h, solute_concentration = S)
-    
-    S_l = S/phi_l
-    
-    return T_m*(1. - S_l)
-    
 
 def phase_dependent_material_property(solid_to_liquid_ratio):
 
@@ -248,18 +243,26 @@ class Simulation(sapphire.simulation.Simulation):
         self.postprocessed_liquid_concentration = \
             fe.Function(self.postprocessing_function_space)
             
-        self.postprocessed_liquidus_temperature = \
+        self.postprocessed_liquidus_temperature__S = \
+            fe.Function(self.postprocessing_function_space)
+            
+        self.postprocessed_liquidus_temperature__S_l = \
             fe.Function(self.postprocessing_function_space)
         
-        self.postprocessed_liquidus_enthalpy = \
+        self.postprocessed_liquidus_enthalpy__S = \
+            fe.Function(self.postprocessing_function_space)
+            
+        self.postprocessed_liquidus_enthalpy__S_l = \
             fe.Function(self.postprocessing_function_space)
             
         self.postprocessed_functions = (
             self.postprocessed_liquid_volume_fraction,
             self.postprocessed_temperature,
             self.postprocessed_liquid_concentration,
-            self.postprocessed_liquidus_temperature,
-            self.postprocessed_liquidus_enthalpy)
+            self.postprocessed_liquidus_temperature__S,
+            self.postprocessed_liquidus_temperature__S_l,
+            self.postprocessed_liquidus_enthalpy__S,
+            self.postprocessed_liquidus_enthalpy__S_l)
             
     def solve(self, *args, **kwargs):
         
@@ -309,24 +312,41 @@ class Simulation(sapphire.simulation.Simulation):
         self.postprocessed_liquid_concentration = \
             self.postprocessed_liquid_concentration.assign(S_l)
         
-        T_L = fe.interpolate(
+        T_L__S = fe.interpolate(
             liquidus_temperature(
                 sim = self,
-                enthalpy = h,
                 solute_concentration = S),
             self.postprocessing_function_space)
             
-        self.postprocessed_liquidus_temperature = \
-            self.postprocessed_liquidus_temperature.assign(T_L)
+        self.postprocessed_liquidus_temperature__S = \
+            self.postprocessed_liquidus_temperature__S.assign(T_L__S)
+        
+        T_L__S_l = fe.interpolate(
+            liquidus_temperature(
+                sim = self,
+                solute_concentration = S_l),
+            self.postprocessing_function_space)
             
-        h_L = fe.interpolate(
+        self.postprocessed_liquidus_temperature__S_l = \
+            self.postprocessed_liquidus_temperature__S_l.assign(T_L__S_l)
+            
+        h_L__S = fe.interpolate(
             liquidus_enthalpy(
                 sim = self,
                 solute_concentration = S),
             self.postprocessing_function_space)
             
-        self.postprocessed_liquidus_enthalpy = \
-            self.postprocessed_liquidus_enthalpy.assign(h_L)
+        self.postprocessed_liquidus_enthalpy__S = \
+            self.postprocessed_liquidus_enthalpy__S.assign(h_L__S)
+            
+        h_L__S_l = fe.interpolate(
+            liquidus_enthalpy(
+                sim = self,
+                solute_concentration = S_l),
+            self.postprocessing_function_space)
+            
+        self.postprocessed_liquidus_enthalpy__S_l = \
+            self.postprocessed_liquidus_enthalpy__S_l.assign(h_L__S_l)
             
         self.total_solute = fe.assemble(S*fe.dx)
         
