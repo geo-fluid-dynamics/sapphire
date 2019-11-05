@@ -202,6 +202,7 @@ class Simulation(sapphire.simulation.Simulation):
             snes_absolute_tolerance = 1.e-9,
             snes_step_tolerance = 1.e-9,
             snes_linesearch_damping = 1.,
+            snes_linesearch_maxstep = 1.,
             **kwargs):
         
         self.stefan_number = fe.Constant(stefan_number)
@@ -226,6 +227,8 @@ class Simulation(sapphire.simulation.Simulation):
         self.snes_step_tolerance = snes_step_tolerance
         
         self.snes_linesearch_damping = snes_linesearch_damping
+        
+        self.snes_linesearch_maxstep = snes_linesearch_maxstep
         
         super().__init__(*args,
             mesh = mesh,
@@ -275,7 +278,7 @@ class Simulation(sapphire.simulation.Simulation):
                 "snes_stol": self.snes_step_tolerance,
                 "snes_rtol": 0.,
                 "snes_linesearch_type": "l2",
-                "snes_linesearch_maxstep": 1.0,
+                "snes_linesearch_maxstep": self.snes_linesearch_maxstep,
                 "snes_linesearch_damping": self.snes_linesearch_damping,
                 "ksp_type": "preonly", 
                 "pc_type": "lu", 
