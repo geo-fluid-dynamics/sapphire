@@ -12,12 +12,10 @@ def enthalpy(sim, temperature, porosity):
     c_sl = sim.heat_capacity_solid_to_liquid_ratio
 
     c = phase_dependent_material_property(c_sl)(phi_l)
-
-    T_m = sim.pure_liquidus_temperature
-
+    
     Ste = sim.stefan_number
 
-    return c*(T - T_m) + 1./Ste*phi_l
+    return c*T + 1./Ste*phi_l
 
 
 def liquidus_temperature(sim, solute_concentration):
@@ -33,15 +31,13 @@ def liquidus_temperature(sim, solute_concentration):
     
 def liquidus_enthalpy(sim, solute_concentration):
     
-    T_m = sim.pure_liquidus_temperature
-    
-    m = -T_m
-    
     Ste = sim.stefan_number
     
     S = solute_concentration
     
-    return m*S + 1./Ste
+    T_L = liquidus_temperature(sim = sim, solute_concentration = S)
+    
+    return T_L + 1./Ste
     
    
 def liquid_volume_fraction(sim, enthalpy, solute_concentration):
@@ -60,16 +56,17 @@ def liquid_volume_fraction(sim, enthalpy, solute_concentration):
     
     c_sl = sim.heat_capacity_solid_to_liquid_ratio
     
-    A = 1./Ste
+    A = (1. - c_sl)*T_m + 1./Ste
     
-    B = (1. - c_sl)*m*S - h
+    B = (1. - c_sl)*m*S + c_sl*T_m - h
     
     C = c_sl*m*S
     
     sqrt = fe.sqrt
     
-    return fe.conditional(
-        h >= h_L, 1., (-B + sqrt(B**2. - 4.*A*C))/(2.*A))
+    phi_l_mush = (-B + sqrt(B**2. - 4.*A*C))/(2.*A)
+    
+    return fe.conditional(h >= h_L, 1., phi_l_mush)
 
 
 def phase_dependent_material_property(solid_to_liquid_ratio):
@@ -98,9 +95,7 @@ def temperature(sim, enthalpy, solute_concentration):
     
     c = phase_dependent_material_property(c_sl)(phi_l)
     
-    T_m = sim.pure_liquidus_temperature
-    
-    return (h - 1./Ste*phi_l)/c + T_m
+    return (h - 1./Ste*phi_l)/c
 
 
 dot, grad = fe.dot, fe.grad
@@ -179,13 +174,13 @@ def plotvars(sim, solution = None):
     
     T = sim.postprocessed_temperature
     
-    T_L = sim.postprocessed_liquidus_temperature
+    T_L__S_l = sim.postprocessed_liquidus_temperature__S_l
     
-    h_L = sim.postprocessed_liquidus_enthalpy
+    h_L__S = sim.postprocessed_liquidus_enthalpy__S
     
     return (h, S, phil, T, T_L, h_L), \
-        ("h", "S", "\\phi_l", "T", "T_L", "h_L"), \
-        ("h", "S", "phil", "T", "T_L", "h_L")
+        ("h", "S", "\\phi_l", "T", "T_L(S_l)", "h_L(S)"), \
+        ("h", "S", "phil", "T", "T_L__S_l", "h_L__S")
      
     
 class Simulation(sapphire.simulation.Simulation):
