@@ -98,6 +98,24 @@ def temperature(sim, enthalpy, solute_concentration):
     return (h - 1./Ste*phi_l)/c
 
 
+def solute_concentration(sim, enthalpy, porosity):
+    
+    h = enthalpy
+    
+    phi_l = porosity
+    
+    c_sl = sim.heat_capacity_solid_to_liquid_ratio
+    
+    T_m = sim.pure_liquidus_temperature
+    
+    m = -T_m
+    
+    Ste = sim.stefan_number
+    
+    return (h + c_sl*T_m - ((1. - c_sl)*T_m + 1./Ste)*phi_l)/ \
+           ((1. - c_sl)*m + c_sl*m/phi_l)
+    
+
 dot, grad = fe.dot, fe.grad
     
 def variational_form_residual(sim, solution):

@@ -58,7 +58,10 @@ def dirichlet_boundary_conditions(sim):
     
     m = -T_m
     
-    S_c = (h_c - phi_lc/Ste)/((1. - c_sl)*m + c_sl*m/phi_lc)
+    S_c = sapphire.simulations.alloy_phasechange.solute_concentration(
+        sim = sim,
+        enthalpy = h_c,
+        porosity = phi_lc)
     
     W = sim.function_space
     
