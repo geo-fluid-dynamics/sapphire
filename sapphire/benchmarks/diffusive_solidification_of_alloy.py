@@ -4,9 +4,9 @@ import sapphire.simulations.alloy_phasechange
     
 def initial_values(sim):
     
-    w0 = fe.Function(sim.function_space)
+    w_0 = fe.Function(sim.function_space)
     
-    h0, S0 = w0.split()
+    h_0, S_l_0 = w_0.split()
     
     assumed_initial_porosity = 1.
     
@@ -16,9 +16,9 @@ def initial_values(sim):
             temperature = sim.initial_temperature,
             porosity = assumed_initial_porosity)
     
-    h0 = h0.assign(constant_initial_enthalpy)
+    h_0 = h_0.assign(constant_initial_enthalpy)
     
-    S0 = S0.assign(sim.initial_concentration)
+    S_l_0 = S_l_0.assign(sim.initial_concentration)
     
     constant_initial_porosity = \
         sapphire.simulations.alloy_phasechange.liquid_volume_fraction(
@@ -28,17 +28,17 @@ def initial_values(sim):
     
     epsilon = 1.e-4
     
-    phi_l0 = constant_initial_porosity.__float__()
+    phi_l_0 = constant_initial_porosity.__float__()
     
-    if abs(phi_l0 - assumed_initial_porosity) >= epsilon:
+    if abs(phi_l_0 - assumed_initial_porosity) >= epsilon:
     
         raise ValueError(
             "For this test, it is assumed that the initial porosity is equal to {} +/- {}.".format(
                 assumed_initial_porosity, epsilon)
             +"\nWhen setting initial values, the initial porosity was computed to be {}.".format(
-                phi_l0))
+                phi_l_0))
     
-    return w0
+    return w_0
     
     
 def dirichlet_boundary_conditions(sim):
@@ -50,7 +50,7 @@ def dirichlet_boundary_conditions(sim):
         temperature = sim.cold_boundary_temperature,
         porosity = phi_lc)
     
-    S_c = sapphire.simulations.alloy_phasechange.solute_concentration(
+    S_l_c = sapphire.simulations.alloy_phasechange.solute_concentration(
         sim = sim,
         enthalpy = h_c,
         porosity = phi_lc)
@@ -59,7 +59,7 @@ def dirichlet_boundary_conditions(sim):
     
     return [
         fe.DirichletBC(W.sub(0), h_c, 1),
-        fe.DirichletBC(W.sub(1), S_c, 1)]
+        fe.DirichletBC(W.sub(1), S_l_c, 1)]
     
 
 class Simulation(sapphire.simulations.alloy_phasechange.Simulation):
