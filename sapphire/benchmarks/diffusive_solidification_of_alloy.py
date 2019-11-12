@@ -50,14 +50,6 @@ def dirichlet_boundary_conditions(sim):
         temperature = sim.cold_boundary_temperature,
         porosity = phi_lc)
     
-    Ste = sim.stefan_number
-    
-    c_sl = sim.heat_capacity_solid_to_liquid_ratio
-    
-    T_m = sim.pure_liquidus_temperature
-    
-    m = -T_m
-    
     S_c = sapphire.simulations.alloy_phasechange.solute_concentration(
         sim = sim,
         enthalpy = h_c,

@@ -13,20 +13,20 @@ def enthalpy(sim, temperature, porosity):
 
     c = phase_dependent_material_property(c_sl)(phi_l)
     
+    T_0 = sim.reference_temperature
+    
     Ste = sim.stefan_number
-
-    return c*T + 1./Ste*phi_l
+    
+    return c*(T - T_0) + 1./Ste*phi_l
 
 
 def liquidus_temperature(sim, solute_concentration):
     
     T_m = sim.pure_liquidus_temperature
     
-    m = -T_m
-    
     S = solute_concentration
     
-    return T_m + m*S
+    return T_m*(1. - S)
     
     
 def liquidus_enthalpy(sim, solute_concentration):
@@ -37,7 +37,9 @@ def liquidus_enthalpy(sim, solute_concentration):
     
     T_L = liquidus_temperature(sim = sim, solute_concentration = S)
     
-    return T_L + 1./Ste
+    T_0 = sim.reference_temperature
+    
+    return T_L - T_0 + 1./Ste
     
    
 def liquid_volume_fraction(sim, enthalpy, solute_concentration):
@@ -56,9 +58,11 @@ def liquid_volume_fraction(sim, enthalpy, solute_concentration):
     
     c_sl = sim.heat_capacity_solid_to_liquid_ratio
     
-    A = (1. - c_sl)*T_m + 1./Ste
+    T_0 = sim.reference_temperature
     
-    B = (1. - c_sl)*m*S + c_sl*T_m - h
+    A = (1. - c_sl)*(T_m - T_0) + 1./Ste
+    
+    B = c_sl*(T_m - T_0) + (1. - c_sl)*m*S - h
     
     C = c_sl*m*S
     
@@ -95,7 +99,9 @@ def temperature(sim, enthalpy, solute_concentration):
     
     c = phase_dependent_material_property(c_sl)(phi_l)
     
-    return (h - 1./Ste*phi_l)/c
+    T_0 = sim.reference_temperature
+    
+    return (h - 1./Ste*phi_l)/c + T_0
 
 
 def solute_concentration(sim, enthalpy, porosity):
@@ -106,14 +112,15 @@ def solute_concentration(sim, enthalpy, porosity):
     
     c_sl = sim.heat_capacity_solid_to_liquid_ratio
     
+    c = phase_dependent_material_property(c_sl)(phi_l)
+    
     T_m = sim.pure_liquidus_temperature
     
-    m = -T_m
+    T_0 = sim.reference_temperature
     
     Ste = sim.stefan_number
     
-    return (h + c_sl*T_m - ((1. - c_sl)*T_m + 1./Ste)*phi_l)/ \
-           ((1. - c_sl)*m + c_sl*m/phi_l)
+    return phi_l*(1. - 1./T_m*((h - 1./Ste*phi_l)/c + T_0))
     
 
 dot, grad = fe.dot, fe.grad
@@ -208,6 +215,7 @@ class Simulation(sapphire.simulation.Simulation):
             stefan_number,
             lewis_number,
             pure_liquidus_temperature,
+            reference_temperature,
             heat_capacity_solid_to_liquid_ratio,
             thermal_conductivity_solid_to_liquid_ratio,
             element_degree = 1, 
@@ -225,6 +233,9 @@ class Simulation(sapphire.simulation.Simulation):
         self.pure_liquidus_temperature = fe.Constant(
             pure_liquidus_temperature)
         
+        self.reference_temperature = fe.Constant(
+            reference_temperature)
+            
         self.heat_capacity_solid_to_liquid_ratio = fe.Constant(
             heat_capacity_solid_to_liquid_ratio)
         
