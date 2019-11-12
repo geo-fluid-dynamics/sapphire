@@ -50,8 +50,6 @@ def liquid_volume_fraction(sim, enthalpy, solute_concentration):
     
     T_m = sim.pure_liquidus_temperature
     
-    m = -T_m
-    
     Ste = sim.stefan_number
     
     h_L = liquidus_enthalpy(sim = sim, solute_concentration = S)
@@ -62,9 +60,9 @@ def liquid_volume_fraction(sim, enthalpy, solute_concentration):
     
     A = (1. - c_sl)*(T_m - T_0) + 1./Ste
     
-    B = c_sl*(T_m - T_0) + (1. - c_sl)*m*S - h
+    B = c_sl*(T_m - T_0) - (1. - c_sl)*T_m*S - h
     
-    C = c_sl*m*S
+    C = -c_sl*T_m*S
     
     sqrt = fe.sqrt
     
