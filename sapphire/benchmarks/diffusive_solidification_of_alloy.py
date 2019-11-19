@@ -21,12 +21,12 @@ def initial_values(sim):
     S_l_0 = S_l_0.assign(sim.initial_concentration)
     
     constant_initial_porosity = \
-        sapphire.simulations.alloy_phasechange.liquid_volume_fraction(
+        sapphire.simulations.alloy_phasechange.regularized_porosity(
             sim = sim,
             enthalpy = constant_initial_enthalpy,
             solute_concentration = sim.initial_concentration)
     
-    epsilon = 1.e-4
+    epsilon = 0.01
     
     phi_l_0 = constant_initial_porosity.__float__()
     
@@ -50,11 +50,12 @@ def dirichlet_boundary_conditions(sim):
         temperature = sim.cold_boundary_temperature,
         porosity = phi_lc)
     
-    S_l_c = sapphire.simulations.alloy_phasechange.solute_concentration(
-        sim = sim,
-        enthalpy = h_c,
-        porosity = phi_lc)
-    
+    S_l_c = sapphire.simulations.alloy_phasechange.\
+        mushy_layer_solute_concentration(
+            sim = sim,
+            enthalpy = h_c,
+            porosity = phi_lc)
+        
     W = sim.function_space
     
     return [
