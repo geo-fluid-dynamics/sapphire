@@ -56,7 +56,7 @@ def mushy_layer_porosity(sim, enthalpy, liquid_solute_concentration):
     return Ste*(h + T_m*S_l)
 
 
-erf = fe.erf
+erf, sqrt = fe.erf, fe.sqrt
 
 def erfc(x):
 
@@ -77,7 +77,7 @@ def regularized_porosity(sim, enthalpy, liquid_solute_concentration):
     f_l_mush = mushy_layer_porosity(
         sim = sim, enthalpy = h, liquid_solute_concentration = S_l)
     
-    exp, sqrt, pi = fe.exp, fe.sqrt, fe.pi
+    exp, pi = fe.exp, fe.pi
     
     sigma = sim.porosity_smoothing
     
@@ -88,6 +88,39 @@ def regularized_porosity(sim, enthalpy, liquid_solute_concentration):
              + erf((f_l_mush - 1.)/(sqrt(2.)*Ste*sigma)) 
              + f_l_mush*erfc((f_l_mush - 1.)/(sqrt(2.)*Ste*sigma)))
 
+def derivative_of_regularized_porosity_wrt_enthalpy(
+        sim, enthalpy, liquid_solute_concentration):
+    
+    h = enthalpy
+    
+    S_l = liquid_solute_concentration
+    
+    Ste = sim.stefan_number
+    
+    sigma = sim.porosity_smoothing
+    
+    f_l_mush = mushy_layer_porosity(
+        sim = sim, enthalpy = h, liquid_solute_concentration = S_l)
+        
+    return 0.5*Ste*erfc((f_l_mush - 1.)/(sqrt(2.)*Ste*sigma))
+    
+def derivative_of_regularized_porosity_wrt_solute(
+        sim, enthalpy, liquid_solute_concentration):
+    
+    h = enthalpy
+    
+    S_l = liquid_solute_concentration
+    
+    T_m = sim.pure_liquidus_temperature
+    
+    Ste = sim.stefan_number
+    
+    sigma = sim.porosity_smoothing
+    
+    f_l_mush = mushy_layer_porosity(
+        sim = sim, enthalpy = h, liquid_solute_concentration = S_l)
+        
+    return 0.5*Ste*T_m*erfc((f_l_mush - 1.)/(sqrt(2.)*Ste*sigma))
 
 def temperature(sim, enthalpy, liquid_solute_concentration):
     
@@ -120,25 +153,25 @@ def mushy_layer_liquid_solute_concentration(sim, enthalpy, porosity):
 
 dot, grad = fe.dot, fe.grad
     
-    
 def time_discrete_terms(sim, solutions, timestep_size):
-
-    h_t, _ = sapphire.simulation.time_discrete_terms(
+    
+    h, Sl = fe.split(solutions[0])
+    
+    h_t, Sl_t = sapphire.simulation.time_discrete_terms(
         solutions = solutions, timestep_size = timestep_size)
     
-    (h, S_l), (h_n, S_l_n) = solutions
+    phil = regularized_porosity(
+        sim = sim, enthalpy = h, liquid_solute_concentration = Sl)
+        
+    dphil_dh = derivative_of_regularized_porosity_wrt_enthalpy(
+        sim = sim, enthalpy = h, liquid_solute_concentration = Sl)
     
-    phi_l = regularized_porosity(
-        sim = sim, enthalpy = h, liquid_solute_concentration = S_l)
+    dphil_dSl = derivative_of_regularized_porosity_wrt_solute(
+        sim = sim, enthalpy = h, liquid_solute_concentration = Sl)
     
-    phi_l_n = regularized_porosity(
-        sim = sim, enthalpy = h_n, liquid_solute_concentration = S_l_n)
+    phil_t = h_t*dphil_dh + Sl_t*dphil_dSl
     
-    S = S_l*phi_l
-    
-    S_n = S_l_n*phi_l_n
-    
-    S_t = (S - S_n)/timestep_size
+    S_t = Sl_t*phil + Sl*phil_t
     
     return h_t, S_t
     
