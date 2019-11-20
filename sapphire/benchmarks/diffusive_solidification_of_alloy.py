@@ -8,73 +8,57 @@ def initial_values(sim):
     
     h_0, S_l_0 = w_0.split()
     
-    assumed_initial_porosity = 1.
-    
-    constant_initial_enthalpy = \
+    initial_enthalpy = \
         sapphire.simulations.alloy_phasechange.enthalpy(
             sim = sim,
             temperature = sim.initial_temperature,
-            porosity = assumed_initial_porosity)
+            porosity = sim.initial_porosity)
     
-    h_0 = h_0.assign(constant_initial_enthalpy)
+    h_0 = h_0.assign(initial_enthalpy)
     
-    S_l_0 = S_l_0.assign(sim.initial_concentration)
-    
-    constant_initial_porosity = \
-        sapphire.simulations.alloy_phasechange.regularized_porosity(
-            sim = sim,
-            enthalpy = constant_initial_enthalpy,
-            solute_concentration = sim.initial_concentration)
-    
-    epsilon = 0.01
-    
-    phi_l_0 = constant_initial_porosity.__float__()
-    
-    if abs(phi_l_0 - assumed_initial_porosity) >= epsilon:
-    
-        raise ValueError(
-            "For this test, it is assumed that the initial porosity is equal to {} +/- {}.".format(
-                assumed_initial_porosity, epsilon)
-            +"\nWhen setting initial values, the initial porosity was computed to be {}.".format(
-                phi_l_0))
+    S_l_0 = S_l_0.assign(sim.initial_liquid_solute_concentration)
     
     return w_0
     
     
 def dirichlet_boundary_conditions(sim):
     
+    T_c = sim.cold_boundary_temperature
+    
     phi_lc = sim.cold_boundary_porosity
     
     h_c = sapphire.simulations.alloy_phasechange.enthalpy(
         sim = sim,
-        temperature = sim.cold_boundary_temperature,
+        temperature = T_c,
         porosity = phi_lc)
     
-    S_l_c = sapphire.simulations.alloy_phasechange.\
-        mushy_layer_solute_concentration(
-            sim = sim,
-            enthalpy = h_c,
-            porosity = phi_lc)
-        
+    T_m = sim.pure_liquidus_temperature
+    
+    S_lc = 1. - T_c/T_m  # Mushy layer, T = T_L(S_l) = T_m*(1 - S_l)
+    
     W = sim.function_space
     
     return [
         fe.DirichletBC(W.sub(0), h_c, 1),
-        fe.DirichletBC(W.sub(1), S_l_c, 1)]
+        fe.DirichletBC(W.sub(1), S_lc, 1)]
     
 
 class Simulation(sapphire.simulations.alloy_phasechange.Simulation):
     
     def __init__(self, *args, 
-            initial_concentration,
+            initial_liquid_solute_concentration,
             cold_boundary_temperature,
             cold_boundary_porosity,
             mesh_cellcount, 
-            cutoff_length, 
+            cutoff_length,
+            initial_porosity = 1.,
             **kwargs):
         
-        self.initial_concentration = fe.Constant(initial_concentration)
+        self.initial_liquid_solute_concentration = fe.Constant(
+            initial_liquid_solute_concentration)
         
+        self.initial_porosity = fe.Constant(initial_porosity)
+            
         self.cold_boundary_temperature = fe.Constant(cold_boundary_temperature)
         
         self.cold_boundary_porosity = fe.Constant(cold_boundary_porosity)

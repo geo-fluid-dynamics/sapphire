@@ -21,54 +21,40 @@ def enthalpy(sim, temperature, porosity):
     return T - T_m + 1./Ste*phi_l
 
 
-def liquidus_temperature(sim, solute_concentration):
+def liquidus_temperature(sim, liquid_solute_concentration):
     
     T_m = sim.pure_liquidus_temperature
     
-    S_l = solute_concentration
+    S_l = liquid_solute_concentration
     
     return T_m*(1. - S_l)
     
     
-def liquidus_enthalpy(sim, solute_concentration):
+def liquidus_enthalpy(sim, liquid_solute_concentration):
     
     Ste = sim.stefan_number
     
-    S_l = solute_concentration
+    S_l = liquid_solute_concentration
     
-    T_L = liquidus_temperature(sim = sim, solute_concentration = S_l)
+    T_L = liquidus_temperature(sim = sim, liquid_solute_concentration = S_l)
     
     T_m = sim.pure_liquidus_temperature
     
     return T_L - T_m + 1./Ste
     
     
-def mushy_layer_porosity(sim, enthalpy, solute_concentration):
+def mushy_layer_porosity(sim, enthalpy, liquid_solute_concentration):
     
     h = enthalpy
     
-    S_l = solute_concentration
+    S_l = liquid_solute_concentration
 
     T_m = sim.pure_liquidus_temperature
 
     Ste = sim.stefan_number
     
     return Ste*(h + T_m*S_l)
-    
-"""
-def porosity(sim, enthalpy, solute_concentration):
-    
-    h = enthalpy
-    
-    S_l = solute_concentration
-    
-    h_L = liquidus_enthalpy(sim = sim, solute_concentration = S_l)
-    
-    f_l_mush = mushy_layer_porosity(
-        sim = sim, enthalpy = h, solute_concentration = S_l)
-        
-    return fe.conditional(h >= h_L, 1., f_l_mush)
-"""
+
 
 erf = fe.erf
 
@@ -76,20 +62,20 @@ def erfc(x):
 
     return 1. - erf(x)
     
-def regularized_porosity(sim, enthalpy, solute_concentration):
+def regularized_porosity(sim, enthalpy, liquid_solute_concentration):
     
     h = enthalpy
     
-    S_l = solute_concentration
+    S_l = liquid_solute_concentration
     
     T_m = sim.pure_liquidus_temperature
     
     Ste = sim.stefan_number
     
-    h_L = liquidus_enthalpy(sim = sim, solute_concentration = S_l)
+    h_L = liquidus_enthalpy(sim = sim, liquid_solute_concentration = S_l)
     
     f_l_mush = mushy_layer_porosity(
-        sim = sim, enthalpy = h, solute_concentration = S_l)
+        sim = sim, enthalpy = h, liquid_solute_concentration = S_l)
     
     exp, sqrt, pi = fe.exp, fe.sqrt, fe.pi
     
@@ -103,14 +89,14 @@ def regularized_porosity(sim, enthalpy, solute_concentration):
              + f_l_mush*erfc((f_l_mush - 1.)/(sqrt(2.)*Ste*sigma)))
 
 
-def temperature(sim, enthalpy, solute_concentration):
+def temperature(sim, enthalpy, liquid_solute_concentration):
     
     h = enthalpy
     
-    S_l = solute_concentration
+    S_l = liquid_solute_concentration
     
     phi_l = regularized_porosity(
-        sim = sim, enthalpy = h, solute_concentration = S_l)
+        sim = sim, enthalpy = h, liquid_solute_concentration = S_l)
     
     Ste = sim.stefan_number
     
@@ -119,7 +105,7 @@ def temperature(sim, enthalpy, solute_concentration):
     return (h - 1./Ste*phi_l) + T_m
 
 
-def mushy_layer_solute_concentration(sim, enthalpy, porosity):
+def mushy_layer_liquid_solute_concentration(sim, enthalpy, porosity):
     
     h = enthalpy
     
@@ -143,10 +129,10 @@ def time_discrete_terms(sim, solutions, timestep_size):
     (h, S_l), (h_n, S_l_n) = solutions
     
     phi_l = regularized_porosity(
-        sim = sim, enthalpy = h, solute_concentration = S_l)
+        sim = sim, enthalpy = h, liquid_solute_concentration = S_l)
     
     phi_l_n = regularized_porosity(
-        sim = sim, enthalpy = h_n, solute_concentration = S_l_n)
+        sim = sim, enthalpy = h_n, liquid_solute_concentration = S_l_n)
     
     S = S_l*phi_l
     
@@ -161,7 +147,8 @@ def variational_form_residual(sim, solution):
     
     h, S_l = fe.split(solution)
     
-    T = temperature(sim = sim, enthalpy = h, solute_concentration = S_l)
+    T = temperature(
+        sim = sim, enthalpy = h, liquid_solute_concentration = S_l)
     
     h_t, S_t = time_discrete_terms(
         sim = sim, 
@@ -171,7 +158,7 @@ def variational_form_residual(sim, solution):
     psi_h, psi_S_l = fe.TestFunctions(sim.solution.function_space())
     
     phi_l = regularized_porosity(
-        sim = sim, enthalpy = h, solute_concentration = S_l)
+        sim = sim, enthalpy = h, liquid_solute_concentration = S_l)
     
     energy = psi_h*h_t + dot(grad(psi_h), grad(T))
     
@@ -193,9 +180,10 @@ def strong_residual(sim, solution):
     t = sim.time
     
     phi_l = regularized_porosity(
-        sim = sim, enthalpy = h, solute_concentration = S_l)
+        sim = sim, enthalpy = h, liquid_solute_concentration = S_l)
     
-    T = temperature(sim = sim, enthalpy = h, solute_concentration = S_l)
+    T = temperature(
+        sim = sim, enthalpy = h, liquid_solute_concentration = S_l)
     
     energy = diff(h, t) - div(grad(T))
     
@@ -332,7 +320,7 @@ class Simulation(sapphire.simulation.Simulation):
             regularized_porosity(
                 sim = self,
                 enthalpy = h,
-                solute_concentration = S_l),
+                liquid_solute_concentration = S_l),
             self.postprocessing_function_space)
             
         self.postprocessed_regularized_porosity = \
@@ -343,7 +331,7 @@ class Simulation(sapphire.simulation.Simulation):
             temperature(
                 sim = self,
                 enthalpy = h,
-                solute_concentration = S_l),
+                liquid_solute_concentration = S_l),
             self.postprocessing_function_space)
         
         self.postprocessed_temperature = \
@@ -361,7 +349,7 @@ class Simulation(sapphire.simulation.Simulation):
         T_L = fe.interpolate(
             liquidus_temperature(
                 sim = self,
-                solute_concentration = S_l),
+                liquid_solute_concentration = S_l),
             self.postprocessing_function_space)
             
         self.postprocessed_liquidus_temperature = \
@@ -371,7 +359,7 @@ class Simulation(sapphire.simulation.Simulation):
         h_L = fe.interpolate(
             liquidus_enthalpy(
                 sim = self,
-                solute_concentration = S_l),
+                liquid_solute_concentration = S_l),
             self.postprocessing_function_space)
             
         self.postprocessed_liquidus_enthalpy = \
