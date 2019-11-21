@@ -213,17 +213,17 @@ def plotvars(sim, solution = None):
     
     phi_l = sim.postprocessed_regularized_porosity
     
-    S = sim.postprocessed_bulk_solute_concentration
-    
     T = sim.postprocessed_temperature
+    
+    S = sim.postprocessed_bulk_solute_concentration
     
     T_L = sim.postprocessed_liquidus_temperature
     
     h_L = sim.postprocessed_liquidus_enthalpy
     
-    return (h, S_l, phi_l, S, T, T_L, h_L), \
-        ("h", "S_l", "\\phi_l", "S", "T", "T_L(S_l)", "h_L(S_l)"), \
-        ("h", "S_l", "phil", "S", "T", "T_L", "h_L")
+    return (h, S_l, phi_l, T, S, T_L, h_L), \
+        ("h", "S_l", "\\phi_l", "T", "S", "T_L(S_l)", "h_L(S_l)"), \
+        ("h", "S_l", "phil", "T", "S", "T_L", "h_L")
      
     
 class Simulation(sapphire.simulation.Simulation):
@@ -287,8 +287,8 @@ class Simulation(sapphire.simulation.Simulation):
             
         self.postprocessed_functions = (
             self.postprocessed_regularized_porosity,
-            self.postprocessed_bulk_solute_concentration,
             self.postprocessed_temperature,
+            self.postprocessed_bulk_solute_concentration,
             self.postprocessed_liquidus_temperature,
             self.postprocessed_liquidus_enthalpy)
             
