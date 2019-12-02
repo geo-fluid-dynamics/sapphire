@@ -19,6 +19,8 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             quadrature_degree = None,
             time_dependent = True,
             time_stencil_size = 2,
+            time = 0.,
+            timestep_size = 1.,
             output_directory_path = "output/"):
         
         self.mesh = mesh
@@ -46,9 +48,9 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             
             assert(time_stencil_size > 1)
             
-            self.time = fe.Constant(0.)
+            self.time = fe.Constant(time)
             
-            self.timestep_size = fe.Constant(1.)
+            self.timestep_size = fe.Constant(timestep_size)
             
         else:
         
