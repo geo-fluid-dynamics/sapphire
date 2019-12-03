@@ -183,11 +183,11 @@ class Simulation(BaseSim):
 
     def __init__(self, *args, 
             meshsize, 
-            depth = 2.,
             initial_cold_wall_temperature,
             cold_wall_temperature,
             initial_solute_concentration,
             cold_wall_porosity,
+            depth = 1.,
             **kwargs):
         
         self.initial_cold_wall_temperature = fe.Constant(
@@ -199,9 +199,15 @@ class Simulation(BaseSim):
         
         self.cold_wall_porosity = fe.Constant(cold_wall_porosity)
         
+        if not hasattr(meshsize, "len"):
+        
+            meshsize = (meshsize, meshsize)
+        
+        assert(len(meshsize) == 2)
+        
         super().__init__(
             *args,
-            mesh = fe.PeriodicRectangleMesh(meshsize, meshsize, 1., depth, direction = "x"),
+            mesh = fe.PeriodicRectangleMesh(meshsize[0], meshsize[0], 1., depth, direction = "x"),
             initial_values = initial_values,
             dirichlet_boundary_conditions = dirichlet_boundary_conditions,
             **kwargs)
