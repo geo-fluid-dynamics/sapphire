@@ -68,8 +68,9 @@ def initial_dirichlet_boundary_conditions(sim):
         temperature = T_c0,
         porosity = initial_porosity)
     
-    return [fe.DirichletBC(
-        W.sub(1), (0., 0.), 2),
+    return [
+        fe.DirichletBC(W.sub(1), (0., 0.), 1),
+        fe.DirichletBC(W.sub(1), (0., 0.), 2),
         fe.DirichletBC(W.sub(2), h_h, 1),
         fe.DirichletBC(W.sub(2), h_c0, 2)]
     
@@ -164,8 +165,9 @@ def dirichlet_boundary_conditions(sim):
         temperature = sim.cold_wall_temperature,
         porosity = sim.cold_wall_porosity)
     
-    return [fe.DirichletBC(
-        W.sub(1), (0., 0.), 2),
+    return [
+        fe.DirichletBC(W.sub(1), (0., 0.), 1),
+        fe.DirichletBC(W.sub(1), (0., 0.), 2),
         fe.DirichletBC(W.sub(2), h_h, 1),
         fe.DirichletBC(W.sub(2), h_c, 2)]
         
