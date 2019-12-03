@@ -155,6 +155,8 @@ def dirichlet_boundary_conditions(sim):
 
     W = sim.function_space
     
+    T_c = sim.cold_wall_temperature
+    
     h_h = basesim_module.enthalpy(
         sim = sim,
         temperature = sim.max_temperature,
@@ -162,14 +164,19 @@ def dirichlet_boundary_conditions(sim):
     
     h_c = basesim_module.enthalpy(
         sim = sim,
-        temperature = sim.cold_wall_temperature,
+        temperature = T_c,
         porosity = sim.cold_wall_porosity)
+    
+    T_m = sim.pure_liquidus_temperature
+    
+    S_lc = 1. - T_c/T_m  # Mushy layer, T = T_L(S_l) = T_m*(1 - S_l)
     
     return [
         fe.DirichletBC(W.sub(1), (0., 0.), 1),
         fe.DirichletBC(W.sub(1), (0., 0.), 2),
         fe.DirichletBC(W.sub(2), h_h, 1),
-        fe.DirichletBC(W.sub(2), h_c, 2)]
+        fe.DirichletBC(W.sub(2), h_c, 2),
+        fe.DirichletBC(W.sub(3), S_lc, 2),]
         
         
 class Simulation(BaseSim):
