@@ -173,7 +173,10 @@ def dirichlet_boundary_conditions(sim):
 class Simulation(BaseSim):
 
     def __init__(self, *args, 
-            meshsize, 
+            nx,
+            ny,
+            Lx,
+            Ly,
             initial_cold_wall_temperature,
             cold_wall_temperature,
             initial_solute_concentration,
@@ -191,7 +194,7 @@ class Simulation(BaseSim):
         
         super().__init__(
             *args,
-            mesh = fe.UnitSquareMesh(meshsize, meshsize),
+            mesh = fe.RectangleMesh(nx, ny, Lx, Ly),
             initial_values = initial_values,
             dirichlet_boundary_conditions = dirichlet_boundary_conditions,
             **kwargs)
