@@ -206,7 +206,7 @@ def momentum(sim, solution):
     
     _, psi_u, _, _ = fe.TestFunctions(solution.function_space())
     
-    return dot(psi_u, u_t + grad(u/phi_l)*u + Pr*(phi_l*b*ghat + u/(Da*phi_l))) \
+    return dot(psi_u, u_t + grad(u/phi_l)*u + Pr*(phi_l*b*ghat + (1. - phi_l)**2/(Da*phi_l**2)*u)) \
         - div(psi_u)*phi_l*p + Pr*inner(sym(grad(psi_u)), sym(grad(u)))
     
     
