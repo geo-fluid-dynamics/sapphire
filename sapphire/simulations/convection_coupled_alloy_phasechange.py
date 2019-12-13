@@ -277,6 +277,7 @@ class Simulation(sapphire.simulation.Simulation):
             snes_step_tolerance = 1.e-9,
             snes_linesearch_damping = 1.,
             snes_linesearch_maxstep = 1.,
+            adaptive_timestep_minimum = 1.e-6,
             **kwargs):
         
         self.darcy_number = fe.Constant(darcy_number)
@@ -310,9 +311,7 @@ class Simulation(sapphire.simulation.Simulation):
         
         self.snes_linesearch_maxstep = snes_linesearch_maxstep
         
-        self.timestep_continuation_sequence = None
-        
-        self.continuation_minimum_timestep = fe.Constant(1.e-6)
+        self.adaptive_timestep_minimum = fe.Constant(adaptive_timestep_minimum)
         
         if "variational_form_residual" not in kwargs:
         
@@ -363,48 +362,85 @@ class Simulation(sapphire.simulation.Simulation):
                 "pc_factor_mat_solver_type": "mumps"},
             **kwargs)
             
-    def solve_with_timestep_continuation(self):
+    def solve_with_adaptive_timestep(self, minimum):
+        """ Disregard the originally intended timestep size
+            and find a smaller size which is solvable. """
         
-        Delta_t_min = self.continuation_minimum_timestep.__float__()
+        while self.timestep_size.__float__() >= minimum:
         
-        Delta_t_max = self.timestep_size.__float__()
-        
-        def solve_with_bounded_timestep_sequence(self):
-        
-            return sapphire.continuation.\
-                solve_with_bounded_regularization_sequence(
-                    solve = self.solve,
-                    solution = self.solution,
-                    backup_solution = self.backup_solution,
-                    regularization_parameter = self.timestep_size,
-                    initial_regularization_sequence = self.timestep_continuation_sequence)
-                    
-        self.solution, self.timestep_continuation_sequence = \
-            sapphire.continuation.solve_with_bounded_regularization_sequence(
-                    solve = self.solve,
-                    solution = self.solution,
-                    backup_solution = self.backup_solution,
-                    regularization_parameter = self.timestep_size,
-                    initial_regularization_sequence = (Delta_t_min, Delta_t_max))
+            try:
                 
-        assert(self.timestep_size.__float__() == Delta_t_max)
-        
-        return self.solution
-    
-    def run(self, *args, solve_with_timestep_continuation = False, **kwargs):
-        
-        if solve_with_timestep_continuation:
-        
-            return super().run(*args,
-                solve = self.solve_with_timestep_continuation,
-                **kwargs)
-        
-        else:
+                Delta_t = self.timestep_size.__float__()
+                
+                print("Attempting to solve with timestep size = {}".format(
+                    Delta_t))
+                
+                self.solution = self.solve()
+                
+                return self.solution, self.timestep_size
             
-            return super().run(*args,
-                solve = self.solve,
-                **kwargs)
+            except fe.exceptions.ConvergenceError as exception:
                 
+                print("Failed to solve with timestep size = {}".format(
+                    Delta_t))
+                
+                self.timestep_size = self.timestep_size.assign(Delta_t/2.)
+                
+    def run(self,
+            endtime,
+            solve_with_adaptive_timestep = True,
+            write_initial_outputs = True):
+        
+        if write_initial_outputs:
+        
+            self.write_outputs(write_headers = True)
+        
+        if solve_with_adaptive_timestep:
+        
+            Delta_t_0 = self.timestep_size.__float__()
+        
+        while self.time.__float__() < (
+                endtime - sapphire.simulation.time_tolerance):
+            
+            if solve_with_adaptive_timestep:
+            
+                t = self.time.__float__()
+                
+                Delta_t = self.timestep_size.__float__()
+                
+                latest_nexttime = t + Delta_t
+                
+                if latest_nexttime > endtime:
+                
+                    self.timestep_size = self.timestep_size.assign(endtime - t)
+            
+                self.solution, self.timestep_size = self.solve_with_adaptive_timestep(
+                    minimum = self.adaptive_timestep_minimum.__float__())
+            
+            else:            
+                
+                self.solution = self.solve()
+                
+            self.time = self.time.assign(self.time + self.timestep_size)
+            
+            print("Solved at time t = {0}".format(self.time.__float__()))
+            
+            self.write_outputs(write_headers = False)
+            
+            self.solutions = self.push_back_solutions()
+            
+            if solve_with_adaptive_timestep:
+                
+                next_Delta_t = 2.*self.timestep_size.__float__()
+                
+                if next_Delta_t > Delta_t_0:
+                    
+                    next_Delta_t = Delta_t_0
+                
+                self.timestep_size = self.timestep_size.assign(next_Delta_t)
+            
+        return self.solutions, self.time
+        
     def postprocess(self):
     
         _, _, h, S = self.solution.split()
