@@ -153,7 +153,7 @@ def mass(sim, solution):
     
     
 def momentum(sim, solution):
-    
+    """ Steady-state Darcy-Brinkman """
     p, u, h, S = fe.split(solution)
     
     Pr = sim.prandtl_number
@@ -173,11 +173,9 @@ def momentum(sim, solution):
     
     ghat = fe.Constant(-sapphire.simulation.unit_vectors(sim.mesh)[1])
     
-    u_t, _, _ = time_discrete_terms(sim = sim)
-    
     _, psi_u, _, _ = fe.TestFunctions(solution.function_space())
     
-    return dot(psi_u, u_t + grad(u/f_l)*u + Pr*(f_l*b*ghat + (1. - f_l)**2/(Da*f_l**2)*u)) \
+    return dot(psi_u, grad(u/f_l)*u + Pr*(f_l*b*ghat + (1. - f_l)**2/(Da*f_l**2)*u)) \
         - div(psi_u)*f_l*p + Pr*inner(sym(grad(psi_u)), sym(grad(u)))
     
     
