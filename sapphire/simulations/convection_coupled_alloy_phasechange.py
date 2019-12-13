@@ -310,7 +310,9 @@ class Simulation(sapphire.simulation.Simulation):
         
         self.snes_linesearch_maxstep = snes_linesearch_maxstep
         
-        self.smoothing_sequence = None
+        self.timestep_continuation_sequence = None
+        
+        self.continuation_minimum_timestep = fe.Constant(1.e-6)
         
         if "variational_form_residual" not in kwargs:
         
@@ -341,7 +343,7 @@ class Simulation(sapphire.simulation.Simulation):
             self.postprocessed_porosity,
             self.postprocessed_temperature,
             self.postprocessed_liquid_solute_concentration)
-            
+    
     def solve(self, *args, **kwargs):
         
         return super().solve(*args,
@@ -361,6 +363,48 @@ class Simulation(sapphire.simulation.Simulation):
                 "pc_factor_mat_solver_type": "mumps"},
             **kwargs)
             
+    def solve_with_timestep_continuation(self):
+        
+        Delta_t_min = self.continuation_minimum_timestep.__float__()
+        
+        Delta_t_max = self.timestep_size.__float__()
+        
+        def solve_with_bounded_timestep_sequence(self):
+        
+            return sapphire.continuation.\
+                solve_with_bounded_regularization_sequence(
+                    solve = self.solve,
+                    solution = self.solution,
+                    backup_solution = self.backup_solution,
+                    regularization_parameter = self.timestep_size,
+                    initial_regularization_sequence = self.timestep_continuation_sequence)
+                    
+        self.solution, self.timestep_continuation_sequence = \
+            sapphire.continuation.solve_with_bounded_regularization_sequence(
+                    solve = self.solve,
+                    solution = self.solution,
+                    backup_solution = self.backup_solution,
+                    regularization_parameter = self.timestep_size,
+                    initial_regularization_sequence = (Delta_t_min, Delta_t_max))
+                
+        assert(self.timestep_size.__float__() == Delta_t_max)
+        
+        return self.solution
+    
+    def run(self, *args, solve_with_timestep_continuation = False, **kwargs):
+        
+        if solve_with_timestep_continuation:
+        
+            return super().run(*args,
+                solve = self.solve_with_timestep_continuation,
+                **kwargs)
+        
+        else:
+            
+            return super().run(*args,
+                solve = self.solve,
+                **kwargs)
+                
     def postprocess(self):
     
         _, _, h, S = self.solution.split()
