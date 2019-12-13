@@ -45,10 +45,10 @@ def dirichlet_boundary_conditions(sim):
         porosity = sim.cold_wall_porosity)
     
     return [
-        fe.DirichletBC(W.sub(1), (0., 0.), 1),
         fe.DirichletBC(W.sub(1), (0., 0.), 2),
+        fe.DirichletBC(W.sub(2), h_c, 2),
         fe.DirichletBC(W.sub(2), h_h, 1),
-        fe.DirichletBC(W.sub(2), h_c, 2)]
+        fe.DirichletBC(W.sub(3), sim.initial_solute_concentration, 1)]
         
         
 class Simulation(BaseSim):
