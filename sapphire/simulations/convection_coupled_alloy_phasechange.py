@@ -4,13 +4,21 @@ import sapphire.simulation
 import sapphire.continuation
 
 
-def element(cell, degree):
-    """ Equal-order mixed finite element for pressure, velocity, temperature, solute"""
-    scalar = fe.FiniteElement("P", cell, degree)
+def element(cell, degrees):
+    """ Equal-order pressure, temperature, solute; increased order velocity"""
+    pressure_element = fe.FiniteElement("P", cell, degrees[0])
     
-    vector = fe.VectorElement("P", cell, degree)
+    velocity_element = fe.VectorElement("P", cell, degrees[1])
     
-    return fe.MixedElement(scalar, vector, scalar, scalar)
+    enthalpy_element = fe.FiniteElement("P", cell, degrees[2])
+    
+    solute_element = fe.FiniteElement("P", cell, degrees[3])
+    
+    return fe.MixedElement(
+        pressure_element,
+        velocity_element,
+        enthalpy_element,
+        solute_element)
     
 
 def enthalpy(sim, temperature, porosity):
@@ -269,7 +277,7 @@ class Simulation(sapphire.simulation.Simulation):
             pure_liquidus_temperature,
             thermal_conductivity_solid_to_liquid_ratio,
             pressure_penalty_factor = 1.e-7,
-            element_degree = 1, 
+            element_degrees = (1, 1, 1, 1), 
             snes_max_iterations = 24,
             snes_absolute_tolerance = 1.e-9,
             snes_step_tolerance = 1.e-9,
@@ -319,12 +327,12 @@ class Simulation(sapphire.simulation.Simulation):
         
             kwargs["time_stencil_size"] = 2  # Backward Euler
             
-        self.element_degree = element_degree
+        self.element_degrees = element_degrees
             
         super().__init__(*args,
             mesh = mesh,
             element = element(
-                cell = mesh.ufl_cell(), degree = element_degree),
+                cell = mesh.ufl_cell(), degrees = element_degrees),
             **kwargs)
             
         self.postprocessed_porosity = \
@@ -381,6 +389,8 @@ class Simulation(sapphire.simulation.Simulation):
                 
                 print("Failed to solve with timestep size = {}".format(
                     Delta_t))
+                
+                self.solution = self.solution.assign(self.solutions[1])
                 
                 self.timestep_size = self.timestep_size.assign(Delta_t/2.)
                 
