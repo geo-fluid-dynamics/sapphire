@@ -2,6 +2,7 @@
 import firedrake as fe
 import sapphire.simulation
 import sapphire.continuation
+import math
 
 
 def element(cell, degrees):
@@ -179,7 +180,11 @@ def momentum(sim, solution):
     b = buoyancy(
         sim = sim, temperature = T, liquid_solute_concentration = S_l)
     
-    ghat = fe.Constant(-sapphire.simulation.unit_vectors(sim.mesh)[1])
+    gravdir = sim.gravity_direction
+    
+    ihat, jhat = sim.unit_vectors()
+    
+    ghat = gravdir[0]*ihat + gravdir[1]*jhat
     
     _, psi_u, _, _ = fe.TestFunctions(solution.function_space())
     
@@ -276,6 +281,7 @@ class Simulation(sapphire.simulation.Simulation):
             stefan_number,
             pure_liquidus_temperature,
             thermal_conductivity_solid_to_liquid_ratio,
+            gravity_direction = (0., -1.),
             pressure_penalty_factor = 1.e-7,
             element_degrees = (1, 1, 1, 1), 
             snes_max_iterations = 24,
@@ -307,6 +313,13 @@ class Simulation(sapphire.simulation.Simulation):
         
         self.max_temperature = fe.Constant(1.)   # (T_i - T_e)/(T_i - T_e)
         
+        gravdir = gravity_direction
+        
+        gravdir_mag = math.sqrt(gravdir[0]**2 + gravdir[1]**2)
+        
+        self.gravity_direction = (
+            gravdir[0]/gravdir_mag, gravdir[1]/gravdir_mag)  # Normalize to a unit vector
+    
         self.snes_max_iterations = snes_max_iterations
         
         self.snes_absolute_tolerance = snes_absolute_tolerance
