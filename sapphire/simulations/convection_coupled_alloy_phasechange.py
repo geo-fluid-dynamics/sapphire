@@ -186,9 +186,11 @@ def momentum(sim, solution):
     
     ghat = gravdir[0]*ihat + gravdir[1]*jhat
     
+    u_t, _, _ = time_discrete_terms(sim)
+    
     _, psi_u, _, _ = fe.TestFunctions(solution.function_space())
     
-    return dot(psi_u, grad(u/f_l)*u + Pr*(f_l*b*ghat + (1. - f_l)**2/(Da*f_l**2)*u)) \
+    return dot(psi_u, u_t + grad(u/f_l)*u + Pr*(f_l*b*ghat + (1. - f_l)**2/(Da*f_l**2)*u)) \
         - div(psi_u)*f_l*p + Pr*inner(sym(grad(psi_u)), sym(grad(u)))
     
     
