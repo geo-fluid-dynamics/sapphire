@@ -39,20 +39,24 @@ def dirichlet_boundary_conditions(sim):
         temperature = sim.max_temperature,
         porosity = initial_porosity)
     
-    f_l_c = sim.cold_wall_porosity
+    f_lc = sim.cold_wall_porosity
+    
+    T_c = sim.cold_wall_temperature
     
     h_c = basesim_module.enthalpy(
         sim = sim,
-        temperature = sim.cold_wall_temperature,
-        porosity = f_l_c)
+        temperature = T_c,
+        porosity = f_lc)
     
     S_c = basesim_module.mushy_layer_solute_concentration(
-        sim, enthalpy = h_c, porosity = f_l_c)
+        sim, temperature = T_c, porosity = f_lc)
     
     return [
         fe.DirichletBC(W.sub(1), (0., 0.), 2),
         fe.DirichletBC(W.sub(2), h_c, 2),
         fe.DirichletBC(W.sub(3), S_c, 2),
+        fe.DirichletBC(W.sub(0), 0., 1),
+        fe.DirichletBC(W.sub(1), (0., 0.), 1),
         fe.DirichletBC(W.sub(2), h_h, 1),
         fe.DirichletBC(W.sub(3), sim.initial_solute_concentration, 1)]
         

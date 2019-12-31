@@ -110,17 +110,17 @@ def temperature(sim, enthalpy, porosity):
     return (h - 1./Ste*f_l) + T_m
 
 
-def mushy_layer_solute_concentration(sim, enthalpy, porosity):
+def mushy_layer_solute_concentration(sim, temperature, porosity):
     
-    h = enthalpy
+    T = temperature
     
     f_l = porosity
     
     T_m = sim.pure_liquidus_temperature
     
-    Ste = sim.stefan_number
+    S_l = 1. - T/T_m  # Mushy layer, T = T_L(S_l) = T_m*(1 - S_l)
     
-    return f_l/T_m*(f_l/Ste - h)
+    return S_l*f_l
     
     
 def buoyancy(sim, temperature, liquid_solute_concentration):
