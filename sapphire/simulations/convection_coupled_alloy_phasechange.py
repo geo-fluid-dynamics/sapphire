@@ -57,42 +57,73 @@ def liquidus_enthalpy(sim, solute_concentration):
     return T_L - T_m + 1./Ste
     
     
-def mushy_layer_porosity(sim, enthalpy, solute_concentration):
+def mushy_layer_porosity(sim, enthalpy, liquid_solute_concentration):
     
     h = enthalpy
     
-    S = solute_concentration
+    S_l = liquid_solute_concentration
     
     T_m = sim.pure_liquidus_temperature
     
     Ste = sim.stefan_number
     
-    sqrt = fe.sqrt
+    return Ste*(h + T_m*S_l)
+
+
+def __porosity(sim, enthalpy, liquid_solute_concentration):
+    """ The porosity function without regularization """
+    h = enthalpy
     
-    return Ste/2.*(h + sqrt(h**2 + 4.*T_m/Ste*S))
+    S_l = liquid_solute_concentration
+    
+    h_L = liquidus_enthalpy(sim = sim, solute_concentration = S_l)
+    
+    f_l_mush = mushy_layer_porosity(
+        sim = sim, enthalpy = h, liquid_solute_concentration = S_l)
+    
+    return fe.conditional(h >= h_L, 1., f_l_mush)
 
 
-def porosity(sim, enthalpy, solute_concentration):
+erf = fe.erf
+
+def erfc(x):
+
+    return 1. - erf(x)
+    
+def regularized_porosity(sim, enthalpy, liquid_solute_concentration):
     
     h = enthalpy
     
-    S = solute_concentration
+    S_l = liquid_solute_concentration
     
-    h_L = liquidus_enthalpy(sim = sim, solute_concentration = S)
+    T_m = sim.pure_liquidus_temperature
+    
+    Ste = sim.stefan_number
+    
+    h_L = liquidus_enthalpy(sim = sim, solute_concentration = S_l)
     
     f_l_mush = mushy_layer_porosity(
-        sim = sim, enthalpy = h, solute_concentration = S)
+        sim = sim, enthalpy = h, liquid_solute_concentration = S_l)
     
-    return fe.conditional(h >= h_L, 1., f_l_mush)
+    exp, sqrt, pi = fe.exp, fe.sqrt, fe.pi
+    
+    sigma = sim.porosity_smoothing
+    
+    return \
+        0.5*(1. 
+             - exp(-(f_l_mush - 1.)**2/(2.*Ste**2*sigma**2))
+               *sqrt(2./pi)*Ste*sigma 
+             + erf((f_l_mush - 1.)/(sqrt(2.)*Ste*sigma)) 
+             + f_l_mush*erfc((f_l_mush - 1.)/(sqrt(2.)*Ste*sigma)))
 
 
 def phase_dependent_material_property(solid_to_liquid_ratio):
 
     a_sl = solid_to_liquid_ratio
     
-    def a(phil):
+    def a(f_l):
     
-        return a_sl + (1. - a_sl)*phil
+        return a_sl + (1. - a_sl)*f_l
     
     return a
     
@@ -110,17 +141,27 @@ def temperature(sim, enthalpy, porosity):
     return (h - 1./Ste*f_l) + T_m
 
 
-def mushy_layer_solute_concentration(sim, temperature, porosity):
+def mushy_layer_liquid_solute_concentration(sim, temperature):
     
     T = temperature
-    
-    f_l = porosity
     
     T_m = sim.pure_liquidus_temperature
     
     S_l = 1. - T/T_m  # Mushy layer, T = T_L(S_l) = T_m*(1 - S_l)
     
-    return S_l*f_l
+    return S_l
+    
+
+def mushy_layer_bulk_solute_concentration(sim, temperature, porosity):
+    
+    S_l = mushy_layer_liquid_solute_concentration(
+        sim = sim, temperature = temperature)
+    
+    f_l = porosity
+    
+    S = S_l*f_l
+    
+    return S
     
     
 def buoyancy(sim, temperature, liquid_solute_concentration):
@@ -140,10 +181,24 @@ def time_discrete_terms(sim):
     
     solutions = sim.solutions
     
-    timestep_size = sim.timestep_size
+    Delta_t = sim.timestep_size
     
-    _, u_t, h_t, S_t = sapphire.simulation.time_discrete_terms(
-        solutions = solutions, timestep_size = timestep_size)
+    _, u_t, h_t, _ = sapphire.simulation.time_discrete_terms(
+        solutions = solutions, timestep_size = Delta_t)
+    
+    (_, _, _, h, S_l), (_, _, _, h_n, S_l_n) = solutions
+    
+    phi_l = regularized_porosity(
+        sim = sim, enthalpy = h, liquid_solute_concentration = S_l)
+    
+    phi_l_n = regularized_porosity(
+        sim = sim, enthalpy = h_n, liquid_solute_concentration = S_l_n)
+    
+    S = S_l*phi_l
+    
+    S_n = S_l_n*phi_l_n
+    
+    S_t = (S - S_n)/Delta_t
     
     return u_t, h_t, S_t
 
@@ -163,19 +218,17 @@ def mass(sim, solution):
     
 def momentum(sim, solution):
     """ Steady-state Darcy-Brinkman """
-    p, u, h, S = fe.split(solution)
+    p, u, h, S_l = fe.split(solution)
     
     Pr = sim.prandtl_number
     
     Da = sim.darcy_number
     
-    f_l = porosity(
-        sim = sim, enthalpy = h, solute_concentration = S)
-    
-    S_l = S/f_l
+    phi_l = regularized_porosity(
+        sim = sim, enthalpy = h, liquid_solute_concentration = S_l)
     
     T = temperature(
-        sim = sim, enthalpy = h, porosity = f_l)
+        sim = sim, enthalpy = h, porosity = phi_l)
     
     b = buoyancy(
         sim = sim, temperature = T, liquid_solute_concentration = S_l)
@@ -190,22 +243,24 @@ def momentum(sim, solution):
     
     _, psi_u, _, _ = fe.TestFunctions(solution.function_space())
     
-    return dot(psi_u, u_t + grad(u/f_l)*u + Pr*(f_l*b*ghat + (1. - f_l)**2/(Da*f_l**2)*u)) \
-        - div(psi_u)*f_l*p + Pr*inner(sym(grad(psi_u)), sym(grad(u)))
+    d = (1. - phi_l)**2/(Da*phi_l**2)
+    
+    return dot(psi_u, u_t + grad(u/phi_l)*u + Pr*(phi_l*b*ghat + d*u)) \
+        - div(psi_u)*phi_l*p + Pr*inner(sym(grad(psi_u)), sym(grad(u)))
     
     
 def energy(sim, solution):
     
-    _, u, h, S = fe.split(solution)
+    _, u, h, S_l = fe.split(solution)
     
-    f_l = porosity(
-        sim = sim, enthalpy = h, solute_concentration = S)
+    phi_l = regularized_porosity(
+        sim = sim, enthalpy = h, liquid_solute_concentration = S_l)
     
-    T = temperature(sim = sim, enthalpy = h, porosity = f_l)
+    T = temperature(sim = sim, enthalpy = h, porosity = phi_l)
     
     k_sl = sim.thermal_conductivity_solid_to_liquid_ratio
     
-    k = phase_dependent_material_property(k_sl)(f_l)
+    k = phase_dependent_material_property(k_sl)(phi_l)
     
     _, h_t, _ = time_discrete_terms(sim = sim)
     
@@ -216,21 +271,19 @@ def energy(sim, solution):
     
 def solute(sim, solution):
     
-    _, u, h, S = fe.split(solution)
+    _, u, h, S_l = fe.split(solution)
     
     Le = sim.lewis_number
     
-    f_l = porosity(
-        sim = sim, enthalpy = h, solute_concentration = S)
-    
-    S_l = S/f_l
+    phi_l = regularized_porosity(
+        sim = sim, enthalpy = h, liquid_solute_concentration = S_l)
     
     _, _, S_t = time_discrete_terms(sim = sim)
     
     _, _, _, psi_S = fe.TestFunctions(solution.function_space())
     
     return psi_S*(S_t + dot(u, grad(S_l))) \
-        + 1./Le*dot(grad(psi_S), f_l*grad(S_l))
+        + 1./Le*dot(grad(psi_S), phi_l*grad(S_l))
     
     
 def stabilization(sim, solution):
@@ -258,17 +311,17 @@ def plotvars(sim, solution = None):
     
         solution = sim.solution
     
-    p, u, h, S = solution.split()
+    p, u, h, S_l = solution.split()
     
-    f_l = sim.postprocessed_porosity
+    phi_l = sim.postprocessed_regularized_porosity
     
     T = sim.postprocessed_temperature
     
     S_l = sim.postprocessed_liquid_solute_concentration
     
-    return (p, u, h, S, f_l, T, S_l), \
-        ("p", "\\mathbf{u}", "h", "S", "f_l", "T", "S_l"), \
-        ("p", "u", "h", "S", "fl", "T", "Sl")
+    return (p, u, h, S_l, S, f_l, T), \
+        ("p", "\\mathbf{u}", "h", "S_l", "S", "\phi_l", "T"), \
+        ("p", "u", "h", "Sl", "S", "phil", "T")
     
     
 class Simulation(sapphire.simulation.Simulation):
@@ -283,6 +336,7 @@ class Simulation(sapphire.simulation.Simulation):
             stefan_number,
             pure_liquidus_temperature,
             thermal_conductivity_solid_to_liquid_ratio,
+            porosity_smoothing,
             gravity_direction = (0., -1.),
             pressure_penalty_factor = 1.e-7,
             element_degrees = (1, 1, 1, 1), 
@@ -306,8 +360,6 @@ class Simulation(sapphire.simulation.Simulation):
         
         self.stefan_number = fe.Constant(stefan_number)
         
-        self.pressure_penalty_factor = fe.Constant(pressure_penalty_factor)
-        
         self.pure_liquidus_temperature = fe.Constant(pure_liquidus_temperature)
         
         self.thermal_conductivity_solid_to_liquid_ratio = fe.Constant(
@@ -321,7 +373,13 @@ class Simulation(sapphire.simulation.Simulation):
         
         self.gravity_direction = (
             gravdir[0]/gravdir_mag, gravdir[1]/gravdir_mag)  # Normalize to a unit vector
-    
+        
+        
+        self.pressure_penalty_factor = fe.Constant(pressure_penalty_factor)
+        
+        self.porosity_smoothing = fe.Constant(porosity_smoothing)
+        
+        
         self.snes_max_iterations = snes_max_iterations
         
         self.snes_absolute_tolerance = snes_absolute_tolerance
@@ -349,23 +407,23 @@ class Simulation(sapphire.simulation.Simulation):
             element = element(
                 cell = mesh.ufl_cell(), degrees = element_degrees),
             **kwargs)
+        
+        self.postprocessed_solute_concentration = \
+            fe.Function(self.postprocessing_function_space)
             
         self.postprocessed_porosity = \
             fe.Function(self.postprocessing_function_space)
         
         self.postprocessed_temperature = \
             fe.Function(self.postprocessing_function_space)
-            
-        self.postprocessed_liquid_solute_concentration = \
-            fe.Function(self.postprocessing_function_space)
         
         self.postprocessed_liquidus_enthalpy = \
             fe.Function(self.postprocessing_function_space)
         
         self.postprocessed_functions = (
+            self.postprocessed_solute_concentration,
             self.postprocessed_porosity,
             self.postprocessed_temperature,
-            self.postprocessed_liquid_solute_concentration,
             self.postprocessed_liquidus_enthalpy)
     
     def solve(self, *args, **kwargs):
@@ -470,48 +528,48 @@ class Simulation(sapphire.simulation.Simulation):
         
     def postprocess(self):
     
-        _, _, h, S = self.solution.split()
+        _, _, h, S_l = self.solution.split()
         
         
-        f_l = fe.interpolate(
-            porosity(
+        phi_l = fe.interpolate(
+            regularized_porosity(
                 sim = self,
                 enthalpy = h,
-                solute_concentration = S),
+                liquid_solute_concentration = S_l),
             self.postprocessing_function_space)
             
         self.postprocessed_porosity = \
-            self.postprocessed_porosity.assign(f_l)
+            self.postprocessed_porosity.assign(phi_l)
+            
+            
+        S = fe.interpolate(
+            S_l*phi_l,
+            self.postprocessing_function_space)
         
+        self.postprocessed_solute_concentration = \
+            self.postprocessed_solute_concentration.assign(S)
+            
         
         T = fe.interpolate(
             temperature(
                 sim = self,
                 enthalpy = h,
-                porosity = f_l),
+                porosity = phi_l),
             self.postprocessing_function_space)
         
         self.postprocessed_temperature = \
             self.postprocessed_temperature.assign(T)
         
         
-        S_l = fe.interpolate(
-            S/f_l,
-            self.postprocessing_function_space)
-        
-        self.postprocessed_liquid_solute_concentration = \
-            self.postprocessed_liquid_solute_concentration.assign(S_l)
-        
-        
         h_L = fe.interpolate(
-            liquidus_enthalpy(sim = self, solute_concentration = S),
+            liquidus_enthalpy(sim = self, solute_concentration = S_l),
             self.postprocessing_function_space)
         
         self.postprocessed_liquidus_enthalpy = \
             self.postprocessed_liquidus_enthalpy.assign(h_L)
             
         
-        self.liquid_area = fe.assemble(f_l*fe.dx)
+        self.liquid_area = fe.assemble(phi_l*fe.dx)
         
         self.total_solute = fe.assemble(S*fe.dx)
         

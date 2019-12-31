@@ -12,7 +12,7 @@ def initial_values(sim):
     
     w_0 = fe.Function(sim.solution.function_space())
     
-    p, u, h, S = w_0.split()
+    p, u, h, S_l = w_0.split()
     
     p = p.assign(0.)
     
@@ -25,7 +25,7 @@ def initial_values(sim):
         temperature = sim.max_temperature,
         porosity = initial_porosity))
     
-    S = S.assign(sim.initial_solute_concentration)
+    S_l = S_l.assign(sim.initial_solute_concentration)
     
     return w_0
 
@@ -48,13 +48,13 @@ def dirichlet_boundary_conditions(sim):
         temperature = T_c,
         porosity = f_lc)
     
-    S_c = basesim_module.mushy_layer_solute_concentration(
-        sim, temperature = T_c, porosity = f_lc)
+    S_lc = basesim_module.mushy_layer_liquid_solute_concentration(
+        sim, temperature = T_c)
     
     return [
         fe.DirichletBC(W.sub(1), (0., 0.), 2),
         fe.DirichletBC(W.sub(2), h_c, 2),
-        fe.DirichletBC(W.sub(3), S_c, 2),
+        fe.DirichletBC(W.sub(3), S_lc, 2),
         fe.DirichletBC(W.sub(0), 0., 1),
         fe.DirichletBC(W.sub(1), (0., 0.), 1),
         fe.DirichletBC(W.sub(2), h_h, 1),
