@@ -359,10 +359,14 @@ class Simulation(sapphire.simulation.Simulation):
         self.postprocessed_liquid_solute_concentration = \
             fe.Function(self.postprocessing_function_space)
         
+        self.postprocessed_liquidus_enthalpy = \
+            fe.Function(self.postprocessing_function_space)
+        
         self.postprocessed_functions = (
             self.postprocessed_porosity,
             self.postprocessed_temperature,
-            self.postprocessed_liquid_solute_concentration)
+            self.postprocessed_liquid_solute_concentration,
+            self.postprocessed_liquidus_enthalpy)
     
     def solve(self, *args, **kwargs):
         
@@ -497,6 +501,15 @@ class Simulation(sapphire.simulation.Simulation):
         
         self.postprocessed_liquid_solute_concentration = \
             self.postprocessed_liquid_solute_concentration.assign(S_l)
+        
+        
+        h_L = fe.interpolate(
+            liquidus_enthalpy(sim = self, solute_concentration = S),
+            self.postprocessing_function_space)
+        
+        self.postprocessed_liquidus_enthalpy = \
+            self.postprocessed_liquidus_enthalpy.assign(h_L)
+            
         
         self.liquid_area = fe.assemble(f_l*fe.dx)
         
