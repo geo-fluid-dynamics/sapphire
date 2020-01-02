@@ -30,7 +30,7 @@ def initial_values(sim):
     return w_0
 
     
-def dirichlet_boundary_conditions(sim):
+def default_dirichlet_boundary_conditions(sim):
 
     W = sim.function_space
     
@@ -71,6 +71,8 @@ class Simulation(BaseSim):
             cold_wall_temperature,
             initial_solute_concentration,
             cold_wall_porosity,
+            dirichlet_boundary_conditions = "default",
+            mesh_diagonal = "left",
             **kwargs):
         
         self.cold_wall_temperature = fe.Constant(cold_wall_temperature)
@@ -79,6 +81,10 @@ class Simulation(BaseSim):
         
         self.cold_wall_porosity = fe.Constant(cold_wall_porosity)
         
+        if dirichlet_boundary_conditions == "default":
+        
+            dirichlet_boundary_conditions = default_dirichlet_boundary_conditions
+            
         super().__init__(
             *args,
             mesh = fe.PeriodicRectangleMesh(nx, ny, Lx, Ly, direction = "x"),
