@@ -109,13 +109,18 @@ def regularized_porosity(sim, enthalpy, liquid_solute_concentration):
     
     sigma = sim.porosity_smoothing
     
-    return \
-        0.5*(1. 
-             - exp(-(f_l_mush - 1.)**2/(2.*Ste**2*sigma**2))
-               *sqrt(2./pi)*Ste*sigma 
-             + erf((f_l_mush - 1.)/(sqrt(2.)*Ste*sigma)) 
-             + f_l_mush*erfc((f_l_mush - 1.)/(sqrt(2.)*Ste*sigma)))
-
+    f_l = 0.5*(1. 
+        - exp(-(f_l_mush - 1.)**2/(2.*Ste**2*sigma**2))*sqrt(2./pi)*Ste*sigma 
+        + erf((f_l_mush - 1.)/(sqrt(2.)*Ste*sigma)) 
+        + f_l_mush*erfc((f_l_mush - 1.)/(sqrt(2.)*Ste*sigma))) 
+    
+    if sim.enforce_minimum_porosity:
+    
+        f_l_min = sim.minimum_porosity
+        
+        f_l = fe.conditional(f_l < f_l_min, f_l_min, f_l)
+    
+    return f_l
 
 def phase_dependent_material_property(solid_to_liquid_ratio):
 
@@ -339,6 +344,8 @@ class Simulation(sapphire.simulation.Simulation):
             porosity_smoothing,
             gravity_direction = (0., -1.),
             pressure_penalty_factor = 1.e-7,
+            minimum_porosity = 0.,
+            enforce_minimum_porosity = False,
             element_degrees = (1, 1, 1, 1), 
             snes_max_iterations = 24,
             snes_absolute_tolerance = 1.e-9,
@@ -376,6 +383,11 @@ class Simulation(sapphire.simulation.Simulation):
         
         
         self.pressure_penalty_factor = fe.Constant(pressure_penalty_factor)
+        
+        
+        self.enforce_minimum_porosity = enforce_minimum_porosity
+        
+        self.minimum_porosity = fe.Constant(minimum_porosity)
         
         self.porosity_smoothing = fe.Constant(porosity_smoothing)
         

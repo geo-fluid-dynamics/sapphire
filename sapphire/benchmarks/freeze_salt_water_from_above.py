@@ -69,17 +69,17 @@ class Simulation(BaseSim):
             Lx,
             Ly,
             cold_wall_temperature,
-            initial_solute_concentration,
             cold_wall_porosity,
+            initial_solute_concentration,
             dirichlet_boundary_conditions = "default",
             mesh_diagonal = "left",
             **kwargs):
         
         self.cold_wall_temperature = fe.Constant(cold_wall_temperature)
         
-        self.initial_solute_concentration = fe.Constant(initial_solute_concentration)
-        
         self.cold_wall_porosity = fe.Constant(cold_wall_porosity)
+        
+        self.initial_solute_concentration = fe.Constant(initial_solute_concentration)
         
         if dirichlet_boundary_conditions == "default":
         
