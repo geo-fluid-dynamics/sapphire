@@ -3,6 +3,7 @@ import firedrake as fe
 import sapphire.simulation
 import sapphire.continuation
 import math
+import numpy
 
 
 def element(cell, degrees):
@@ -486,7 +487,8 @@ class Simulation(sapphire.simulation.Simulation):
     def run(self,
             endtime,
             solve_with_adaptive_timestep = True,
-            write_initial_outputs = True):
+            write_initial_outputs = True,
+            validate_state = True):
         
         if write_initial_outputs:
         
@@ -524,6 +526,10 @@ class Simulation(sapphire.simulation.Simulation):
             
             self.write_outputs(write_headers = False)
             
+            if validate_state:
+            
+                self.validate_state()
+            
             self.solutions = self.push_back_solutions()
             
             if solve_with_adaptive_timestep:
@@ -552,8 +558,11 @@ class Simulation(sapphire.simulation.Simulation):
             
         self.postprocessed_porosity = \
             self.postprocessed_porosity.assign(phi_l)
-            
-            
+        
+        
+        self.minimum_porosity = numpy.min(phi_l.vector().array())
+        
+        
         S = fe.interpolate(
             S_l*phi_l,
             self.postprocessing_function_space)
@@ -590,4 +599,12 @@ class Simulation(sapphire.simulation.Simulation):
     def write_outputs(self, *args, **kwargs):
         
         super().write_outputs(*args, plotvars = plotvars, **kwargs)
+        
+    def validate_state(self):
+        
+        if self.minimum_porosity < 0.:
+        
+            raise ValueError(
+                "The minimum porosity is {}.".format(self.minimum_porosity) +
+                " The porosity must be everywhere greater than zero.")
         
