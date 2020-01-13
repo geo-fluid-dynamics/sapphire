@@ -326,7 +326,7 @@ def plotvars(sim, solution = None):
     S = sim.postprocessed_bulk_solute_concentration
     
     return (p, u, h, S_l, S, phi_l, T), \
-        ("p", "\\mathbf{u}", "h", "S_l", "S", "\phi_l", "T"), \
+        ("p", "\\mathbf{u}", "h", "S_l", "S", "\\phi_l", "T"), \
         ("p", "u", "h", "Sl", "S", "phil", "T")
     
     
