@@ -1,3 +1,4 @@
+""" A regression test which simulates a brine plume """
 import firedrake as fe
 import sapphire.simulations.convection_coupled_alloy_phasechange
 import sapphire.benchmarks.freeze_salt_water_from_above
@@ -11,7 +12,10 @@ BaseSim = benchmark_module.Simulation
 
 
 class SimWithoutPlots(BaseSim):
-    """ Redefine output to skip plotting (which otherwise slows down the test)"""
+    """ Redefine output to skip plotting (which otherwise slows down the test)
+    
+    Solutions and post-processed functions are still written to VTK.
+    """
     def write_outputs(self, write_headers, plotvars = None):
         
         if self.solution_file is None:
@@ -92,7 +96,7 @@ T_h = T_m  # [deg C]
 
 Ste = c_l*(T_h - T_e)/h_m
 
-def test__freeze_salt_water_from_above():
+def test__brine_plume():
     
     S_0 = 3.8  # [% wt. NaCl]
     
@@ -145,5 +149,5 @@ def test__freeze_salt_water_from_above():
     
 if __name__ == "__main__":
     
-    test__freeze_salt_water_from_above()
+    test__brine_plume()
     
