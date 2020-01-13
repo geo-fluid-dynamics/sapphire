@@ -319,13 +319,13 @@ def plotvars(sim, solution = None):
     
     p, u, h, S_l = solution.split()
     
-    phi_l = sim.postprocessed_regularized_porosity
+    phi_l = sim.postprocessed_porosity
     
     T = sim.postprocessed_temperature
     
-    S_l = sim.postprocessed_liquid_solute_concentration
+    S = sim.postprocessed_bulk_solute_concentration
     
-    return (p, u, h, S_l, S, f_l, T), \
+    return (p, u, h, S_l, S, phi_l, T), \
         ("p", "\\mathbf{u}", "h", "S_l", "S", "\phi_l", "T"), \
         ("p", "u", "h", "Sl", "S", "phil", "T")
     
@@ -422,7 +422,7 @@ class Simulation(sapphire.simulation.Simulation):
             solution_name = "p_u_h_Sl",
             **kwargs)
         
-        self.postprocessed_solute_concentration = \
+        self.postprocessed_bulk_solute_concentration = \
             fe.Function(
                 self.postprocessing_function_space,
                 name = "S")
@@ -443,7 +443,7 @@ class Simulation(sapphire.simulation.Simulation):
                 name = "h_L")
         
         self.postprocessed_functions = (
-            self.postprocessed_solute_concentration,
+            self.postprocessed_bulk_solute_concentration,
             self.postprocessed_porosity,
             self.postprocessed_temperature,
             self.postprocessed_liquidus_enthalpy)
@@ -576,8 +576,8 @@ class Simulation(sapphire.simulation.Simulation):
             S_l*phi_l,
             self.postprocessing_function_space)
         
-        self.postprocessed_solute_concentration = \
-            self.postprocessed_solute_concentration.assign(S)
+        self.postprocessed_bulk_solute_concentration = \
+            self.postprocessed_bulk_solute_concentration.assign(S)
             
         
         T = fe.interpolate(
