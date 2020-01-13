@@ -11,7 +11,7 @@ BaseSim = benchmark_module.Simulation
 
 
 class SimWithoutPlots(BaseSim):
-    
+    """ Redefine output to skip plotting (which otherwise slows down the test)"""
     def write_outputs(self, write_headers, plotvars = None):
         
         if self.solution_file is None:
