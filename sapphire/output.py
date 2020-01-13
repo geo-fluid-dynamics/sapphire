@@ -28,7 +28,9 @@ def write_solution(sim,
     
     if dependent_functions is None:
     
-        dependent_functions = sim.postprocessed_functions
+        if hasattr(sim, "postprocessed_functions"):
+        
+            dependent_functions = sim.postprocessed_functions
         
     if dependent_functions is not None:
     
