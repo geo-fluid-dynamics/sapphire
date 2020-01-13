@@ -419,19 +419,28 @@ class Simulation(sapphire.simulation.Simulation):
             mesh = mesh,
             element = element(
                 cell = mesh.ufl_cell(), degrees = element_degrees),
+            solution_name = "p_u_h_Sl",
             **kwargs)
         
         self.postprocessed_solute_concentration = \
-            fe.Function(self.postprocessing_function_space)
+            fe.Function(
+                self.postprocessing_function_space,
+                name = "S")
             
         self.postprocessed_porosity = \
-            fe.Function(self.postprocessing_function_space)
+            fe.Function(
+                self.postprocessing_function_space,
+                name = "phi_l")
         
         self.postprocessed_temperature = \
-            fe.Function(self.postprocessing_function_space)
+            fe.Function(
+                self.postprocessing_function_space,
+                name = "T")
         
         self.postprocessed_liquidus_enthalpy = \
-            fe.Function(self.postprocessing_function_space)
+            fe.Function(
+                self.postprocessing_function_space,
+                name = "h_L")
         
         self.postprocessed_functions = (
             self.postprocessed_solute_concentration,
@@ -546,7 +555,7 @@ class Simulation(sapphire.simulation.Simulation):
         
     def postprocess(self):
     
-        _, _, h, S_l = self.solution.split()
+        _, u, h, S_l = self.solution.split()
         
         
         phi_l = fe.interpolate(
@@ -593,6 +602,8 @@ class Simulation(sapphire.simulation.Simulation):
         self.liquid_area = fe.assemble(phi_l*fe.dx)
         
         self.total_solute = fe.assemble(S*fe.dx)
+        
+        self.max_speed = u.vector().max()
         
         return self
     
