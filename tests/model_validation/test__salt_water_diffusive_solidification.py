@@ -1,32 +1,20 @@
 import firedrake as fe 
+import sapphire.simulations.alloy_phasechange
 import sapphire.benchmarks.diffusive_solidification_of_alloy
 from math import sqrt
 
 
-class SimWithoutPlots(
-        sapphire.benchmarks.diffusive_solidification_of_alloy.Simulation):
-    """ Redefine output to skip plotting (which otherwise slows down the test)
-    
-    Solutions and post-processed functions are still written to VTK.
+BaseSim = sapphire.benchmarks.diffusive_solidification_of_alloy.Simulation 
+
+class SimWithoutSolutionOutput(BaseSim):
+    """ Redefine output to skip solution writing and plotting 
+        (which otherwise slows down the test)
     """
     def write_outputs(self, write_headers, plotvars = None):
         
-        if self.solution_file is None:
-            
-            solution_filepath = self.output_directory_path.joinpath(
-                "solution").with_suffix(".pvd")
-            
-            self.solution_file = fe.File(str(solution_filepath))
+        pass
         
-        self = self.postprocess()
         
-        sapphire.output.report(sim = self, write_header = write_headers)
-        
-        sapphire.output.write_solution(sim = self, file = self.solution_file)
-        
-        #sapphire.output.plot(sim = self, plotvars = plotvars)
-    
-
 T_m__degC = 0.  # [deg C]
     
 T_e__degC = -32. # [deg C]
@@ -98,7 +86,7 @@ def test__compare_to_lebars2006():
     
     print("Delta_t = {}".format(Delta_t))
     
-    sim = SimWithoutPlots(
+    sim = SimWithoutSolutionOutput(
         lewis_number = Le,
         stefan_number = Ste,
         initial_liquid_solute_concentration = S_l0,
@@ -107,23 +95,36 @@ def test__compare_to_lebars2006():
         cold_boundary_temperature = T_c,
         cold_boundary_porosity = 0.001,
         quadrature_degree = 2,
-        mesh_cellcount = 1000,
+        mesh_cellcount = 100,
         cutoff_length = 1.,
         timestep_size = Delta_t,
         snes_linesearch_damping = 1.,
-        snes_max_iterations = 1000,
+        snes_max_iterations = 100,
         snes_absolute_tolerance = 1.e-9,
         snes_step_tolerance = 1.e-9,
         snes_linesearch_maxstep = 1.,
         output_directory_path = "salt_water_diffusive_solidification/")
     
-    sim.solutions, sim.time, = sim.run(endtime = 0.1)
+    sim.solutions, sim.time = sim.run(endtime = endtime)
     
-    t = sim.time.__float__()
-    
-    x_ml = sim.mush_liquid_interface_position
+    h, S_l = sim.solution.split()
+        
+    phi_l = fe.interpolate(
+        sapphire.simulations.alloy_phasechange.regularized_porosity(
+            sim = sim,
+            enthalpy = h,
+            liquid_solute_concentration = S_l),
+        sim.postprocessing_function_space)
+        
+    x_ml = sapphire.benchmarks.diffusive_solidification_of_alloy.\
+        find_mush_liquid_interface_position(
+            positions = sim.mesh.coordinates.vector().array(),
+            porosities = phi_l.vector().array(),
+            interface_porosity = 0.999)
     
     print("x_ml = {}".format(x_ml))
+    
+    t = sim.time.__float__()
     
     lambda_b = x_ml/(2.*sqrt(t/Le))
     
@@ -133,7 +134,7 @@ def test__compare_to_lebars2006():
     
     tolerance = 0.1
     
-    assert(abs(lambda_b -expected_lambda_b) < tolerance)
+    assert(abs(lambda_b - expected_lambda_b) < tolerance)
 
 
 if __name__ == "__main__":
