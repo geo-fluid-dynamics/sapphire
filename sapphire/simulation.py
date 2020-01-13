@@ -21,7 +21,8 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             time_stencil_size = 2,
             time = 0.,
             timestep_size = 1.,
-            output_directory_path = "output/"):
+            output_directory_path = "output/",
+            solution_name = None):
         
         self.mesh = mesh
         
@@ -32,7 +33,8 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         self.quadrature_degree = quadrature_degree
         
         
-        self.solutions = [fe.Function(self.function_space) 
+        self.solutions = [
+            fe.Function(self.function_space, name = solution_name) 
             for i in range(time_stencil_size)]
             
         self.solution = self.solutions[0]
