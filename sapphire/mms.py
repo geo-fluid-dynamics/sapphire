@@ -60,7 +60,7 @@ def mms_initial_values(sim, manufactured_solution):
     
     
 def default_mms_dirichlet_boundary_conditions(sim, manufactured_solution):
-    
+    """ By default, apply Dirichlet BC's to every component on every boundary. """
     W = sim.function_space
     
     if type(sim.element) is fe.FiniteElement:

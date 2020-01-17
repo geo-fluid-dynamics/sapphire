@@ -18,12 +18,15 @@ def space_verification_solution(sim):
     
     ihat, jhat = sapphire.simulation.unit_vectors(sim.mesh)
     
-    u = sin(2.*pi*x)*sin(pi*y)*ihat + \
-        sin(pi*x)*sin(2.*pi*y)*jhat
+    u = exp(0.5)*sin(2.*pi*x)*sin(pi*y)*ihat + \
+        exp(0.5)*sin(pi*x)*sin(2.*pi*y)*jhat
     
-    p = -sin(pi*x)*sin(2.*pi*y)
+    # The pressure derivative is zero at x = 0, 1 and y = 0, 1
+    # so that Dirichlet BC's do not have to be applied
+    # and non-homogeneous Neumann BC's don't need to be handled.
+    p = -sin(pi*x - pi/2.)*sin(2.*pi*y - pi/2.)
     
-    T = 0.5*sin(2.*pi*x)*sin(pi*y)
+    T = 0.5*sin(2.*pi*x)*sin(pi*y)*(1. - exp(-0.5))
     
     return p, u, T
     
@@ -39,7 +42,10 @@ def time_verification_solution(sim):
     u = exp(t/2)*sin(2.*pi*x)*sin(pi*y)*ihat + \
         exp(t/2)*sin(pi*x)*sin(2.*pi*y)*jhat
     
-    p = -sin(pi*x)*sin(2.*pi*y)
+    # The pressure derivative is zero at x = 0, 1 and y = 0, 1
+    # so that Dirichlet BC's do not have to be applied
+    # and non-homogeneous Neumann BC's don't need to be handled.
+    p = -sin(pi*x - pi/2.)*sin(2.*pi*y - pi/2.)
     
     T = 0.5*sin(2.*pi*x)*sin(pi*y)*(1. - exp(-0.5*t**2))
     
@@ -55,7 +61,7 @@ parameters = {
     "thermal_conductivity_solid_to_liquid_ratio": 3.8,
     "liquidus_smoothing_factor": 0.5,
     "solid_velocity_relaxation_factor": 1.e-12,
-    "pressure_penalty_factor": 1.e-7,
+    "pressure_penalty_factor": 1.e-4,
     }
     
 
@@ -65,7 +71,11 @@ endtime = 1.
 
 def test__verify__taylor_hood_second_order_spatial_convergence__via_mms(
         tempdir):
-    
+    """
+    Demonstrate second order accuracy for velocity and temperature fields.
+    Pressure error shows superconvergence until nx = 64 where the magnitude hits a floor around 0.5.
+    To keep the test cheap, only up to nx = 32 is shown here.
+    """
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
     
@@ -78,6 +88,52 @@ def test__verify__taylor_hood_second_order_spatial_convergence__via_mms(
         sapphire.mms.verify_spatial_order_of_accuracy(
             sim_module = sim_module,
             manufactured_solution = space_verification_solution,
+            meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
+            parameters = parameters,
+            sim_constructor_kwargs = {
+                "element_degree": (1, 2, 2),
+                "quadrature_degree": quadrature_degree},
+            norms = ("L2", "H1", "H1"),
+            expected_orders = (None, 2, 2),
+            tolerance = 0.1,
+            timestep_size = endtime,
+            endtime = endtime,
+            outfile = outfile)
+
+
+def bcs_without_pressure(sim, manufactured_solution):
+    
+    W = sim.function_space
+    
+    if type(sim.element) is fe.FiniteElement:
+    
+        w = (manufactured_solution,)
+    
+    else:
+    
+        w = manufactured_solution
+        
+    return [fe.DirichletBC(V, g, "on_boundary") for V, g in zip(W[1:], w[1:])]
+    
+    
+def test__verify__taylor_hood_second_order_spatial_convergence_without_pressureBC__via_mms(
+        tempdir):
+    """ Demonstrate that pressure doesn't converge 
+    whether or not Dirichlet BC's are applied.
+    """
+    testdir = "{}/{}/".format(
+        __name__.replace(".", "/"), sys._getframe().f_code.co_name)
+    
+    outdir_path = pathlib.Path(tempdir) / testdir
+    
+    outdir_path.mkdir(parents = True, exist_ok = True) 
+    
+    with open(outdir_path / "convergence.csv", "w") as outfile:
+        
+        sapphire.mms.verify_spatial_order_of_accuracy(
+            sim_module = sim_module,
+            manufactured_solution = space_verification_solution,
+            dirichlet_boundary_conditions = bcs_without_pressure,
             meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
             parameters = parameters,
             sim_constructor_kwargs = {
