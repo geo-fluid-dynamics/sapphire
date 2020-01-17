@@ -109,6 +109,17 @@ def strong_residual(sim, solution, buoyancy = linear_boussinesq_buoyancy):
     return r_p, r_u, r_T
     
     
+def strong_residual_with_pressure_penalty(sim, solution, buoyancy = linear_boussinesq_buoyancy):
+    
+    r_p, r_u, r_T = strong_residual(sim = sim, solution = solution, buoyancy = buoyancy)
+    
+    p, _, _ = solution
+    
+    gamma = sim.pressure_penalty_factor
+    
+    return r_p + gamma*p, r_u, r_T 
+    
+    
 def time_discrete_terms(sim):
     
     _, u_t, _ = sapphire.simulation.time_discrete_terms(

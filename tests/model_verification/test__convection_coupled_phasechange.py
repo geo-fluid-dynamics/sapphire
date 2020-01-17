@@ -73,7 +73,8 @@ def test__verify__taylor_hood_second_order_spatial_convergence__via_mms(
         tempdir):
     """
     Demonstrate second order accuracy for velocity and temperature fields.
-    Pressure error shows superconvergence until nx = 64 where the magnitude hits a floor around 0.5.
+    Pressure error shows superconvergence until nx = 64 
+        where the magnitude hits a floor around 0.5.
     To keep the test cheap, only up to nx = 32 is shown here.
     """
     testdir = "{}/{}/".format(
@@ -88,6 +89,7 @@ def test__verify__taylor_hood_second_order_spatial_convergence__via_mms(
         sapphire.mms.verify_spatial_order_of_accuracy(
             sim_module = sim_module,
             manufactured_solution = space_verification_solution,
+            #strong_residual = sim_module.strong_residual_with_pressure_penalty, #Adding the penalty term to the strong residual removes the floor and maintains superconvergence.
             meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
             parameters = parameters,
             sim_constructor_kwargs = {
@@ -100,52 +102,6 @@ def test__verify__taylor_hood_second_order_spatial_convergence__via_mms(
             endtime = endtime,
             outfile = outfile)
 
-
-def bcs_without_pressure(sim, manufactured_solution):
-    
-    W = sim.function_space
-    
-    if type(sim.element) is fe.FiniteElement:
-    
-        w = (manufactured_solution,)
-    
-    else:
-    
-        w = manufactured_solution
-        
-    return [fe.DirichletBC(V, g, "on_boundary") for V, g in zip(W[1:], w[1:])]
-    
-    
-def test__verify__taylor_hood_second_order_spatial_convergence_without_pressureBC__via_mms(
-        tempdir):
-    """ Demonstrate that pressure doesn't converge 
-    whether or not Dirichlet BC's are applied.
-    """
-    testdir = "{}/{}/".format(
-        __name__.replace(".", "/"), sys._getframe().f_code.co_name)
-    
-    outdir_path = pathlib.Path(tempdir) / testdir
-    
-    outdir_path.mkdir(parents = True, exist_ok = True) 
-    
-    with open(outdir_path / "convergence.csv", "w") as outfile:
-        
-        sapphire.mms.verify_spatial_order_of_accuracy(
-            sim_module = sim_module,
-            manufactured_solution = space_verification_solution,
-            dirichlet_boundary_conditions = bcs_without_pressure,
-            meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
-            parameters = parameters,
-            sim_constructor_kwargs = {
-                "element_degree": (1, 2, 2),
-                "quadrature_degree": quadrature_degree},
-            norms = ("L2", "H1", "H1"),
-            expected_orders = (None, 2, 2),
-            tolerance = 0.1,
-            timestep_size = endtime,
-            endtime = endtime,
-            outfile = outfile)
-            
 
 def test__verify__taylor_hood_third_order_spatial_convergence__via_mms(
         tempdir):
