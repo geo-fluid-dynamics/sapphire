@@ -144,7 +144,7 @@ def verify_spatial_order_of_accuracy(
         strong_residual = strong_residual,
         mms_dirichlet_boundary_conditions = dirichlet_boundary_conditions)
     
-    table = sapphire.table.Table(("h", "errors", "spatial_orders"))
+    table = sapphire.table.Table(("h", "cellcount", "dofcount", "errors", "spatial_orders"))
     
     print("")
     
@@ -182,7 +182,11 @@ def verify_spatial_order_of_accuracy(
             
             errors.append(fe.errornorm(w_i, wh_i, norm_type = norm))
             
-        table.append({"h": h, "errors": errors})
+        cellcount = mesh.topology.num_cells()
+            
+        dofcount = len(wh.vector().array())
+            
+        table.append({"h": h, "cellcount": cellcount, "dofcount": dofcount, "errors": errors})
             
         if len(table) > 1:
         
