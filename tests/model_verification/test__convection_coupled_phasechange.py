@@ -45,47 +45,26 @@ def time_verification_solution(sim):
     
     return p, u, T
     
+
+parameters = {
+    "grashof_number": 3.6e5,
+    "prandtl_number": 7.0,
+    "stefan_number": 0.13,
+    "density_solid_to_liquid_ratio": 0.92,
+    "heat_capacity_solid_to_liquid_ratio": 0.50,
+    "thermal_conductivity_solid_to_liquid_ratio": 3.8,
+    "liquidus_smoothing_factor": 0.5,
+    "solid_velocity_relaxation_factor": 1.e-12,
+    "pressure_penalty_factor": 1.e-7,
+    }
     
-Gr = 3.6e5
 
-Pr = 7.0
+quadrature_degree = None
 
-Ste = 0.13
-
-rhos_over_rhol = 0.92
-
-cs_over_cl = 0.50
-
-kappas_over_kappal = 3.8
-
-
-sigma = 0.5
-
-tau = 1.e-12
-
-gamma = 1.e-7
-
-q = None
-
+endtime = 1.
 
 def test__verify__taylor_hood_second_order_spatial_convergence__via_mms(
-        tempdir,
-        parameters = {
-            "grashof_number": Gr,
-            "prandtl_number": Pr,
-            "stefan_number": Ste,
-            "density_solid_to_liquid_ratio": rhos_over_rhol,
-            "heat_capacity_solid_to_liquid_ratio": cs_over_cl,
-            "thermal_conductivity_solid_to_liquid_ratio": kappas_over_kappal,
-            "liquidus_smoothing_factor": sigma,
-            "pressure_penalty_factor": gamma,
-            "solid_velocity_relaxation_factor": tau},
-        sim_constructor_kwargs = {
-            "element_degree": (1, 2, 2),
-            "quadrature_degree": q},
-        endtime = 1.,
-        mesh_sizes = (4, 8, 16, 32),
-        tolerance = 0.1):
+        tempdir):
     
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
@@ -99,35 +78,21 @@ def test__verify__taylor_hood_second_order_spatial_convergence__via_mms(
         sapphire.mms.verify_spatial_order_of_accuracy(
             sim_module = sim_module,
             manufactured_solution = space_verification_solution,
-            meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
+            meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
             parameters = parameters,
-            sim_constructor_kwargs = sim_constructor_kwargs,
+            sim_constructor_kwargs = {
+                "element_degree": (1, 2, 2),
+                "quadrature_degree": quadrature_degree},
             norms = ("L2", "H1", "H1"),
             expected_orders = (None, 2, 2),
-            tolerance = tolerance,
+            tolerance = 0.1,
             timestep_size = endtime,
             endtime = endtime,
             outfile = outfile)
             
 
 def test__verify__taylor_hood_third_order_spatial_convergence__via_mms(
-        tempdir,
-        parameters = {
-            "grashof_number": Gr,
-            "prandtl_number": Pr,
-            "stefan_number": Ste,
-            "density_solid_to_liquid_ratio": rhos_over_rhol,
-            "heat_capacity_solid_to_liquid_ratio": cs_over_cl,
-            "thermal_conductivity_solid_to_liquid_ratio": kappas_over_kappal,
-            "liquidus_smoothing_factor": sigma,
-            "pressure_penalty_factor": gamma,
-            "solid_velocity_relaxation_factor": tau},
-        sim_constructor_kwargs = {
-            "element_degree": (2, 3, 3),
-            "quadrature_degree": q},
-        endtime = 1.,
-        mesh_sizes = (4, 8, 16, 32),
-        tolerance = 0.1):
+        tempdir):
     
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
@@ -141,35 +106,21 @@ def test__verify__taylor_hood_third_order_spatial_convergence__via_mms(
         sapphire.mms.verify_spatial_order_of_accuracy(
             sim_module = sim_module,
             manufactured_solution = space_verification_solution,
-            meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
+            meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
             parameters = parameters,
-            sim_constructor_kwargs = sim_constructor_kwargs,
+            sim_constructor_kwargs = {
+                "element_degree": (2, 3, 3),
+                "quadrature_degree": quadrature_degree},
             norms = ("L2", "H1", "H1"),
             expected_orders = (None, 3, 3),
-            tolerance = tolerance,
+            tolerance = 0.1,
             timestep_size = endtime,
             endtime = endtime,
             outfile = outfile)
             
 
 def test__verify__equal_order_first_order_spatial_convergence__via_mms(
-        tempdir,
-        parameters = {
-            "grashof_number": Gr,
-            "prandtl_number": Pr,
-            "stefan_number": Ste,
-            "density_solid_to_liquid_ratio": rhos_over_rhol,
-            "heat_capacity_solid_to_liquid_ratio": cs_over_cl,
-            "thermal_conductivity_solid_to_liquid_ratio": kappas_over_kappal,
-            "liquidus_smoothing_factor": sigma,
-            "pressure_penalty_factor": gamma,
-            "solid_velocity_relaxation_factor": tau},
-        sim_constructor_kwargs = {
-            "element_degree": (1, 1, 1),
-            "quadrature_degree": q},
-        endtime = 1.,
-        mesh_sizes = (4, 8, 16, 32),
-        tolerance = 0.1):
+        tempdir):
     
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
@@ -183,33 +134,21 @@ def test__verify__equal_order_first_order_spatial_convergence__via_mms(
         sapphire.mms.verify_spatial_order_of_accuracy(
             sim_module = sim_module,
             manufactured_solution = space_verification_solution,
-            meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
+            meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
             parameters = parameters,
-            sim_constructor_kwargs = sim_constructor_kwargs,
+            sim_constructor_kwargs = {
+                "element_degree": (1, 1, 1),
+                "quadrature_degree": quadrature_degree},
             norms = ("L2", "H1", "H1"),
             expected_orders = (None, 1, 1),
-            tolerance = tolerance,
+            tolerance = 0.1,
             timestep_size = endtime,
             endtime = endtime,
             outfile = outfile)
 
 
 def test__verify__second_order_temporal_convergence__via_mms(
-        tempdir,
-        parameters = {
-            "grashof_number": Gr,
-            "prandtl_number": Pr,
-            "stefan_number": Ste,
-            "density_solid_to_liquid_ratio": rhos_over_rhol,
-            "heat_capacity_solid_to_liquid_ratio": cs_over_cl,
-            "thermal_conductivity_solid_to_liquid_ratio": kappas_over_kappal,
-            "liquidus_smoothing_factor": sigma,
-            "pressure_penalty_factor": gamma},
-        sim_constructor_kwargs = {"element_degree": (1, 2, 2)},
-        meshsize = 32,
-        timestep_sizes = (1/2, 1/4, 1/8, 1/16),
-        endtime = 1.,
-        tolerance = 0.2):
+        tempdir):
     
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
@@ -217,6 +156,8 @@ def test__verify__second_order_temporal_convergence__via_mms(
     outdir_path = pathlib.Path(tempdir) / testdir
     
     outdir_path.mkdir(parents = True, exist_ok = True) 
+    
+    meshsize = 32
     
     with open(outdir_path / "convergence.csv", "w") as outfile:
     
@@ -225,10 +166,10 @@ def test__verify__second_order_temporal_convergence__via_mms(
             manufactured_solution = time_verification_solution,
             mesh = fe.UnitSquareMesh(meshsize, meshsize),
             parameters = parameters,
-            sim_constructor_kwargs = sim_constructor_kwargs,
+            sim_constructor_kwargs = {"element_degree": (1, 2, 2)},
             norms = ("L2", "L2", "L2"),
             expected_orders = (None, 2, 2),
-            tolerance = tolerance,
-            timestep_sizes = timestep_sizes,
+            tolerance = 0.2,
+            timestep_sizes = (1/2, 1/4, 1/8, 1/16),
             endtime = endtime,
             outfile = outfile)
