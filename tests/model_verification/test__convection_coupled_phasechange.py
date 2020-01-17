@@ -59,7 +59,7 @@ parameters = {
     "density_solid_to_liquid_ratio": 0.92,
     "heat_capacity_solid_to_liquid_ratio": 0.50,
     "thermal_conductivity_solid_to_liquid_ratio": 3.8,
-    "liquidus_smoothing_factor": 0.5,
+    "liquidus_smoothing_factor": 0.1,
     "solid_velocity_relaxation_factor": 1.e-12,
     "pressure_penalty_factor": 1.e-4,
     }
