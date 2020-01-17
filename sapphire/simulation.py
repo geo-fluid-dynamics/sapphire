@@ -17,6 +17,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             initial_values,
             quadrature_degree = None,
             time_dependent = True,
+            timestep_size = 1.,
             time_stencil_size = 2,
             output_directory_path = "output/"):
         
@@ -43,7 +44,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             
             self.time = fe.Constant(0.)
             
-            self.timestep_size = fe.Constant(1.)
+            self.timestep_size = fe.Constant(timestep_size)
             
         else:
         

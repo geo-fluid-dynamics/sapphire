@@ -32,16 +32,34 @@ def dirichlet_boundary_conditions(sim):
 class Simulation(sapphire.simulations.\
         convection_coupled_phasechange.Simulation):
     
-    def __init__(self, *args, meshsize, initial_temperature = -0.01, **kwargs):
+    def __init__(self, *args, 
+            meshsize, 
+            initial_temperature = -0.01, 
+            topwall_heatflux = 0.,
+            stefan_number = 0.045,
+            rayleigh_number = 3.27e5,
+            prandtl_number = 56.2,
+            liquidus_temperature = 0.,
+            **kwargs):
         
         self.hot_wall_temperature = fe.Constant(1.)
         
         self.initial_temperature = fe.Constant(initial_temperature)
         
-        self.topwall_heatflux = fe.Constant(0.)
+        self.topwall_heatflux = fe.Constant(topwall_heatflux)
+        
+        Ra = rayleigh_number
+        
+        Pr = prandtl_number
+        
+        Gr = Ra/Pr
         
         super().__init__(
             *args,
+            liquidus_temperature = liquidus_temperature,
+            stefan_number = stefan_number,
+            grashof_number = Gr,
+            prandtl_number = prandtl_number,
             mesh = fe.UnitSquareMesh(meshsize, meshsize),
             initial_values = initial_values,
             dirichlet_boundary_conditions = dirichlet_boundary_conditions,
@@ -54,18 +72,6 @@ class Simulation(sapphire.simulations.\
         ds = fe.ds(domain = self.mesh, subdomain_id = 4)
 
         self.variational_form_residual += psi_T*q*ds
-        
-        Ra = 3.27e5
-        
-        Pr = 56.2
-        
-        self.grashof_number = self.grashof_number.assign(Ra/Pr)
-        
-        self.prandtl_number = self.prandtl_number.assign(Pr)
-        
-        self.stefan_number = self.stefan_number.assign(0.045)
-        
-        self.liquidus_temperature = self.liquidus_temperature.assign(0.)
         
     def run(self, *args,
             endtime,

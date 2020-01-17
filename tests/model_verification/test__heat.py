@@ -14,7 +14,7 @@ def manufactured_solution(sim):
     return sin(2.*pi*x)*exp(-pow(t, 2))
     
     
-def test__verify_spatial_convergence__second_order__via_mms(
+def test__verify_spatial_convergence__first_order__via_mms(
         mesh_sizes = (4, 8, 16, 32),
         timestep_size = 1./64.,
         tolerance = 0.1):
@@ -23,7 +23,8 @@ def test__verify_spatial_convergence__second_order__via_mms(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitIntervalMesh(n) for n in mesh_sizes],
-        expected_order = 2,
+        norms = ("H1",),
+        expected_orders = (1,),
         tolerance = tolerance,
         timestep_size = timestep_size,
         endtime = 1.)
@@ -38,7 +39,8 @@ def test__verify_temporal_convergence__first_order__via_mms(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
-        expected_order = 1,
+        norms = ("L2",),
+        expected_orders = (1,),
         endtime = 1.,
         timestep_sizes = timestep_sizes,
         tolerance = tolerance)
@@ -56,7 +58,8 @@ def test__verify_temporal_convergence__second_order__via_mms(
         sim_constructor_kwargs = {
             "element_degree": 2,
             "time_stencil_size": 3},
-        expected_order = 2,
+        norms = ("L2",),
+        expected_orders = (2,),
         endtime = 1.,
         timestep_sizes = timestep_sizes,
         tolerance = tolerance)
@@ -74,7 +77,8 @@ def test__verify_temporal_convergence__third_order__via_mms(
         sim_constructor_kwargs = {
             "element_degree": 2,
             "time_stencil_size": 4},
-        expected_order = 3,
+        norms = ("L2",),
+        expected_orders = (3,),
         endtime = 1.,
         timestep_sizes = timestep_sizes,
         tolerance = tolerance)

@@ -39,7 +39,12 @@ def test__validate__melt_octadecane__regression():
     tolerance = 0.01
     
     
+    Delta_t = tf/float(nt)
+    
     sim = sapphire.benchmarks.melt_octadecane_in_cavity.Simulation(
+        timestep_size = Delta_t,
+        liquidus_smoothing_factor = s,
+        solid_velocity_relaxation_factor = tau,
         quadrature_degree = q,
         element_degree = rx - 1,
         time_stencil_size = rt + 1,
@@ -50,12 +55,6 @@ def test__validate__melt_octadecane__regression():
             + "rx{0}_nx{1}_rt{2}_nt{3}/".format(rx, nx, rt, nt)
             + "q{0}/".format(q))
     
-    
-    sim.timestep_size.assign(tf/float(nt))
-    
-    sim.smoothing.assign(s)
-    
-    sim.solid_velocity_relaxation_factor.assign(tau)
     
     sim.topwall_heatflux_switchtime = th
     
@@ -77,7 +76,7 @@ def freeze_water(endtime, s, tau, rx, nx, rt, nt, q, outdir = ""):
     
     sim = sapphire.benchmarks.freeze_water_in_cavity.Simulation(
         quadrature_degree = q,
-        element_degree = rx - 1,
+        element_degree = (rx - 1, rx, rx),
         time_stencil_size = rt + 1,
         meshsize = nx,
         output_directory_path = str(outdir.join(
@@ -91,7 +90,7 @@ def freeze_water(endtime, s, tau, rx, nx, rt, nt, q, outdir = ""):
     sim.solid_velocity_relaxation_factor = \
         sim.solid_velocity_relaxation_factor.assign(tau)
     
-    sim.smoothing = sim.smoothing.assign(s)
+    sim.liquidus_smoothing_factor = sim.liquidus_smoothing_factor.assign(s)
     
     
     sim.solutions, _, = sim.run(endtime = endtime)

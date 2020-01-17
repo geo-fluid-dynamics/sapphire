@@ -44,8 +44,8 @@ def heat_driven_cavity_variational_form_residual(sim, solution):
     mass = sapphire.simulations.convection_coupled_phasechange.\
         mass(sim, solution)
     
-    stabilization = sapphire.simulations.convection_coupled_phasechange.\
-        stabilization(sim, solution)
+    pressure_penalty = sapphire.simulations.convection_coupled_phasechange.\
+        pressure_penalty(sim, solution)
     
     p, u, T = fe.split(solution)
     
@@ -63,7 +63,7 @@ def heat_driven_cavity_variational_form_residual(sim, solution):
     
     energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))
     
-    return mass + momentum + energy + stabilization
+    return mass + momentum + energy + pressure_penalty
     
     
 def dirichlet_boundary_conditions(sim):
@@ -114,6 +114,7 @@ def initial_values(sim):
         problem = problem,
         solver_parameters = {
                 "snes_type": "newtonls",
+                "snes_max_it": sim.newton_max_iterations,
                 "snes_monitor": None,
                 "ksp_type": "preonly", 
                 "pc_type": "lu", 
@@ -150,7 +151,7 @@ def variational_form_residual(sim, solution):
                     solution = solution,
                     buoyancy = water_buoyancy),
             sapphire.simulations.convection_coupled_phasechange.energy,
-            sapphire.simulations.convection_coupled_phasechange.stabilization)])\
+            sapphire.simulations.convection_coupled_phasechange.pressure_penalty)])\
         *fe.dx(degree = sim.quadrature_degree)
     
     

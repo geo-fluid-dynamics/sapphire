@@ -35,7 +35,8 @@ def test__verify_spatial_convergence__second_order__via_mms(
             "quadrature_degree": 4,
             "element_degree": 1,
             "time_stencil_size": 2},
-        expected_order = 2,
+        norms = ("H1", "L2"),
+        expected_orders = (2, 2),
         tolerance = tolerance,
         timestep_size = timestep_size,
         endtime = 1.)
@@ -54,7 +55,8 @@ def test__verify_temporal_convergence__first_order__via_mms(
             "quadrature_degree": 4,
             "element_degree": 1,
             "time_stencil_size": 2},
-        expected_order = 1,
+        norms = ("L2", "L2"),
+        expected_orders = (None, 1),
         endtime = 1.,
         timestep_sizes = timestep_sizes,
         tolerance = tolerance)

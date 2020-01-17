@@ -35,9 +35,13 @@ def variational_form_residual(
     
     energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))
     
+    gamma = sim.pressure_penalty_constant
+    
+    pressure_penalty = gamma*psi_p*p
+    
     dx = fe.dx(degree = sim.quadrature_degree)
     
-    return (mass + momentum + energy)*dx
+    return (mass + momentum + energy + pressure_penalty)*dx
     
     
 def strong_residual(sim, solution, buoyancy = linear_boussinesq_buoyancy):
@@ -59,20 +63,29 @@ def strong_residual(sim, solution, buoyancy = linear_boussinesq_buoyancy):
     
 def element(cell, degree):
     
-    scalar = fe.FiniteElement("P", cell, degree)
+    if type(degree) is type(1):
     
-    vector = fe.VectorElement("P", cell, degree + 1)
+        degree = (degree,)*3
+        
+    pressure_element = fe.FiniteElement("P", cell, degree[0])
     
-    return fe.MixedElement(scalar, vector, scalar)
+    velocity_element = fe.VectorElement("P", cell, degree[1])
+    
+    temperature_element = fe.FiniteElement("P", cell, degree[2])
+    
+    return fe.MixedElement(
+        pressure_element, velocity_element, temperature_element)
 
     
 class Simulation(sapphire.simulation.Simulation):
     
-    def __init__(self, *args, mesh, element_degree = 1, **kwargs):
+    def __init__(self, *args, mesh, element_degree = (1, 2, 2), **kwargs):
         
         self.grashof_number = fe.Constant(1.)
         
         self.prandtl_number = fe.Constant(1.)
+        
+        self.pressure_penalty_constant = fe.Constant(0.)
         
         super().__init__(*args,
             mesh = mesh,

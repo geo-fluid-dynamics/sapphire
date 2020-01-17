@@ -31,5 +31,6 @@ def test__verify_convergence_order_via_mms(
         meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
         sim_constructor_kwargs = {"advection_velocity": advection_velocity},
         parameters = {"diffusion_coefficient": 0.1},
-        expected_order = 2,
+        norms = ("H1",),
+        expected_orders = (1,),
         tolerance = tolerance)
