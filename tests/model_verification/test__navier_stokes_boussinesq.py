@@ -35,13 +35,13 @@ def test__verify_taylor_hood_accuracy_via_mms(
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
-        manufactured_solution = manufactured_solution,
-        meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
-        parameters = {
+        sim_parameters = {
             "grashof_number": Ra/Pr,
             "prandtl_number": Pr,
             "element_degree": (1, 2, 2),
             },
+        manufactured_solution = manufactured_solution,
+        meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
         norms = ("L2", "H1", "H1"),
         expected_orders = (2, 2, 2),
         tolerance = tolerance)
@@ -59,14 +59,14 @@ def test__show_equal_order_pressure_penalty_inaccuracy_via_mms(
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
-        manufactured_solution = manufactured_solution,
-        meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
-        parameters = {
+        sim_parameters = {
             "grashof_number": Ra/Pr, 
             "prandtl_number": Pr, 
             "pressure_penalty_constant": gamma,
             "element_degree": (1, 1, 1),
             },
+        manufactured_solution = manufactured_solution,
+        meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
         norms = ("L2", "H1", "H1"),
         expected_orders = (None, 1, 1),
         tolerance = tolerance)
@@ -84,14 +84,14 @@ def test__verify_taylor_hood_with_pressure_penalty_accuracy_via_mms(
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
-        manufactured_solution = manufactured_solution,
-        meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
-        parameters = {
+        sim_parameters = {
             "grashof_number": Ra/Pr, 
             "prandtl_number": Pr, 
             "pressure_penalty_constant": gamma,
             "element_degree": (1, 2, 2),
             },
+        manufactured_solution = manufactured_solution,
+        meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
         norms = ("L2", "H1", "H1"),
         expected_orders = (2, 2, 2),
         tolerance = tolerance)

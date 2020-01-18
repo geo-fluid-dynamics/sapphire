@@ -129,10 +129,8 @@ def verify_spatial_order_of_accuracy(
         norms,
         expected_orders,
         tolerance,
-        parameters = {},
-        timestep_size = 1.e32,
+        sim_parameters = {},
         endtime = 0.,
-        starttime = 0.,
         strong_residual = None,
         dirichlet_boundary_conditions = None,
         outfile = None):
@@ -151,13 +149,9 @@ def verify_spatial_order_of_accuracy(
         
         h = mesh.cell_sizes((0.,)*mesh.geometric_dimension())
         
-        sim = MMSVerificationSimulation(mesh = mesh, **parameters)
+        sim = MMSVerificationSimulation(mesh = mesh, **sim_parameters)
         
         if sim.time is not None:
-            
-            sim.time = sim.time.assign(starttime)
-            
-            sim.timestep_size = sim.timestep_size.assign(timestep_size)
             
             sim.solutions, _ = sim.run(endtime = endtime)
             
@@ -221,13 +215,12 @@ def verify_spatial_order_of_accuracy(
 def verify_temporal_order_of_accuracy(
         sim_module,
         manufactured_solution,
-        mesh,
         timestep_sizes,
         endtime,
         norms,
         expected_orders,
         tolerance,
-        parameters = {},
+        sim_parameters = {},
         starttime = 0.,
         strong_residual = None,
         dirichlet_boundary_conditions = None,
@@ -245,7 +238,7 @@ def verify_temporal_order_of_accuracy(
     
     for timestep_size in timestep_sizes:
         
-        sim = MMSVerificationSimulation(mesh = mesh, **parameters)
+        sim = MMSVerificationSimulation(**sim_parameters)
     
         assert(len(sim.solutions) > 1)
         

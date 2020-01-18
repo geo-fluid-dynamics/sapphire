@@ -37,8 +37,8 @@ def test__verify_temporal_convergence__first_order__via_mms(
     
     sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
+        sim_parameters = {"mesh": fe.UnitIntervalMesh(meshsize)},
         manufactured_solution = manufactured_solution,
-        mesh = fe.UnitIntervalMesh(meshsize),
         norms = ("L2",),
         expected_orders = (1,),
         endtime = 1.,
@@ -53,11 +53,12 @@ def test__verify_temporal_convergence__second_order__via_mms(
     
     sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
-        manufactured_solution = manufactured_solution,
-        mesh = fe.UnitIntervalMesh(meshsize),
-        parameters = {
+        sim_parameters = {
+            "mesh": fe.UnitIntervalMesh(meshsize),
             "element_degree": 2,
-            "time_stencil_size": 3},
+            "time_stencil_size": 3,
+            },
+        manufactured_solution = manufactured_solution,
         norms = ("L2",),
         expected_orders = (2,),
         endtime = 1.,
@@ -72,11 +73,12 @@ def test__verify_temporal_convergence__third_order__via_mms(
     
     sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
-        manufactured_solution = manufactured_solution,
-        mesh = fe.UnitIntervalMesh(meshsize),
-        parameters = {
+        sim_parameters = {
+            "mesh": fe.UnitIntervalMesh(meshsize),
             "element_degree": 2,
-            "time_stencil_size": 4},
+            "time_stencil_size": 4,
+            },
+        manufactured_solution = manufactured_solution,
         norms = ("L2",),
         expected_orders = (3,),
         endtime = 1.,

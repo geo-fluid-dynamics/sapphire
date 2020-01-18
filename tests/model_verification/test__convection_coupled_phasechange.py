@@ -81,6 +81,8 @@ def test__verify__taylor_hood_second_order_spatial_convergence__via_mms(
     """
     parameters["element_degree"] = (1, 2, 2)
     
+    parameters["timestep_size"] = endtime
+    
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
     
@@ -92,14 +94,13 @@ def test__verify__taylor_hood_second_order_spatial_convergence__via_mms(
         
         sapphire.mms.verify_spatial_order_of_accuracy(
             sim_module = sim_module,
+            sim_parameters = parameters,
             manufactured_solution = space_verification_solution,
             #strong_residual = sim_module.strong_residual_with_pressure_penalty, #Adding the penalty term to the strong residual removes the floor and maintains superconvergence.
             meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
-            parameters = parameters,
             norms = ("L2", "H1", "H1"),
             expected_orders = (None, 2, 2),
             tolerance = 0.1,
-            timestep_size = endtime,
             endtime = endtime,
             outfile = outfile)
 
@@ -109,6 +110,8 @@ def test__verify__taylor_hood_third_order_spatial_convergence__via_mms(
     
     parameters["element_degree"] = (2, 3, 3)
     
+    parameters["timestep_size"] = endtime
+    
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
     
@@ -120,13 +123,12 @@ def test__verify__taylor_hood_third_order_spatial_convergence__via_mms(
         
         sapphire.mms.verify_spatial_order_of_accuracy(
             sim_module = sim_module,
+            sim_parameters = parameters,
             manufactured_solution = space_verification_solution,
             meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
-            parameters = parameters,
             norms = ("L2", "H1", "H1"),
             expected_orders = (None, 3, 3),
             tolerance = 0.1,
-            timestep_size = endtime,
             endtime = endtime,
             outfile = outfile)
             
@@ -136,6 +138,8 @@ def test__verify__equal_order_first_order_spatial_convergence__via_mms(
     
     parameters["element_degree"] = (1, 1, 1)
     
+    parameters["timestep_size"] = endtime
+    
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
     
@@ -147,13 +151,12 @@ def test__verify__equal_order_first_order_spatial_convergence__via_mms(
         
         sapphire.mms.verify_spatial_order_of_accuracy(
             sim_module = sim_module,
+            sim_parameters = parameters,
             manufactured_solution = space_verification_solution,
             meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
-            parameters = parameters,
             norms = ("L2", "H1", "H1"),
             expected_orders = (None, 1, 1),
             tolerance = 0.1,
-            timestep_size = endtime,
             endtime = endtime,
             outfile = outfile)
 
@@ -163,6 +166,10 @@ def test__verify__second_order_temporal_convergence__via_mms(
     
     parameters["element_degree"] = (1, 2, 2)
     
+    meshsize = 32
+    
+    parameters["mesh"] = fe.UnitSquareMesh(meshsize, meshsize)
+    
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
     
@@ -170,15 +177,12 @@ def test__verify__second_order_temporal_convergence__via_mms(
     
     outdir_path.mkdir(parents = True, exist_ok = True) 
     
-    meshsize = 32
-    
     with open(outdir_path / "convergence.csv", "w") as outfile:
     
         sapphire.mms.verify_temporal_order_of_accuracy(
             sim_module = sim_module,
+            sim_parameters = parameters,
             manufactured_solution = time_verification_solution,
-            mesh = fe.UnitSquareMesh(meshsize, meshsize),
-            parameters = parameters,
             norms = ("L2", "L2", "L2"),
             expected_orders = (None, 2, 2),
             tolerance = 0.2,

@@ -27,36 +27,34 @@ parameters = {
     "element_degree": 1,
     "time_stencil_size": 2}
     
-def test__verify_spatial_convergence__second_order__via_mms(
-        mesh_sizes = (3, 6, 12, 24),
-        timestep_size = 1./32.,
-        tolerance = 0.3):
+def test__verify_spatial_convergence__second_order__via_mms():
+    
+    parameters["timestep_size"] = 1./32.
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
+        sim_parameters = parameters,
         manufactured_solution = manufactured_solution,
-        meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
-        parameters = parameters,
+        meshes = [fe.UnitSquareMesh(n, n) for n in (3, 6, 12, 24)],
         norms = ("H1", "L2"),
         expected_orders = (2, 2),
-        tolerance = tolerance,
-        timestep_size = timestep_size,
+        tolerance = 0.3,
         endtime = 1.)
     
  
-def test__verify_temporal_convergence__first_order__via_mms(
-        meshsize = 32,
-        timestep_sizes = (1./2., 1./4., 1./8.),
-        tolerance = 0.1):
+def test__verify_temporal_convergence__first_order__via_mms():
+    
+    meshsize = 32
+    
+    parameters["mesh"] = fe.UnitSquareMesh(meshsize, meshsize)
     
     sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
+        sim_parameters = parameters,
         manufactured_solution = manufactured_solution,
-        mesh = fe.UnitSquareMesh(meshsize, meshsize),
-        parameters = parameters,
         norms = ("L2", "L2"),
         expected_orders = (None, 1),
         endtime = 1.,
-        timestep_sizes = timestep_sizes,
-        tolerance = tolerance)
+        timestep_sizes = (1./2., 1./4., 1./8.),
+        tolerance = 0.1)
     
