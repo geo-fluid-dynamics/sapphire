@@ -10,6 +10,9 @@ tempdir = sapphire.test.datadir
 def test__validate__melt_octadecane__regression(tempdir):
     
     sim = sapphire.benchmarks.melt_octadecane_in_cavity.Simulation(
+        topwall_heatflux_prestart = 0.,
+        topwall_heatflux_poststart = -0.02,
+        topwall_heatflux_starttime = 40.,
         timestep_size = 20.,
         liquidus_smoothing_factor = 1./200.,
         solid_velocity_relaxation_factor = 1.e-12,
@@ -19,10 +22,7 @@ def test__validate__melt_octadecane__regression(tempdir):
         meshsize = 24,
         output_directory_path = tempdir)
     
-    sim.run(
-        endtime = 80.,
-        topwall_heatflux_poststart = -0.02,
-        topwall_heatflux_starttime = 40.)
+    sim.run(endtime = 80.)
     
     print("Liquid area = {}".format(sim.liquid_area))
     

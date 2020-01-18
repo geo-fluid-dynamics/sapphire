@@ -36,7 +36,9 @@ class Simulation(sapphire.simulations.\
             meshsize,
             hotwall_temperature = 1.,
             initial_temperature = -0.01, 
-            topwall_heatflux = 0.,
+            topwall_heatflux_prestart = 0.,
+            topwall_heatflux_poststart = -0.02,
+            topwall_heatflux_starttime = 40.,
             stefan_number = 0.045,
             rayleigh_number = 3.27e5,
             prandtl_number = 56.2,
@@ -47,7 +49,11 @@ class Simulation(sapphire.simulations.\
         
         self.initial_temperature = fe.Constant(initial_temperature)
         
-        self.topwall_heatflux = fe.Constant(topwall_heatflux)
+        self.topwall_heatflux = fe.Constant(topwall_heatflux_prestart)
+        
+        self.topwall_heatflux_poststart = topwall_heatflux_poststart
+        
+        self.topwall_heatflux_starttime = topwall_heatflux_starttime
         
         Ra = rayleigh_number
         
@@ -76,17 +82,13 @@ class Simulation(sapphire.simulations.\
 
         self.variational_form_residual += psi_T*q*ds
         
-    def run(self, *args,
-            endtime,
-            topwall_heatflux_poststart = -0.02,
-            topwall_heatflux_starttime = 40.,
-            **kwargs):
+    def run(self, *args, endtime, **kwargs):
     
         final_endtime = endtime
         
         original_topwall_heatflux = self.topwall_heatflux.__float__()
         
-        if final_endtime < topwall_heatflux_starttime:
+        if final_endtime < self.topwall_heatflux_starttime:
         
             self.solutions, self.time = super().run(*args,
                 endtime = final_endtime,
@@ -95,12 +97,12 @@ class Simulation(sapphire.simulations.\
             return self.solutions, self.time
         
         self.solutions, self.time = super().run(*args,
-            endtime = topwall_heatflux_starttime,
+            endtime = self.topwall_heatflux_starttime,
             write_initial_outputs = True,
             **kwargs)
         
         self.topwall_heatflux = self.topwall_heatflux.assign(
-            topwall_heatflux_poststart)
+            self.topwall_heatflux_poststart)
             
         self.solutions, self.time = super().run(*args,
             endtime = final_endtime,
