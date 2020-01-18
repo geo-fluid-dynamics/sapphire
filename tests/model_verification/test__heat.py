@@ -55,7 +55,7 @@ def test__verify_temporal_convergence__second_order__via_mms(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
-        sim_constructor_kwargs = {
+        parameters = {
             "element_degree": 2,
             "time_stencil_size": 3},
         norms = ("L2",),
@@ -74,7 +74,7 @@ def test__verify_temporal_convergence__third_order__via_mms(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         mesh = fe.UnitIntervalMesh(meshsize),
-        sim_constructor_kwargs = {
+        parameters = {
             "element_degree": 2,
             "time_stencil_size": 4},
         norms = ("L2",),

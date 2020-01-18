@@ -79,13 +79,19 @@ def element(cell, degree):
     
 class Simulation(sapphire.simulation.Simulation):
     
-    def __init__(self, *args, mesh, element_degree = (1, 2, 2), **kwargs):
+    def __init__(self, *args, 
+            mesh, 
+            element_degree = (1, 2, 2),
+            grashof_number = 1.,
+            prandtl_number = 1.,
+            pressure_penalty_constant = 0.,
+            **kwargs):
         
-        self.grashof_number = fe.Constant(1.)
+        self.grashof_number = fe.Constant(grashof_number)
         
-        self.prandtl_number = fe.Constant(1.)
+        self.prandtl_number = fe.Constant(prandtl_number)
         
-        self.pressure_penalty_constant = fe.Constant(0.)
+        self.pressure_penalty_constant = fe.Constant(pressure_penalty_constant)
         
         super().__init__(*args,
             mesh = mesh,

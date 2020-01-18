@@ -12,7 +12,7 @@ def liquid_volume_fraction(sim, temperature):
     
     T_m = sim.liquidus_temperature
     
-    sigma = sim.smoothing
+    sigma = sim.liquidus_smoothing_factor
     
     return 0.5*(1. + erf((T - T_m)/(sigma*sqrt(2))))
 
@@ -65,22 +65,27 @@ def element(cell, degree):
     
 class Simulation(sapphire.simulation.Simulation):
     
-    def __init__(self, *args, mesh, element_degree = 1, **kwargs):
+    def __init__(self, *args, 
+            mesh, 
+            element_degree = 1, 
+            stefan_number = 1.,
+            liquidus_temperature = 0.,
+            liquidus_smoothing_factor = 0.01,
+            solver_parameters = {"ksp_type": "cg"},
+            **kwargs):
         
-        self.stefan_number = fe.Constant(1.)
+        self.stefan_number = fe.Constant(stefan_number)
         
-        self.liquidus_temperature = fe.Constant(0.)
+        self.liquidus_temperature = fe.Constant(liquidus_temperature)
         
-        self.smoothing = fe.Constant(1./32.)
+        self.liquidus_smoothing_factor = fe.Constant(
+            liquidus_smoothing_factor)
         
         super().__init__(*args,
             mesh = mesh,
             element = element(
                 cell = mesh.ufl_cell(), degree = element_degree),
             variational_form_residual = variational_form_residual,
+            solver_parameters = solver_parameters,
             **kwargs)
-            
-    def solve(self, *args, **kwargs):
-    
-        return super().solve(*args, parameters = {"ksp_type": "cg"}, **kwargs)
             

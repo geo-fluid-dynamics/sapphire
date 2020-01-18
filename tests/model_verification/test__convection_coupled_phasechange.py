@@ -62,10 +62,12 @@ parameters = {
     "liquidus_smoothing_factor": 0.1,
     "solid_velocity_relaxation_factor": 1.e-12,
     "pressure_penalty_factor": 1.e-4,
+    "quadrature_degree": None,
+    "element_degree": None,
     }
     
 
-quadrature_degree = None
+
 
 endtime = 1.
 
@@ -77,6 +79,8 @@ def test__verify__taylor_hood_second_order_spatial_convergence__via_mms(
         where the magnitude hits a floor around 0.5.
     To keep the test cheap, only up to nx = 32 is shown here.
     """
+    parameters["element_degree"] = (1, 2, 2)
+    
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
     
@@ -92,9 +96,6 @@ def test__verify__taylor_hood_second_order_spatial_convergence__via_mms(
             #strong_residual = sim_module.strong_residual_with_pressure_penalty, #Adding the penalty term to the strong residual removes the floor and maintains superconvergence.
             meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
             parameters = parameters,
-            sim_constructor_kwargs = {
-                "element_degree": (1, 2, 2),
-                "quadrature_degree": quadrature_degree},
             norms = ("L2", "H1", "H1"),
             expected_orders = (None, 2, 2),
             tolerance = 0.1,
@@ -106,6 +107,8 @@ def test__verify__taylor_hood_second_order_spatial_convergence__via_mms(
 def test__verify__taylor_hood_third_order_spatial_convergence__via_mms(
         tempdir):
     
+    parameters["element_degree"] = (2, 3, 3)
+    
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
     
@@ -120,9 +123,6 @@ def test__verify__taylor_hood_third_order_spatial_convergence__via_mms(
             manufactured_solution = space_verification_solution,
             meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
             parameters = parameters,
-            sim_constructor_kwargs = {
-                "element_degree": (2, 3, 3),
-                "quadrature_degree": quadrature_degree},
             norms = ("L2", "H1", "H1"),
             expected_orders = (None, 3, 3),
             tolerance = 0.1,
@@ -134,6 +134,8 @@ def test__verify__taylor_hood_third_order_spatial_convergence__via_mms(
 def test__verify__equal_order_first_order_spatial_convergence__via_mms(
         tempdir):
     
+    parameters["element_degree"] = (1, 1, 1)
+    
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
     
@@ -148,9 +150,6 @@ def test__verify__equal_order_first_order_spatial_convergence__via_mms(
             manufactured_solution = space_verification_solution,
             meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
             parameters = parameters,
-            sim_constructor_kwargs = {
-                "element_degree": (1, 1, 1),
-                "quadrature_degree": quadrature_degree},
             norms = ("L2", "H1", "H1"),
             expected_orders = (None, 1, 1),
             tolerance = 0.1,
@@ -161,6 +160,8 @@ def test__verify__equal_order_first_order_spatial_convergence__via_mms(
 
 def test__verify__second_order_temporal_convergence__via_mms(
         tempdir):
+    
+    parameters["element_degree"] = (1, 2, 2)
     
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
@@ -178,7 +179,6 @@ def test__verify__second_order_temporal_convergence__via_mms(
             manufactured_solution = time_verification_solution,
             mesh = fe.UnitSquareMesh(meshsize, meshsize),
             parameters = parameters,
-            sim_constructor_kwargs = {"element_degree": (1, 2, 2)},
             norms = ("L2", "L2", "L2"),
             expected_orders = (None, 2, 2),
             tolerance = 0.2,

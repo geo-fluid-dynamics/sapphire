@@ -37,8 +37,11 @@ def test__verify_taylor_hood_accuracy_via_mms(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
-        parameters = {"grashof_number": Ra/Pr, "prandtl_number": Pr},
-        sim_constructor_kwargs = {"element_degree": (1, 2, 2)},
+        parameters = {
+            "grashof_number": Ra/Pr,
+            "prandtl_number": Pr,
+            "element_degree": (1, 2, 2),
+            },
         norms = ("L2", "H1", "H1"),
         expected_orders = (2, 2, 2),
         tolerance = tolerance)
@@ -61,8 +64,9 @@ def test__show_equal_order_pressure_penalty_inaccuracy_via_mms(
         parameters = {
             "grashof_number": Ra/Pr, 
             "prandtl_number": Pr, 
-            "pressure_penalty_constant": gamma},
-        sim_constructor_kwargs = {"element_degree": (1, 1, 1)},
+            "pressure_penalty_constant": gamma,
+            "element_degree": (1, 1, 1),
+            },
         norms = ("L2", "H1", "H1"),
         expected_orders = (None, 1, 1),
         tolerance = tolerance)
@@ -85,8 +89,9 @@ def test__verify_taylor_hood_with_pressure_penalty_accuracy_via_mms(
         parameters = {
             "grashof_number": Ra/Pr, 
             "prandtl_number": Pr, 
-            "pressure_penalty_constant": gamma},
-        sim_constructor_kwargs = {"element_degree": (1, 2, 2)},
+            "pressure_penalty_constant": gamma,
+            "element_degree": (1, 2, 2),
+            },
         norms = ("L2", "H1", "H1"),
         expected_orders = (2, 2, 2),
         tolerance = tolerance)

@@ -37,16 +37,17 @@ def strong_residual(sim, solution):
     
 class Simulation(sapphire.simulation.Simulation):
     
-    def __init__(self, *args, mesh, element_degree = 1, **kwargs):
+    def __init__(self, *args, 
+            mesh, 
+            element_degree = 1, 
+            solver_parameters = {"ksp_type": "cg"},
+            **kwargs):
         
         super().__init__(*args,
             mesh = mesh,
             element = element(
                 cell = mesh.ufl_cell(), degree = element_degree),
             variational_form_residual = variational_form_residual,
+            solver_parameters = solver_parameters,
             **kwargs)
     
-    def solve(self, *args, **kwargs):
-        
-        return super().solve(*args, parameters = {"ksp_type": "cg"}, **kwargs)
-        

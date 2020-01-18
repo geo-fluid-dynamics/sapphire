@@ -16,27 +16,33 @@ def dirichlet_boundary_conditions(sim):
         fe.DirichletBC(W.sub(2), sim.hot_wall_temperature, 1),
         fe.DirichletBC(W.sub(2), sim.cold_wall_temperature, 2)]
         
-        
+
+default_Ra = 1.e6
+
+default_Pr = 0.71
+
+default_Gr = default_Ra/default_Pr
+
 class Simulation(sapphire.simulations.navier_stokes_boussinesq.Simulation):
     
-    def __init__(self, *args, meshsize, **kwargs):
+    def __init__(self, *args, 
+            meshsize, 
+            hot_wall_temperature = 0.5,
+            cold_wall_temperature = -0.5,
+            grashof_number = default_Gr,
+            prandtl_number = default_Pr,
+            **kwargs):
         
-        self.hot_wall_temperature = fe.Constant(0.5)
+        self.hot_wall_temperature = fe.Constant(hot_wall_temperature)
     
-        self.cold_wall_temperature = fe.Constant(-0.5)
+        self.cold_wall_temperature = fe.Constant(cold_wall_temperature)
         
         super().__init__(
             *args,
             mesh = fe.UnitSquareMesh(meshsize, meshsize),
             initial_values = initial_values,
             dirichlet_boundary_conditions = dirichlet_boundary_conditions,
+            grashof_number = grashof_number,
+            prandtl_number = prandtl_number,
             **kwargs)
-        
-        Ra = 1.e6
-        
-        Pr = 0.71
-        
-        self.grashof_number = self.grashof_number.assign(Ra/Pr)
-        
-        self.prandtl_number = self.prandtl_number.assign(Pr)
         

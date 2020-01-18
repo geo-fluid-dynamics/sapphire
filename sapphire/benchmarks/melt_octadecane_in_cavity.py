@@ -25,7 +25,7 @@ def dirichlet_boundary_conditions(sim):
     
     return [
         fe.DirichletBC(W.sub(1), (0., 0.), "on_boundary"),
-        fe.DirichletBC(W.sub(2), sim.hot_wall_temperature, 1),
+        fe.DirichletBC(W.sub(2), sim.hotwall_temperature, 1),
         fe.DirichletBC(W.sub(2), sim.initial_temperature, 2)]
         
         
@@ -33,7 +33,8 @@ class Simulation(sapphire.simulations.\
         convection_coupled_phasechange.Simulation):
     
     def __init__(self, *args, 
-            meshsize, 
+            meshsize,
+            hotwall_temperature = 1.,
             initial_temperature = -0.01, 
             topwall_heatflux = 0.,
             stefan_number = 0.045,
@@ -42,7 +43,7 @@ class Simulation(sapphire.simulations.\
             liquidus_temperature = 0.,
             **kwargs):
         
-        self.hot_wall_temperature = fe.Constant(1.)
+        self.hotwall_temperature = fe.Constant(hotwall_temperature)
         
         self.initial_temperature = fe.Constant(initial_temperature)
         
@@ -68,8 +69,10 @@ class Simulation(sapphire.simulations.\
         q = self.topwall_heatflux
 
         _, _, psi_T = fe.TestFunctions(self.function_space)
-
-        ds = fe.ds(domain = self.mesh, subdomain_id = 4)
+        
+        topwall_id = 4
+        
+        ds = fe.ds(domain = self.mesh, subdomain_id = topwall_id)
 
         self.variational_form_residual += psi_T*q*ds
         

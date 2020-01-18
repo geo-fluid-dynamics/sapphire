@@ -301,8 +301,6 @@ class Simulation(sapphire.simulation.Simulation):
         self.liquidus_smoothing_factor = fe.Constant(
             liquidus_smoothing_factor)
         
-        self.solver_parameters = solver_parameters
-        
         self.smoothing_sequence = None
         
         if "variational_form_residual" not in kwargs:
@@ -317,6 +315,7 @@ class Simulation(sapphire.simulation.Simulation):
             mesh = mesh,
             element = element(
                 cell = mesh.ufl_cell(), degree = element_degree),
+            solver_parameters = solver_parameters,
             **kwargs)
             
     def solve_with_auto_smoothing(self):

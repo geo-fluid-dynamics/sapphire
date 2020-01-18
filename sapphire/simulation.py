@@ -59,6 +59,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
             self.timestep_size = None
             
+        self.solver_parameters = solver_parameters
             
         self.output_directory_path = pathlib.Path(output_directory_path)
         
@@ -80,9 +81,6 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 
         self.dirichlet_boundary_conditions = \
             dirichlet_boundary_conditions(sim = self)
-        
-        
-        self.solver_parameters = solver_parameters
         
         self.snes_iteration_count = 0
         
@@ -152,7 +150,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         while self.time.__float__() < (endtime - time_tolerance):
             
-            self.time.assign(self.time + self.timestep_size)
+            self.time = self.time.assign(self.time + self.timestep_size)
             
             self.solution = solve()
             
@@ -163,22 +161,6 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             self.solutions = self.push_back_solutions()
             
         return self.solutions, self.time
-        
-    def assign_parameters(self, parameters):
-    
-        for key, value in parameters.items():
-        
-            attribute = getattr(self, key)
-            
-            if type(attribute) is type(fe.Constant(0.)):
-            
-                attribute.assign(value)
-                
-            else:
-            
-                setattr(self, key, value)
-                
-        return self
         
     def unit_vectors(self):
     
