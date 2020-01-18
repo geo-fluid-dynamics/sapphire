@@ -265,7 +265,15 @@ class Simulation(sapphire.simulation.Simulation):
             thermal_conductivity_solid_to_liquid_ratio = 1.,
             solid_velocity_relaxation_factor = 1.e-12,
             liquidus_smoothing_factor = 0.01,
-            newton_max_iterations = 24,
+            solver_parameters = {
+                "snes_type": "newtonls",
+                "snes_max_it": 24,
+                "snes_monitor": None,
+                "snes_rtol": 0.,
+                "ksp_type": "preonly", 
+                "pc_type": "lu", 
+                "mat_type": "aij",
+                "pc_factor_mat_solver_type": "mumps"},
             **kwargs):
         
         self.grashof_number = fe.Constant(grashof_number)
@@ -293,7 +301,7 @@ class Simulation(sapphire.simulation.Simulation):
         self.liquidus_smoothing_factor = fe.Constant(
             liquidus_smoothing_factor)
         
-        self.newton_max_iterations = newton_max_iterations
+        self.solver_parameters = solver_parameters
         
         self.smoothing_sequence = None
         
@@ -309,20 +317,6 @@ class Simulation(sapphire.simulation.Simulation):
             mesh = mesh,
             element = element(
                 cell = mesh.ufl_cell(), degree = element_degree),
-            **kwargs)
-            
-    def solve(self, *args, **kwargs):
-        
-        return super().solve(*args,
-            parameters = {
-                "snes_type": "newtonls",
-                "snes_max_it": self.newton_max_iterations,
-                "snes_monitor": None,
-                "snes_rtol": 0.,
-                "ksp_type": "preonly", 
-                "pc_type": "lu", 
-                "mat_type": "aij",
-                "pc_factor_mat_solver_type": "mumps"},
             **kwargs)
             
     def solve_with_auto_smoothing(self):

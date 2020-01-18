@@ -19,6 +19,13 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             time_dependent = True,
             timestep_size = 1.,
             time_stencil_size = 2,
+            solver_parameters = {
+                "snes_type": "newtonls",
+                "snes_monitor": None,
+                "ksp_type": "preonly", 
+                "pc_type": "lu", 
+                "mat_type": "aij",
+                "pc_factor_mat_solver_type": "mumps"},
             output_directory_path = "output/"):
         
         self.mesh = mesh
@@ -75,16 +82,11 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             dirichlet_boundary_conditions(sim = self)
         
         
+        self.solver_parameters = solver_parameters
+        
         self.snes_iteration_count = 0
         
-    def solve(self,
-            parameters = {
-                "snes_type": "newtonls",
-                "snes_monitor": None,
-                "ksp_type": "preonly", 
-                "pc_type": "lu", 
-                "mat_type": "aij",
-                "pc_factor_mat_solver_type": "mumps"}):
+    def solve(self):
 
         problem = fe.NonlinearVariationalProblem(
             F = self.variational_form_residual,
@@ -94,7 +96,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             
         solver = fe.NonlinearVariationalSolver(
             problem = problem,
-            solver_parameters = parameters)
+            solver_parameters = self.solver_parameters)
             
         solver.solve()
         
