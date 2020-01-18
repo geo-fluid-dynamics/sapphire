@@ -45,7 +45,6 @@ def test__verify_spatial_convergence__second_order__via_mms():
         meshes = [fe.UnitIntervalMesh(size) for size in (4, 8, 16, 32)],
         norms = ("H1",),
         expected_orders = (2,),
-        timestep_size = timestep_size,
         endtime = 1.,
         tolerance = 0.1)
         
@@ -57,10 +56,9 @@ def test__verify_temporal_convergence__first_order__via_mms():
         sim_parameters = {
             "stefan_number": 0.1,
             "liquidus_smoothing_factor": 1./32.,
-            "mesh": e.UnitIntervalMesh(256),
+            "mesh": fe.UnitIntervalMesh(256),
             },
         manufactured_solution = manufactured_solution,
-        mesh = f,
         norms = ("L2",),
         expected_orders = (1,),
         endtime = 1.,
