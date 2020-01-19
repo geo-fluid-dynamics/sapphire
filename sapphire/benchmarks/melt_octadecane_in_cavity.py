@@ -37,7 +37,7 @@ class Simulation(sapphire.simulations.\
             hotwall_temperature = 1.,
             initial_temperature = -0.01, 
             topwall_heatflux_prestart = 0.,
-            topwall_heatflux_poststart = -0.02,
+            topwall_heatflux_poststart = 0.,
             topwall_heatflux_starttime = 40.,
             stefan_number = 0.045,
             rayleigh_number = 3.27e5,
