@@ -234,14 +234,10 @@ def plotvars(sim, solution = None):
     
         solution = sim.solution
         
-    V = fe.FunctionSpace(
-        solution.function_space().mesh(),
-        fe.FiniteElement("P", sim.mesh.ufl_cell(), 1))
-    
     p, u, T = solution.split()
     
     phil = fe.interpolate(liquid_volume_fraction(
-        sim = sim, temperature = T), V)
+        sim = sim, temperature = T), T.function_space())
     
     return (p, u, T, phil), \
         ("p", "\\mathbf{u}", "T", "\\phi_l"), \
