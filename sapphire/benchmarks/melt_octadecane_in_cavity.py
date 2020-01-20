@@ -36,9 +36,6 @@ class Simulation(sapphire.simulations.\
             meshsize,
             hotwall_temperature = 1.,
             initial_temperature = -0.01, 
-            topwall_heatflux_prestart = 0.,
-            topwall_heatflux_poststart = 0.,
-            topwall_heatflux_starttime = 40.,
             stefan_number = 0.045,
             rayleigh_number = 3.27e5,
             prandtl_number = 56.2,
@@ -49,65 +46,16 @@ class Simulation(sapphire.simulations.\
         
         self.initial_temperature = fe.Constant(initial_temperature)
         
-        self.topwall_heatflux = fe.Constant(topwall_heatflux_prestart)
-        
-        self.topwall_heatflux_poststart = topwall_heatflux_poststart
-        
-        self.topwall_heatflux_starttime = topwall_heatflux_starttime
-        
-        Ra = rayleigh_number
-        
-        Pr = prandtl_number
-        
-        Gr = Ra/Pr
+        grashof_number = rayleigh_number/prandtl_number
         
         super().__init__(
             *args,
             liquidus_temperature = liquidus_temperature,
             stefan_number = stefan_number,
-            grashof_number = Gr,
+            grashof_number = grashof_number,
             prandtl_number = prandtl_number,
             mesh = fe.UnitSquareMesh(meshsize, meshsize),
             initial_values = initial_values,
             dirichlet_boundary_conditions = dirichlet_boundary_conditions,
             **kwargs)
-        
-        q = self.topwall_heatflux
-
-        _, _, psi_T = fe.TestFunctions(self.function_space)
-        
-        topwall_id = 4
-        
-        ds = fe.ds(domain = self.mesh, subdomain_id = topwall_id)
-
-        self.variational_form_residual += psi_T*q*ds
-        
-    def run(self, *args, endtime, **kwargs):
-    
-        final_endtime = endtime
-        
-        original_topwall_heatflux = self.topwall_heatflux.__float__()
-        
-        if final_endtime < self.topwall_heatflux_starttime:
-        
-            self.solutions, self.time = super().run(*args,
-                endtime = final_endtime,
-                **kwargs)
-            
-            return self.solutions, self.time
-        
-        self.solutions, self.time = super().run(*args,
-            endtime = self.topwall_heatflux_starttime,
-            write_initial_outputs = True,
-            **kwargs)
-        
-        self.topwall_heatflux = self.topwall_heatflux.assign(
-            self.topwall_heatflux_poststart)
-            
-        self.solutions, self.time = super().run(*args,
-            endtime = final_endtime,
-            write_initial_outputs = False,
-            **kwargs)
-        
-        return self.solutions, self.time
         
