@@ -19,6 +19,7 @@ def test__verify_convergence_order_via_mms(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitIntervalMesh(n) for n in mesh_sizes],
-        expected_order = 2,
+        norms = ("L2",),
+        expected_orders = (2,),
         tolerance = tolerance)
     

@@ -17,7 +17,15 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             initial_values,
             quadrature_degree = None,
             time_dependent = True,
+            timestep_size = 1.,
             time_stencil_size = 2,
+            solver_parameters = {
+                "snes_type": "newtonls",
+                "snes_monitor": None,
+                "ksp_type": "preonly", 
+                "pc_type": "lu", 
+                "mat_type": "aij",
+                "pc_factor_mat_solver_type": "mumps"},
             output_directory_path = "output/"):
         
         self.mesh = mesh
@@ -43,7 +51,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             
             self.time = fe.Constant(0.)
             
-            self.timestep_size = fe.Constant(1.)
+            self.timestep_size = fe.Constant(timestep_size)
             
         else:
         
@@ -51,6 +59,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
             self.timestep_size = None
             
+        self.solver_parameters = solver_parameters
             
         self.output_directory_path = pathlib.Path(output_directory_path)
         
@@ -73,17 +82,9 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         self.dirichlet_boundary_conditions = \
             dirichlet_boundary_conditions(sim = self)
         
-        
         self.snes_iteration_count = 0
         
-    def solve(self,
-            parameters = {
-                "snes_type": "newtonls",
-                "snes_monitor": None,
-                "ksp_type": "preonly", 
-                "pc_type": "lu", 
-                "mat_type": "aij",
-                "pc_factor_mat_solver_type": "mumps"}):
+    def solve(self):
 
         problem = fe.NonlinearVariationalProblem(
             F = self.variational_form_residual,
@@ -93,7 +94,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             
         solver = fe.NonlinearVariationalSolver(
             problem = problem,
-            solver_parameters = parameters)
+            solver_parameters = self.solver_parameters)
             
         solver.solve()
         
@@ -149,7 +150,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         while self.time.__float__() < (endtime - time_tolerance):
             
-            self.time.assign(self.time + self.timestep_size)
+            self.time = self.time.assign(self.time + self.timestep_size)
             
             self.solution = solve()
             
@@ -160,22 +161,6 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             self.solutions = self.push_back_solutions()
             
         return self.solutions, self.time
-        
-    def assign_parameters(self, parameters):
-    
-        for key, value in parameters.items():
-        
-            attribute = getattr(self, key)
-            
-            if type(attribute) is type(fe.Constant(0.)):
-            
-                attribute.assign(value)
-                
-            else:
-            
-                setattr(self, key, value)
-                
-        return self
         
     def unit_vectors(self):
     

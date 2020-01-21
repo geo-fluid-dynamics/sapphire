@@ -25,7 +25,7 @@ def manufactured_solution(sim):
     return p, u, T
     
     
-def test__verify_convergence_order_via_mms(
+def test__verify_taylor_hood_accuracy_via_mms(
         mesh_sizes = (4, 8, 16, 32), 
         tolerance = 0.1):
     
@@ -35,10 +35,65 @@ def test__verify_convergence_order_via_mms(
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
+        sim_parameters = {
+            "grashof_number": Ra/Pr,
+            "prandtl_number": Pr,
+            "element_degree": (1, 2, 2),
+            },
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
-        parameters = {"grashof_number": Ra/Pr, "prandtl_number": Pr},
-        expected_order = 2,
+        norms = ("L2", "H1", "H1"),
+        expected_orders = (2, 2, 2),
+        tolerance = tolerance)
+    
+    
+def test__show_equal_order_pressure_penalty_inaccuracy_via_mms(
+        mesh_sizes = (4, 8, 16, 32, 64), 
+        tolerance = 0.1):
+    
+    Ra = 10.
+    
+    Pr = 0.7
+    
+    gamma = 1.e-7
+    
+    sapphire.mms.verify_spatial_order_of_accuracy(
+        sim_module = sim_module,
+        sim_parameters = {
+            "grashof_number": Ra/Pr, 
+            "prandtl_number": Pr, 
+            "pressure_penalty_constant": gamma,
+            "element_degree": (1, 1, 1),
+            },
+        manufactured_solution = manufactured_solution,
+        meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
+        norms = ("L2", "H1", "H1"),
+        expected_orders = (None, 1, 1),
+        tolerance = tolerance)
+    
+    
+def test__verify_taylor_hood_with_pressure_penalty_accuracy_via_mms(
+        mesh_sizes = (4, 8, 16, 32), 
+        tolerance = 0.1):
+    
+    Ra = 10.
+    
+    Pr = 0.7
+    
+    gamma = 1.e-7
+    
+    sapphire.mms.verify_spatial_order_of_accuracy(
+        sim_module = sim_module,
+        sim_parameters = {
+            "grashof_number": Ra/Pr, 
+            "prandtl_number": Pr, 
+            "pressure_penalty_constant": gamma,
+            "element_degree": (1, 2, 2),
+            },
+        manufactured_solution = manufactured_solution,
+        meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
+        norms = ("L2", "H1", "H1"),
+        expected_orders = (2, 2, 2),
         tolerance = tolerance)
     
     
@@ -107,7 +162,7 @@ def verify_scalar_solution_component(
 def test__verify_against_heat_driven_cavity_benchmark():
 
     sim = sapphire.benchmarks.heat_driven_cavity.Simulation(
-        element_degree = 1, meshsize = 40)
+        element_degree = (1, 2, 2), meshsize = 40)
     
     sim.solution = sim.solve()
     
