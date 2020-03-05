@@ -71,7 +71,7 @@ def dirichlet_boundary_conditions(sim):
     W = sim.function_space
     
     return [fe.DirichletBC(
-        W.sub(1), (0., 0.), "on_boundary"),
+        W.sub(1), (0.,)*sim.mesh.geometric_dimension(), "on_boundary"),
         fe.DirichletBC(W.sub(2), sim.hot_wall_temperature, 1),
         fe.DirichletBC(W.sub(2), sim.cold_wall_temperature, 2)]
         
@@ -94,9 +94,13 @@ def initial_values(sim):
     
     p.assign(0.)
     
-    ihat, jhat = sim.unit_vectors()
+    uval = 0.
     
-    u.assign(0.*ihat + 0.*jhat)
+    for unit_vector in sim.unit_vectors():
+    
+        uval += 0.*unit_vector
+        
+    u.assign(uval)
     
     T.assign(sim.cold_wall_temperature)
     
@@ -167,6 +171,7 @@ class Simulation(sapphire.simulations.convection_coupled_phasechange.Simulation)
             density_solid_to_liquid_ratio = 916.70/999.84,
             heat_capacity_solid_to_liquid_ratio = 0.500,
             thermal_conductivity_solid_to_liquid_ratio = 2.14/0.561,
+            spatial_dimensions = 2,
             **kwargs):
         
         self.reference_temperature_range__degC = fe.Constant(
@@ -176,9 +181,17 @@ class Simulation(sapphire.simulations.convection_coupled_phasechange.Simulation)
         
         self.cold_wall_temperature = fe.Constant(cold_wall_temperature_before_freezing)
         
+        if spatial_dimensions == 2:
+        
+            mesh = fe.UnitSquareMesh(meshsize, meshsize)
+            
+        elif spatial_dimensions == 3:
+        
+            mesh = fe.UnitCubeMesh(meshsize, meshsize, meshsize)
+            
         super().__init__(
             *args,
-            mesh = fe.UnitSquareMesh(meshsize, meshsize),
+            mesh = mesh,
             variational_form_residual = variational_form_residual,
             initial_values = initial_values,
             dirichlet_boundary_conditions = dirichlet_boundary_conditions,

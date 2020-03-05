@@ -133,7 +133,9 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         sapphire.output.write_solution(sim = self, file = self.solution_file)
         
-        sapphire.output.plot(sim = self, plotvars = plotvars)
+        if self.mesh.geometric_dimension() < 3:
+            
+            sapphire.output.plot(sim = self, plotvars = plotvars)
         
     def run(self,
             endtime,
