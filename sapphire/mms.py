@@ -59,8 +59,8 @@ def mms_initial_values(sim, manufactured_solution):
     return initial_values
     
     
-def mms_dirichlet_boundary_conditions(sim, manufactured_solution):
-    
+def default_mms_dirichlet_boundary_conditions(sim, manufactured_solution):
+    """ By default, apply Dirichlet BC's to every component on every boundary. """
     W = sim.function_space
     
     if type(sim.element) is fe.FiniteElement:
@@ -77,13 +77,23 @@ def mms_dirichlet_boundary_conditions(sim, manufactured_solution):
 def make_mms_verification_sim_class(
         sim_module,
         manufactured_solution,
+        strong_residual = None,
+        mms_dirichlet_boundary_conditions = None
         write_simulation_outputs = False):
     
+    if strong_residual is None:
+        
+        strong_residual = sim_module.strong_residual
+        
     def initial_values(sim):
         
         return mms_initial_values(
             sim = sim,
             manufactured_solution = manufactured_solution(sim))
+    
+    if mms_dirichlet_boundary_conditions is None:
+    
+        mms_dirichlet_boundary_conditions = default_mms_dirichlet_boundary_conditions
         
     def dirichlet_boundary_conditions(sim):
     
@@ -102,7 +112,7 @@ def make_mms_verification_sim_class(
                 
             self.variational_form_residual -= mms_source(
                     sim = self,
-                    strong_residual = sim_module.strong_residual,
+                    strong_residual = strong_residual,
                     manufactured_solution = manufactured_solution)\
                 *fe.dx(degree = self.quadrature_degree)
                 
@@ -115,33 +125,17 @@ def make_mms_verification_sim_class(
     return MMSVerificationSimulation
     
     
-def errornorm(w, wh, *args, **kwargs):
-    """ Extends fe.errornorm to handle mixed FEM functions """
-    if len(wh.split()) == 1:
-    
-        return fe.errornorm(w, wh.split()[0], *args, **kwargs)
-    
-    else:
-        
-        e = 0.
-        
-        for w_i, wh_i in zip(w, wh.split()):
-            
-            e += fe.errornorm(w_i, wh_i, *args, **kwargs)
-        
-        return e
-    
-    
 def verify_spatial_order_of_accuracy(
         sim_module,
         manufactured_solution,
         meshes,
-        expected_order,
+        norms,
+        expected_orders,
         tolerance,
-        sim_constructor_kwargs = {},
-        parameters = {},
-        timestep_size = 1.e32,
+        sim_parameters = {},
         endtime = 0.,
+        strong_residual = None,
+        dirichlet_boundary_conditions = None,
         starttime = 0.,
         outfile = None,
         write_simulation_outputs = False):
@@ -150,8 +144,10 @@ def verify_spatial_order_of_accuracy(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         write_simulation_outputs = write_simulation_outputs)
+        strong_residual = strong_residual,
+        mms_dirichlet_boundary_conditions = dirichlet_boundary_conditions)
     
-    table = sapphire.table.Table(("h", "L2_error", "spatial_order"))
+    table = sapphire.table.Table(("h", "cellcount", "dofcount", "errors", "spatial_orders"))
     
     print("")
     
@@ -159,15 +155,9 @@ def verify_spatial_order_of_accuracy(
         
         h = mesh.cell_sizes((0.,)*mesh.geometric_dimension())
         
-        sim = MMSVerificationSimulation(mesh = mesh, **sim_constructor_kwargs)
-        
-        sim = sim.assign_parameters(parameters)
+        sim = MMSVerificationSimulation(mesh = mesh, **sim_parameters)
         
         if sim.time is not None:
-            
-            sim.time = sim.time.assign(starttime)
-            
-            sim.timestep_size = sim.timestep_size.assign(timestep_size)
             
             sim.solutions, _ = sim.run(endtime = endtime)
             
@@ -175,29 +165,45 @@ def verify_spatial_order_of_accuracy(
         
             sim.solution = sim.solve()
             
-        table.append({
-            "h": h,
-            "L2_error": 
-                errornorm(
-                    manufactured_solution(sim),
-                    sim.solution,
-                    norm_type = "L2")})
+        errors = []
+        
+        w = manufactured_solution(sim)
+        
+        wh = sim.solution
+        
+        if type(w) is not type((0,)):
+        
+            w = (w,)
+            
+        for w_i, wh_i, norm in zip(w, wh.split(), norms):
+            
+            errors.append(fe.errornorm(w_i, wh_i, norm_type = norm))
+            
+        cellcount = mesh.topology.num_cells()
+            
+        dofcount = len(wh.vector().array())
+            
+        table.append({"h": h, "cellcount": cellcount, "dofcount": dofcount, "errors": errors})
             
         if len(table) > 1:
         
-            h, e = table.data["h"], table.data["L2_error"]
+            h, e = table.data["h"], table.data["errors"]
 
             log = math.log
             
-            r = h[-2]/h[-1]
+            orders = []
             
-            order = log(e[-2]/e[-1])/log(r)
+            for i in range(len(sim.solution.split())):
             
-            table.data["spatial_order"][-1] = order
+                r = h[-2]/h[-1]
+            
+                orders.append(log(e[-2][i]/e[-1][i])/log(r))
+            
+                table.data["spatial_orders"][-1] = orders
         
         print(str(table))
     
-    print("Last observed spatial order of accuracy is {0}".format(order))
+    print("Last observed spatial orders of accuracy are {}".format(orders))
     
     if outfile:
         
@@ -205,20 +211,25 @@ def verify_spatial_order_of_accuracy(
         
         outfile.write(str(table))
     
-    assert(abs(order - expected_order) < tolerance)
+    for order, expected_order in zip(orders, expected_orders):
+        
+        if expected_order is not None:
+        
+            assert(abs(order - expected_order) < tolerance)
     
     
 def verify_temporal_order_of_accuracy(
         sim_module,
         manufactured_solution,
-        mesh,
         timestep_sizes,
         endtime,
-        expected_order,
+        norms,
+        expected_orders,
         tolerance,
-        sim_constructor_kwargs = {},
-        parameters = {},
+        sim_parameters = {},
         starttime = 0.,
+        strong_residual = None,
+        dirichlet_boundary_conditions = None,
         outfile = None,
         write_simulation_outputs = False):
     
@@ -226,19 +237,19 @@ def verify_temporal_order_of_accuracy(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
         write_simulation_outputs = write_simulation_outputs)
+        strong_residual = strong_residual,
+        mms_dirichlet_boundary_conditions = dirichlet_boundary_conditions)
     
-    table = sapphire.table.Table(("Delta_t", "L2_error", "temporal_order"))
+    table = sapphire.table.Table(("Delta_t", "errors", "temporal_orders"))
     
     print("")
     
     for timestep_size in timestep_sizes:
         
-        sim = MMSVerificationSimulation(mesh = mesh, **sim_constructor_kwargs)
+        sim = MMSVerificationSimulation(**sim_parameters)
     
         assert(len(sim.solutions) > 1)
         
-        sim = sim.assign_parameters(parameters)
-    
         sim.timestep_size = sim.timestep_size.assign(timestep_size)
         
         sim.time = sim.time.assign(starttime)
@@ -249,28 +260,41 @@ def verify_temporal_order_of_accuracy(
             
         sim.solutions, _, = sim.run(endtime = endtime)
         
-        table.append({
-            "Delta_t": timestep_size,
-            "L2_error": errornorm(
-                    manufactured_solution(sim),
-                    sim.solution,
-                    norm_type = "L2")})
+        errors = []
+        
+        w = manufactured_solution(sim)
+        
+        wh = sim.solution
+        
+        if type(w) is not type((0,)):
+        
+            w = (w,)
             
+        for w_i, wh_i, norm in zip(w, wh.split(), norms):
+            
+            errors.append(fe.errornorm(w_i, wh_i, norm_type = norm))
+            
+        table.append({"Delta_t": timestep_size, "errors": errors})
+        
         if len(table) > 1:
         
-            Delta_t, e = table.data["Delta_t"], table.data["L2_error"]
+            Delta_t, e = table.data["Delta_t"], table.data["errors"]
 
             log = math.log
             
-            r = Delta_t[-2]/Delta_t[-1]
-
-            order = log(e[-2]/e[-1])/log(r)
-    
-            table.data["temporal_order"][-1] = order
+            orders = []
+            
+            for i in range(len(sim.solution.split())):
+            
+                r = Delta_t[-2]/Delta_t[-1]
+            
+                orders.append(log(e[-2][i]/e[-1][i])/log(r))
+            
+                table.data["temporal_orders"][-1] = orders
         
         print(str(table))
         
-    print("Last observed temporal order of accuracy is {0}".format(order))
+    print("Last observed temporal orders of accuracy are {}".format(orders))
     
     if outfile:
         
@@ -278,5 +302,9 @@ def verify_temporal_order_of_accuracy(
         
         outfile.write(str(table))
         
-    assert(abs(order - expected_order) < tolerance)
+    for order, expected_order in zip(orders, expected_orders):
+        
+        if expected_order is not None:
+        
+            assert(abs(order - expected_order) < tolerance)
     

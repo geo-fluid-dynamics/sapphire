@@ -25,78 +25,37 @@ def dirichlet_boundary_conditions(sim):
     
     return [
         fe.DirichletBC(W.sub(1), (0., 0.), "on_boundary"),
-        fe.DirichletBC(W.sub(2), sim.hot_wall_temperature, 1),
+        fe.DirichletBC(W.sub(2), sim.hotwall_temperature, 1),
         fe.DirichletBC(W.sub(2), sim.initial_temperature, 2)]
         
         
 class Simulation(sapphire.simulations.\
         convection_coupled_phasechange.Simulation):
     
-    def __init__(self, *args, meshsize, initial_temperature = -0.01, **kwargs):
+    def __init__(self, *args, 
+            meshsize,
+            hotwall_temperature = 1.,
+            initial_temperature = -0.01, 
+            stefan_number = 0.045,
+            rayleigh_number = 3.27e5,
+            prandtl_number = 56.2,
+            liquidus_temperature = 0.,
+            **kwargs):
         
-        self.hot_wall_temperature = fe.Constant(1.)
+        self.hotwall_temperature = fe.Constant(hotwall_temperature)
         
         self.initial_temperature = fe.Constant(initial_temperature)
         
-        self.topwall_heatflux = fe.Constant(0.)
+        grashof_number = rayleigh_number/prandtl_number
         
         super().__init__(
             *args,
+            liquidus_temperature = liquidus_temperature,
+            stefan_number = stefan_number,
+            grashof_number = grashof_number,
+            prandtl_number = prandtl_number,
             mesh = fe.UnitSquareMesh(meshsize, meshsize),
             initial_values = initial_values,
             dirichlet_boundary_conditions = dirichlet_boundary_conditions,
             **kwargs)
-        
-        q = self.topwall_heatflux
-
-        _, _, psi_T = fe.TestFunctions(self.function_space)
-
-        ds = fe.ds(domain = self.mesh, subdomain_id = 4)
-
-        self.variational_form_residual += psi_T*q*ds
-        
-        Ra = 3.27e5
-        
-        Pr = 56.2
-        
-        self.grashof_number = self.grashof_number.assign(Ra/Pr)
-        
-        self.prandtl_number = self.prandtl_number.assign(Pr)
-        
-        self.stefan_number = self.stefan_number.assign(0.045)
-        
-        self.liquidus_temperature = self.liquidus_temperature.assign(0.)
-        
-    def run(self, *args,
-            endtime,
-            topwall_heatflux_poststart = -0.02,
-            topwall_heatflux_starttime = 40.,
-            **kwargs):
-    
-        final_endtime = endtime
-        
-        original_topwall_heatflux = self.topwall_heatflux.__float__()
-        
-        if final_endtime < topwall_heatflux_starttime:
-        
-            self.solutions, self.time = super().run(*args,
-                endtime = final_endtime,
-                **kwargs)
-            
-            return self.solutions, self.time
-        
-        self.solutions, self.time = super().run(*args,
-            endtime = topwall_heatflux_starttime,
-            write_initial_outputs = True,
-            **kwargs)
-        
-        self.topwall_heatflux = self.topwall_heatflux.assign(
-            topwall_heatflux_poststart)
-            
-        self.solutions, self.time = super().run(*args,
-            endtime = final_endtime,
-            write_initial_outputs = False,
-            **kwargs)
-        
-        return self.solutions, self.time
         

@@ -5,115 +5,74 @@ import sapphire.benchmarks.freeze_water_in_cavity
 import sapphire.test
 
 
-datadir = sapphire.test.datadir
+tempdir = sapphire.test.datadir
 
-def test__validate__melt_octadecane__regression():
-    
-    tf = 80.
-    
-    th = 40.
-    
-    h = -0.02
-    
-    
-    s = 1./200.
-    
-    tau = 1.e-12
-    
-    
-    rx = 2
-    
-    nx = 24
-    
-    
-    rt = 2
-    
-    nt = 4
-    
-    
-    q = 4
-    
-    
-    expected_liquid_area = 0.43
-    
-    tolerance = 0.01
-    
+def test__validate__melt_octadecane__regression(tempdir):
     
     sim = sapphire.benchmarks.melt_octadecane_in_cavity.Simulation(
-        quadrature_degree = q,
-        element_degree = rx - 1,
-        time_stencil_size = rt + 1,
-        meshsize = nx,
-        output_directory_path = "output/melt_octadecane/" 
-            + "th{0}_h{1}/".format(th, h)
-            + "s{0}_tau{1}/".format(s, tau)
-            + "rx{0}_nx{1}_rt{2}_nt{3}/".format(rx, nx, rt, nt)
-            + "q{0}/".format(q))
+        element_degree = (1, 1, 1),
+        meshsize = 24,
+        quadrature_degree = 4,
+        time_stencil_size = 3,
+        timestep_size = 20.,
+        liquidus_smoothing_factor = 1./200.,
+        solid_velocity_relaxation_factor = 1.e-12,
+        output_directory_path = tempdir)
     
+    sim.run(endtime = 80.)
     
-    sim.timestep_size.assign(tf/float(nt))
+    print("Liquid area = {}".format(sim.liquid_area))
     
-    sim.smoothing.assign(s)
-    
-    sim.solid_velocity_relaxation_factor.assign(tau)
-    
-    sim.topwall_heatflux_switchtime = th
-    
-    sim.topwall_heatflux_postswitch = h
-    
-    
-    sim.solutions, _, = sim.run(
-        endtime = tf,
-        topwall_heatflux_poststart = h,
-        topwall_heatflux_starttime = th)
-    
-    
-    print("Liquid area = {0}".format(sim.liquid_area))
-    
-    assert(abs(sim.liquid_area - expected_liquid_area) < tolerance)
+    assert(abs(sim.liquid_area - 0.41) < 0.01)
     
 
-def freeze_water(endtime, s, tau, rx, nx, rt, nt, q, outdir = ""):
+def test__validate__freeze_water__regression(tempdir):
+    
+    endtime = 1.44
     
     sim = sapphire.benchmarks.freeze_water_in_cavity.Simulation(
-        quadrature_degree = q,
-        element_degree = rx - 1,
-        time_stencil_size = rt + 1,
-        meshsize = nx,
-        output_directory_path = str(outdir.join(
-            "freeze_water/"
-            + "s{0}_tau{1}/".format(s, tau)
-            + "rx{0}_nx{1}_rt{2}_nt{3}/".format(rx, nx, rt, nt)
-            + "q{0}/".format(q))))
+        element_degree = (1, 2, 2),
+        mesh = fe.UnitSquareMesh(24, 24),
+        quadrature_degree = 4,
+        time_stencil_size = 3,
+        timestep_size = endtime/4.,
+        solid_velocity_relaxation_factor = 1.e-12,
+        liquidus_smoothing_factor = 1./200.,
+        output_directory_path = tempdir)
     
-    sim.timestep_size = sim.timestep_size.assign(endtime/float(nt))
+    sim.run(endtime = endtime)
     
-    sim.solid_velocity_relaxation_factor = \
-        sim.solid_velocity_relaxation_factor.assign(tau)
-    
-    sim.smoothing = sim.smoothing.assign(s)
-    
-    
-    sim.solutions, _, = sim.run(endtime = endtime)
-    
-    
-    print("Liquid area = {0}".format(sim.liquid_area))
-    
-    return sim
-    
-    
-def test__validate__freeze_water__regression(datadir):
-    
-    sim = freeze_water(
-        outdir = datadir,
-        endtime = 1.44,
-        s = 1./200.,
-        tau = 1.e-12,
-        rx = 2,
-        nx = 24,
-        rt = 2,
-        nt = 4,
-        q = 4)
+    print("Liquid area = {}".format(sim.liquid_area))
     
     assert(abs(sim.liquid_area - 0.69) < 0.01)
+    
+    
+def test__validate__freeze_water_3d__regression(tempdir):
+    
+    X = 0.038  # m
+
+    nu_l = 1.0032e-6  # m^2/s
+
+    timescale = X**2/nu_l
+    
+    target_time = 2340.  # s
+    
+    nondimensional_target_time = target_time/timescale
+    
+    sim = sapphire.benchmarks.freeze_water_in_cavity.Simulation(
+        element_degree = (1, 1, 1),
+        mesh = fe.UnitCubeMesh(8, 8, 8),
+        quadrature_degree = 2,
+        time_stencil_size = 3,
+        timestep_size = nondimensional_target_time/2.,
+        solid_velocity_relaxation_factor = 1.e-8,
+        pressure_penalty_factor = 1.e-7,
+        liquidus_smoothing_factor = 0.01,
+        output_directory_path = tempdir)
+    
+    sim.run(endtime = nondimensional_target_time)
+    
+    print("Liquid area = {}".format(sim.liquid_area))
+    
+    assert(abs(sim.liquid_area - 0.67) < 0.01)
     
