@@ -1,5 +1,6 @@
 import firedrake as fe
 import sapphire.simulations.convection_coupled_phasechange
+import typing
 
 
 def water_buoyancy(sim, temperature):
@@ -159,10 +160,23 @@ def variational_form_residual(sim, solution):
         *fe.dx(degree = sim.quadrature_degree)
     
     
+def default_mesh(meshsize, spatial_dimensions):
+
+    if spatial_dimensions == 2:
+        
+        mesh = fe.UnitSquareMesh(meshsize, meshsize)
+        
+    elif spatial_dimensions == 3:
+    
+        mesh = fe.UnitCubeMesh(meshsize, meshsize, meshsize)
+    
+    return mesh    
+    
+    
 class Simulation(sapphire.simulations.convection_coupled_phasechange.Simulation):
 
-    def __init__(self, *args, 
-            meshsize,
+    def __init__(self, *args,
+            mesh: typing.Union[fe.UnitSquareMesh, fe.UnitCubeMesh],
             reference_temperature_range__degC = 10.,
             cold_wall_temperature_before_freezing = 0.,
             cold_wall_temperature_during_freezing = -1.,
@@ -171,7 +185,6 @@ class Simulation(sapphire.simulations.convection_coupled_phasechange.Simulation)
             density_solid_to_liquid_ratio = 916.70/999.84,
             heat_capacity_solid_to_liquid_ratio = 0.500,
             thermal_conductivity_solid_to_liquid_ratio = 2.14/0.561,
-            spatial_dimensions = 2,
             **kwargs):
         
         self.reference_temperature_range__degC = fe.Constant(
@@ -180,14 +193,6 @@ class Simulation(sapphire.simulations.convection_coupled_phasechange.Simulation)
         self.hot_wall_temperature = fe.Constant(1.)
         
         self.cold_wall_temperature = fe.Constant(cold_wall_temperature_before_freezing)
-        
-        if spatial_dimensions == 2:
-        
-            mesh = fe.UnitSquareMesh(meshsize, meshsize)
-            
-        elif spatial_dimensions == 3:
-        
-            mesh = fe.UnitCubeMesh(meshsize, meshsize, meshsize)
             
         super().__init__(
             *args,
