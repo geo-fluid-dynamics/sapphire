@@ -52,33 +52,14 @@ def write_solution(sim,
             
         file.write(*functions_to_write, time = timefloat)
     
-
-def default_plotvars(sim, solution = None):
-    
-    if solution is None:
-    
-        solution = sim.solution
-        
-    solution_functions = solution.split()
-    
-    labels = []
-    
-    for i in range(len(solution_functions)):
-    
-        labels.append("w{0}".format(i))
-    
-    filenames = labels
-    
-    return solution_functions, labels, filenames
-    
     
 def plot(
         sim,
+        plotvars,
         solution = None,
         time = None,
-        outdir_path = None,
-        plotvars = None):
-    
+        outdir_path = None):
+    """ Write plots defined by plotvars """
     if solution is None:
     
         solution = sim.solution
@@ -91,29 +72,25 @@ def plot(
     
         outdir_path = sim.output_directory_path
     
-    if plotvars is None:
-    
-        plotvars = default_plotvars
-    
     outdir_path.mkdir(parents = True, exist_ok = True)
     
-    for f, label, name in zip(*plotvars(sim = sim, solution = solution)):
+    for f, label, name, plotfun in zip(*plotvars(sim = sim, solution = solution)):
         
-        fe.plot(f)
+        plotfun(f)
         
-        title = "${0}$".format(label)
+        title = "${}$".format(label)
         
         if time is not None:
         
-            title += ", $t = {0}$".format(time)
+            title += ", $t = {}$".format(time)
         
         plt.title(title)
         
-        filename = "{0}_t{1}".format(name, str(time).replace(".", "p"))
+        filename = "{}_t{}".format(name, str(time).replace(".", "p"))
         
         filepath = outdir_path.joinpath(filename).with_suffix(".png")
             
-        print("Writing plot to {0}".format(filepath))
+        print("Writing plot to {}".format(filepath))
         
         plt.savefig(str(filepath))
         

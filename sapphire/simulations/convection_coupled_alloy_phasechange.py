@@ -327,7 +327,9 @@ def plotvars(sim, solution = None):
     
     return (p, u, h, S_l, S, phi_l, T), \
         ("p", "\\mathbf{u}", "h", "S_l", "S", "\\phi_l", "T"), \
-        ("p", "u", "h", "Sl", "S", "phil", "T")
+        ("p", "u", "h", "Sl", "S", "phil", "T"), \
+        (fe.tripcolor, fe.quiver,) + (fe.tripcolor,)*5
+    
     
 default_solver_parameters = {
     "snes_type": "newtonls",

@@ -4,6 +4,8 @@ import sapphire.simulations.convection_coupled_alloy_phasechange
 import sapphire.benchmarks.freeze_salt_water_from_above
 
 
+tempdir = sapphire.test.datadir
+
 equations_module = sapphire.simulations.convection_coupled_alloy_phasechange
 
 benchmark_module = sapphire.benchmarks.freeze_salt_water_from_above
@@ -96,7 +98,7 @@ T_h = T_m  # [deg C]
 
 Ste = c_l*(T_h - T_e)/h_m
 
-def test__brine_plume():
+def test__brine_plume(tempdir):
     
     S_0 = 3.8  # [% wt. NaCl]
     
@@ -107,7 +109,6 @@ def test__brine_plume():
     Delta_t = 0.001
     
     Sim = SimWithoutPlots
-    #Sim = BaseSim
     
     solver_parameters = sapphire.simulations.\
         convection_coupled_alloy_phasechange.default_solver_parameters
@@ -138,7 +139,8 @@ def test__brine_plume():
         element_degrees = (1, 2, 1, 1), 
         quadrature_degree = 4,
         solver_parameters = solver_parameters,
-        adaptive_timestep_minimum = 1.e-6)
+        adaptive_timestep_minimum = 1.e-6,
+        output_directory_path = tempdir)
     
     sim.run(endtime = 0.025, solve_with_adaptive_timestep = True)
     
@@ -147,8 +149,4 @@ def test__brine_plume():
     print("Max speed = {}".format(sim.max_speed))
     
     assert(abs(sim.max_speed - 39.) < tolerance)
-    
-if __name__ == "__main__":
-    
-    test__brine_plume()
     
