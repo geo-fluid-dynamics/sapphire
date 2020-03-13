@@ -98,11 +98,6 @@ def test__compare_to_lebars2006():
         mesh_cellcount = 100,
         cutoff_length = 1.,
         timestep_size = Delta_t,
-        snes_linesearch_damping = 1.,
-        snes_max_iterations = 100,
-        snes_absolute_tolerance = 1.e-9,
-        snes_step_tolerance = 1.e-9,
-        snes_linesearch_maxstep = 1.,
         output_directory_path = "salt_water_diffusive_solidification/")
     
     sim.solutions, sim.time = sim.run(endtime = endtime)

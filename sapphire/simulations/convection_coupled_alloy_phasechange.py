@@ -329,6 +329,20 @@ def plotvars(sim, solution = None):
         ("p", "\\mathbf{u}", "h", "S_l", "S", "\\phi_l", "T"), \
         ("p", "u", "h", "Sl", "S", "phil", "T")
     
+default_solver_parameters = {
+    "snes_type": "newtonls",
+    "snes_max_it": 24,
+    "snes_monitor": None,
+    "snes_abstol": 1.e-9,
+    "snes_stol": 1.e-9,
+    "snes_rtol": 0.,
+    "snes_linesearch_type": "l2",
+    "snes_linesearch_maxstep": 1.,
+    "snes_linesearch_damping": 1.,
+    "ksp_type": "preonly", 
+    "pc_type": "lu", 
+    "mat_type": "aij",
+    "pc_factor_mat_solver_type": "mumps"}
     
 class Simulation(sapphire.simulation.Simulation):
     
@@ -348,11 +362,7 @@ class Simulation(sapphire.simulation.Simulation):
             minimum_porosity = 0.,
             enforce_minimum_porosity = False,
             element_degrees = (1, 1, 1, 1), 
-            snes_max_iterations = 24,
-            snes_absolute_tolerance = 1.e-9,
-            snes_step_tolerance = 1.e-9,
-            snes_linesearch_damping = 1.,
-            snes_linesearch_maxstep = 1.,
+            solver_parameters = default_solver_parameters,
             adaptive_timestep_minimum = 1.e-6,
             **kwargs):
         
@@ -393,17 +403,8 @@ class Simulation(sapphire.simulation.Simulation):
         self.porosity_smoothing = fe.Constant(porosity_smoothing)
         
         
-        self.snes_max_iterations = snes_max_iterations
-        
-        self.snes_absolute_tolerance = snes_absolute_tolerance
-        
-        self.snes_step_tolerance = snes_step_tolerance
-        
-        self.snes_linesearch_damping = snes_linesearch_damping
-        
-        self.snes_linesearch_maxstep = snes_linesearch_maxstep
-        
         self.adaptive_timestep_minimum = fe.Constant(adaptive_timestep_minimum)
+        
         
         if "variational_form_residual" not in kwargs:
         
@@ -420,6 +421,7 @@ class Simulation(sapphire.simulation.Simulation):
             element = element(
                 cell = mesh.ufl_cell(), degrees = element_degrees),
             solution_name = "p_u_h_Sl",
+            solver_parameters = solver_parameters,
             **kwargs)
         
         self.postprocessed_bulk_solute_concentration = \
@@ -447,26 +449,7 @@ class Simulation(sapphire.simulation.Simulation):
             self.postprocessed_porosity,
             self.postprocessed_temperature,
             self.postprocessed_liquidus_enthalpy)
-    
-    def solve(self, *args, **kwargs):
         
-        return super().solve(*args,
-            parameters = {
-                "snes_type": "newtonls",
-                "snes_max_it": self.snes_max_iterations,
-                "snes_monitor": None,
-                "snes_abstol": self.snes_absolute_tolerance,
-                "snes_stol": self.snes_step_tolerance,
-                "snes_rtol": 0.,
-                "snes_linesearch_type": "l2",
-                "snes_linesearch_maxstep": self.snes_linesearch_maxstep,
-                "snes_linesearch_damping": self.snes_linesearch_damping,
-                "ksp_type": "preonly", 
-                "pc_type": "lu", 
-                "mat_type": "aij",
-                "pc_factor_mat_solver_type": "mumps"},
-            **kwargs)
-            
     def solve_with_adaptive_timestep(self, minimum):
         """ Disregard the originally intended timestep size
             and find a smaller size which is solvable. """

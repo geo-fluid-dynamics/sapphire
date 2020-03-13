@@ -226,6 +226,21 @@ def plotvars(sim, solution = None):
         ("h", "S_l", "phil", "T", "S", "T_L", "h_L")
      
     
+default_solver_parameters = {
+    "snes_type": "newtonls",
+    "snes_max_it": 100,
+    "snes_monitor": None,
+    "snes_abstol": 1.e-9,
+    "snes_stol": 1.e-9,
+    "snes_rtol": 0.,
+    "snes_linesearch_type": "l2",
+    "snes_linesearch_maxstep": 1.,
+    "snes_linesearch_damping": 1.,
+    "ksp_type": "preonly", 
+    "pc_type": "lu", 
+    "mat_type": "aij",
+    "pc_factor_mat_solver_type": "mumps"}
+    
 class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args, 
@@ -235,11 +250,7 @@ class Simulation(sapphire.simulation.Simulation):
             pure_liquidus_temperature,
             porosity_smoothing,
             element_degree = 1, 
-            snes_max_iterations = 100,
-            snes_absolute_tolerance = 1.e-9,
-            snes_step_tolerance = 1.e-9,
-            snes_linesearch_damping = 1.,
-            snes_linesearch_maxstep = 1.,
+            solver_parameters = default_solver_parameters,
             **kwargs):
         
         self.stefan_number = fe.Constant(stefan_number)
@@ -253,21 +264,12 @@ class Simulation(sapphire.simulation.Simulation):
             
         self.initial_temperature = fe.Constant(1.)   # (T_i - T_e)/(T_i - T_e)
         
-        self.snes_max_iterations = snes_max_iterations
-        
-        self.snes_absolute_tolerance = snes_absolute_tolerance
-        
-        self.snes_step_tolerance = snes_step_tolerance
-        
-        self.snes_linesearch_damping = snes_linesearch_damping
-        
-        self.snes_linesearch_maxstep = snes_linesearch_maxstep
-        
         super().__init__(*args,
             mesh = mesh,
             element = element(
                 cell = mesh.ufl_cell(), degree = element_degree),
             variational_form_residual = variational_form_residual,
+            solver_parameters = solver_parameters,
             **kwargs)
             
         self.postprocessed_regularized_porosity = \
@@ -291,25 +293,6 @@ class Simulation(sapphire.simulation.Simulation):
             self.postprocessed_bulk_solute_concentration,
             self.postprocessed_liquidus_temperature,
             self.postprocessed_liquidus_enthalpy)
-            
-    def solve(self, *args, **kwargs):
-        
-        return super().solve(*args,
-            parameters = {
-                "snes_type": "newtonls",
-                "snes_max_it": self.snes_max_iterations,
-                "snes_monitor": None,
-                "snes_abstol": self.snes_absolute_tolerance,
-                "snes_stol": self.snes_step_tolerance,
-                "snes_rtol": 0.,
-                "snes_linesearch_type": "l2",
-                "snes_linesearch_maxstep": self.snes_linesearch_maxstep,
-                "snes_linesearch_damping": self.snes_linesearch_damping,
-                "ksp_type": "preonly", 
-                "pc_type": "lu", 
-                "mat_type": "aij",
-                "pc_factor_mat_solver_type": "mumps"},
-            **kwargs)
             
     def postprocess(self):
     
