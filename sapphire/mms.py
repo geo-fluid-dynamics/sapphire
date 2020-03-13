@@ -78,7 +78,7 @@ def make_mms_verification_sim_class(
         sim_module,
         manufactured_solution,
         strong_residual = None,
-        mms_dirichlet_boundary_conditions = None
+        mms_dirichlet_boundary_conditions = None,
         write_simulation_outputs = False):
     
     if strong_residual is None:
@@ -143,7 +143,7 @@ def verify_spatial_order_of_accuracy(
     MMSVerificationSimulation = make_mms_verification_sim_class(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
-        write_simulation_outputs = write_simulation_outputs)
+        write_simulation_outputs = write_simulation_outputs,
         strong_residual = strong_residual,
         mms_dirichlet_boundary_conditions = dirichlet_boundary_conditions)
     
@@ -236,7 +236,7 @@ def verify_temporal_order_of_accuracy(
     MMSVerificationSimulation = make_mms_verification_sim_class(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
-        write_simulation_outputs = write_simulation_outputs)
+        write_simulation_outputs = write_simulation_outputs,
         strong_residual = strong_residual,
         mms_dirichlet_boundary_conditions = dirichlet_boundary_conditions)
     
