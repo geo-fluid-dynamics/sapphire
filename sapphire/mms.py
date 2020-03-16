@@ -157,7 +157,7 @@ def verify_spatial_order_of_accuracy(
         
         sim = MMSVerificationSimulation(mesh = mesh, **sim_parameters)
         
-        if sim.time is not None:
+        if sim.time_stencil_size > 0:
             
             sim.solutions, _ = sim.run(endtime = endtime)
             

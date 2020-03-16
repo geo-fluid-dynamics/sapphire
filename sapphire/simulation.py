@@ -45,9 +45,9 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             dirichlet_boundary_conditions: typing.List[fe.DirichletBC],
             initial_values: fe.Function,
             quadrature_degree: int = None,
-            time_dependent: bool = True,
-            timestep_size: float = 1.,
             time_stencil_size: int = 2,
+            timestep_size: float = 1.,
+            initial_time: float = 0.,
             solver_parameters: dict = {
                 "snes_type": "newtonls",
                 "snes_monitor": None,
@@ -93,11 +93,9 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 numerical integration.
                 Defaults to `None`, in which case Firedrake will 
                 automatically choose a suitable quadrature degree.
-            time_dependent (bool): Flags time-dependent problems.
-                Defaults to True. The primary purpose of this module is
-                to implement and run time-dependent simulations.
-                Still, steady-state problems are some-times interesting
-                or useful for debugging.
+            time_stencil_size (int): The number of solutions at 
+                discrete times used for approximating time derivatives.
+                Defaults to 2. Set to 0 for steady state problems.
             timestep_size (float): The size of discrete time steps.
                 Defaults to 1.
                 Higher order time discretizations are assumed to use
@@ -106,9 +104,8 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 discretizations with variable time step sizes,
                 redefine `time_discrete_terms` and compute the
                 time step sizes from the solution times.
-            time_stencil_size (int): The number of solutions at 
-                discrete times used for approximating time derivatives.
-                Defaults to 2.
+            initial_time (float): The initial time.
+                Defaults to 0.
             solver_parameters (dict): The solver parameters dictionary
                 which Firedrake uses to configure PETSc.
             output_directory_path (str): String that will be converted
@@ -123,9 +120,6 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         self.function_space = fe.FunctionSpace(mesh, element)
         
-        self.quadrature_degree = quadrature_degree
-        
-        
         self.solutions = [
             fe.Function(self.function_space, name = solution_name) 
             for i in range(time_stencil_size)]
@@ -138,32 +132,26 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             fe.FunctionSpace(
                 self.mesh,
                 fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
-            
-        if time_dependent:
-            
-            assert(time_stencil_size > 1)
-            
-            self.time = fe.Constant(0.)
-            
-            self.timestep_size = fe.Constant(timestep_size)
-            
-        else:
         
-            self.time = None
         
-            self.timestep_size = None
-            
-        self.solver_parameters = solver_parameters
-            
         self.output_directory_path = pathlib.Path(output_directory_path)
         
         self.output_directory_path.mkdir(parents = True, exist_ok = True)
-        
         
         self.solution_file = None
         
         self.plotvars = None
         
+        
+        self.quadrature_degree = quadrature_degree
+        
+        self.timestep_size = fe.Constant(timestep_size)
+        
+        self.time = fe.Constant(initial_time)
+        
+        self.solver_parameters = solver_parameters
+        
+        self.snes_iteration_count = 0
         
         self.initial_values = initial_values(sim = self)
         
@@ -178,8 +166,6 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 
         self.dirichlet_boundary_conditions = \
             dirichlet_boundary_conditions(sim = self)
-        
-        self.snes_iteration_count = 0
         
     def solve(self):
 
