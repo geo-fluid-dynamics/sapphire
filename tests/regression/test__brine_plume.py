@@ -110,11 +110,6 @@ def test__brine_plume(tempdir):
     
     Sim = SimWithoutPlots
     
-    solver_parameters = sapphire.simulations.\
-        convection_coupled_alloy_phasechange.default_solver_parameters
-        
-    solver_parameters["snes_max_iterations"] = 24
-    
     sim = Sim(
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
         darcy_number = 1.e-4,
@@ -138,7 +133,6 @@ def test__brine_plume(tempdir):
         pressure_penalty_factor = 0.,
         element_degrees = (1, 2, 1, 1), 
         quadrature_degree = 4,
-        solver_parameters = solver_parameters,
         adaptive_timestep_minimum = 1.e-6,
         output_directory_path = tempdir)
     
