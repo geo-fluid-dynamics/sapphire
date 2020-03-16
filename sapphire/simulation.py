@@ -1,33 +1,118 @@
-""" Contains the Simulation class """
+""" Provides a PDE-governed Simulation class using Firedrake.
+
+Simulations proceed forward in time by solving 
+a sequence of Initial Boundary Values Problems (IBVP's).
+
+Using the Firedrake framework, 
+the PDE's are discretized in space with Finite Elements (FE).
+
+Furthermore, the symbolic capabilities of Firedrake are used to 
+automatically implement backward difference formula (BDF) time 
+discretizations and to automatically linearize nonlinear problems 
+with Newton's method.
+
+Nonlinear and linear solvers are provided by PETSc
+and are accessed via the Firedrake interface.
+
+This module imports `firedrake` as `fe` and its documentation writes
+`fe` instead of `firedrake`.
+"""
 import pathlib
 import firedrake as fe
 import sapphire.time_discretization
 import sapphire.output
+import typing
 
 
 time_tolerance = 1.e-8
 
 class Simulation(sapphire.output.ObjectWithOrderedDict):
-    """ A class on which to base finite element simulations """
+    """ A PDE simulation that solves an IBVP using FE in space and BDF in time
+    
+    Implementing a simulation requires at least instantiating this class 
+    and calling the instance's `run` method.
+    
+    This class is derived from `sapphire.output.ObjectWithOrderedDict`
+    so that all attributes can be consistently written to a CSV file
+    throughout the time-dependent simulation.
+    """
+    
     def __init__(self, 
-            mesh, 
-            element, 
-            variational_form_residual,
-            dirichlet_boundary_conditions,
-            initial_values,
-            quadrature_degree = None,
-            time_dependent = True,
-            timestep_size = 1.,
-            time_stencil_size = 2,
-            solver_parameters = {
+            mesh: fe.Mesh, 
+            element: typing.Union[fe.FiniteElement, fe.MixedElement],
+            weak_form_residual: fe.Form,
+            dirichlet_boundary_conditions: typing.List[fe.DirichletBC],
+            initial_values: fe.Function,
+            quadrature_degree: int = None,
+            time_dependent: bool = True,
+            timestep_size: float = 1.,
+            time_stencil_size: int = 2,
+            solver_parameters: dict = {
                 "snes_type": "newtonls",
                 "snes_monitor": None,
                 "ksp_type": "preonly", 
                 "pc_type": "lu", 
                 "mat_type": "aij",
                 "pc_factor_mat_solver_type": "mumps"},
-            output_directory_path = "output/"):
+            output_directory_path: str = "output/"):
+        """
+        Instantiating this class requires enough information to fully 
+        specify the FE spatial discretization, weak form residual,
+        boundary conditions, and initial values. All of these required
+        arguments are Firedrake objects used according to Firedrake
+        conventions.
         
+        Backward Difference Formula time discretizations are
+        automatically implemented. To use a different time
+        discretization, inherit this class and redefine 
+        `time_discrete_terms`.
+        
+        Args:
+            mesh (fe.Mesh): The mesh for spatial discretization.
+                The spatial degrees of freedom are determined by
+                this mesh and the chosen finite element.
+            element (fe.FiniteElement or fe.MixedElement):
+                The finite element for spatial discretization.
+                Firedrake provides a large suite of finite elements.
+            weak_form_residual (fe.Form): The weak form residual
+                containing the PDE's which govern the simulation.
+                The form is defined symbolically using the 
+                Unified Form Language (UFL) via Firedrake.
+            dirichlet_boundary_conditions (list of fe.DirichletBC):
+                The IBVP Dirichlet boundary conditions.
+            initial_values (fe.Function): The IBVP initial values
+                expressed as a Firedrake `Function`.
+                These are the initial values for the first time step.
+                For higher order time discretizations, the values are 
+                copied backward in time.
+                As a simulation proceeds forward in time, using `run`,
+                the latest solution(s) will be used as initial values. 
+            quadrature_degree (int): The quadrature degree used for
+                numerical integration.
+                Defaults to `None`, in which case Firedrake will 
+                automatically choose a suitable quadrature degree.
+            time_dependent (bool): Flags time-dependent problems.
+                Defaults to True. The primary purpose of this module is
+                to implement and run time-dependent simulations.
+                Still, steady-state problems are some-times interesting
+                or useful for debugging.
+            timestep_size (float): The size of discrete time steps.
+                Defaults to 1.
+                Higher order time discretizations are assumed to use
+                a constant time step size.
+                Supporting accurate second-order or higher time
+                discretizations with variable time step sizes,
+                redefine `time_discrete_terms` and compute the
+                time step sizes from the solution times.
+            time_stencil_size (int): The number of solutions at 
+                discrete times used for approximating time derivatives.
+                Defaults to 2.
+            solver_parameters (dict): The solver parameters dictionary
+                which Firedrake uses to configure PETSc.
+            output_directory_path (str): String that will be converted
+                to a Path where output files will be written.
+                Defaults to "output/".)
+        """
         self.mesh = mesh
         
         self.element = element
@@ -75,7 +160,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             solution.assign(self.initial_values)
         
         
-        self.variational_form_residual = variational_form_residual(
+        self.weak_form_residual = weak_form_residual(
                 sim = self,
                 solution = self.solution)
                 
@@ -87,10 +172,10 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
     def solve(self):
 
         problem = fe.NonlinearVariationalProblem(
-            F = self.variational_form_residual,
+            F = self.weak_form_residual,
             u = self.solution,
             bcs = self.dirichlet_boundary_conditions,
-            J = fe.derivative(self.variational_form_residual, self.solution))
+            J = fe.derivative(self.weak_form_residual, self.solution))
             
         solver = fe.NonlinearVariationalSolver(
             problem = problem,

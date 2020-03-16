@@ -220,7 +220,7 @@ def pressure_penalty(sim, solution):
     return gamma*psi_p*p
     
     
-def variational_form_residual(sim, solution):
+def weak_form_residual(sim, solution):
     
     return sum(
             [r(sim = sim, solution = solution) 
@@ -299,9 +299,9 @@ class Simulation(sapphire.simulation.Simulation):
         
         self.smoothing_sequence = None
         
-        if "variational_form_residual" not in kwargs:
+        if "weak_form_residual" not in kwargs:
         
-            kwargs["variational_form_residual"] = variational_form_residual
+            kwargs["weak_form_residual"] = weak_form_residual
         
         if "time_stencil_size" not in kwargs:
         
