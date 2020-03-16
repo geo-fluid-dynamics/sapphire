@@ -56,5 +56,6 @@ class Simulation(sapphire.simulation.Simulation):
             element = element(
                 cell = mesh.ufl_cell(), degree = element_degree),
             weak_form_residual = weak_form_residual,
+            time_stencil_size = 1,
             **kwargs)
         

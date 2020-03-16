@@ -95,7 +95,9 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 automatically choose a suitable quadrature degree.
             time_stencil_size (int): The number of solutions at 
                 discrete times used for approximating time derivatives.
-                Defaults to 2. Set to 0 for steady state problems.
+                Must be greater than zero.
+                Defaults to 2. Set to 1 for steady state problems.
+                Increase for higher-order time accuracy.
             timestep_size (float): The size of discrete time steps.
                 Defaults to 1.
                 Higher order time discretizations are assumed to use
@@ -119,6 +121,8 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         self.element = element
         
         self.function_space = fe.FunctionSpace(mesh, element)
+        
+        assert(time_stencil_size > 0)
         
         self.solutions = [
             fe.Function(self.function_space, name = solution_name) 
