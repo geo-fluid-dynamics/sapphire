@@ -143,7 +143,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             
             assert(time_stencil_size > 1)
             
-            self.time = fe.Constant(time)
+            self.time = fe.Constant(0.)
             
             self.timestep_size = fe.Constant(timestep_size)
             
