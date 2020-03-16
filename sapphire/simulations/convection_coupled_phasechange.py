@@ -241,7 +241,8 @@ def plotvars(sim, solution = None):
     
     return (p, u, T, phil), \
         ("p", "\\mathbf{u}", "T", "\\phi_l"), \
-        ("p", "u", "T", "phil")
+        ("p", "u", "T", "phil"), \
+        (fe.tripcolor, fe.quiver, fe.tripcolor, fe.tripcolor)
     
     
 class Simulation(sapphire.simulation.Simulation):

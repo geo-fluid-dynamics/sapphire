@@ -18,6 +18,7 @@ This module imports `firedrake` as `fe` and its documentation writes
 `fe` instead of `firedrake`.
 """
 import pathlib
+import logging
 import firedrake as fe
 import sapphire.time_discretization
 import sapphire.output
@@ -54,7 +55,8 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 "pc_type": "lu", 
                 "mat_type": "aij",
                 "pc_factor_mat_solver_type": "mumps"},
-            output_directory_path: str = "output/"):
+            output_directory_path: str = "output/",
+            solution_name: str = None):
         """
         Instantiating this class requires enough information to fully 
         specify the FE spatial discretization, weak form residual,
@@ -112,6 +114,8 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             output_directory_path (str): String that will be converted
                 to a Path where output files will be written.
                 Defaults to "output/".)
+            solution_name (str): Overrides the default name that 
+                Firedrake otherwise gives the solution Function.
         """
         self.mesh = mesh
         
@@ -122,19 +126,24 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         self.quadrature_degree = quadrature_degree
         
         
-        self.solutions = [fe.Function(self.function_space) 
+        self.solutions = [
+            fe.Function(self.function_space, name = solution_name) 
             for i in range(time_stencil_size)]
             
         self.solution = self.solutions[0]
         
         self.backup_solution = fe.Function(self.solution)
         
-        
+        self.postprocessing_function_space = \
+            fe.FunctionSpace(
+                self.mesh,
+                fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
+            
         if time_dependent:
             
             assert(time_stencil_size > 1)
             
-            self.time = fe.Constant(0.)
+            self.time = fe.Constant(time)
             
             self.timestep_size = fe.Constant(timestep_size)
             
@@ -147,6 +156,9 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         self.solver_parameters = solver_parameters
             
         self.output_directory_path = pathlib.Path(output_directory_path)
+        
+        self.output_directory_path.mkdir(parents = True, exist_ok = True)
+        
         
         self.solution_file = None
         
@@ -201,9 +213,6 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         return self
         
     def write_outputs(self, write_headers, plotvars = None):
-        
-        self.output_directory_path.mkdir(
-            parents = True, exist_ok = True)
         
         if self.solution_file is None:
             
