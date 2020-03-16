@@ -145,6 +145,8 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         self.quadrature_degree = quadrature_degree
         
+        self.time_stencil_size = time_stencil_size
+        
         self.timestep_size = fe.Constant(timestep_size)
         
         self.time = fe.Constant(initial_time)
