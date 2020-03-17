@@ -255,7 +255,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 
                 sapphire.output.writeplots(
                     **self.kwargs_for_writeplots(),
-                    time = self.time,
+                    time = self.time.__float__(),
                     outdir_path = self.output_directory_path)
                 
             elif self.mesh.geometric_dimension() == 3:
