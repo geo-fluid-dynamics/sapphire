@@ -174,7 +174,13 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             dirichlet_boundary_conditions(sim = self)
         
     def solve(self):
-
+        """ Set up the problem and solver, and solve.
+        
+        This is a JIT (just in time), ensuring that the problem and 
+        solver setup are up-to-date before calling the solver.
+        All compiled objects are cached, so the JIT problem and solver 
+        setup does not have any significant performance overhead.
+        """
         problem = fe.NonlinearVariationalProblem(
             F = self.weak_form_residual,
             u = self.solution,
@@ -192,7 +198,12 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         return self.solution
     
     def push_back_solutions(self):
+        """ Push back listed solutions from discrete times.
         
+        Only enough solutions are stored for the time discretization.
+        Advancing the simulation forward in time requires re-indexing
+        the solutions.
+        """
         for i in range(len(self.solutions[1:])):
         
             self.solutions[-(i + 1)].assign(
@@ -201,11 +212,30 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         return self.solutions
         
     def postprocess(self):
-    
+        """ This is called by `write_outputs` before writing. 
+        
+        Redefine this to add post-processing.
+        """
         return self
         
-    def write_outputs(self, write_headers, plotvars = None):
+    def kwargs_for_writeplots(self):
+        """ Return kwargs needed for `writeplots`
         
+        By default, no plots are made.
+        This must be redefined to return a dict 
+        if `run` is called with `plot = True`.
+        """
+        return None
+        
+    def write_outputs(self, 
+            write_headers: bool, 
+            plot: bool = False):
+        """ Write all outputs.
+        
+        This creates or appends the CSV report, 
+        writes the latest solution, and plots (in 1D/2D case).
+        Redefine this to control outputs.
+        """
         if self.solution_file is None:
             
             solution_filepath = self.output_directory_path.joinpath(
@@ -219,18 +249,30 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         sapphire.output.write_solution(sim = self, file = self.solution_file)
         
-        if self.mesh.geometric_dimension() < 3:
+        if plot:
             
-            sapphire.output.plot(sim = self, plotvars = plotvars)
+            if self.mesh.geometric_dimension() < 3:
+                
+                sapphire.output.writeplots(
+                    **self.kwargs_for_writeplots(),
+                    time = self.time,
+                    outdir_path = self.output_directory_path)
+                
+            elif self.mesh.geometric_dimension() == 3:
+                # This could be done with VTK and PyVista, but VTK is a 
+                # heavy dependency. It may be best to run a separate 
+                # program for generating 3D plots from the solution files.
+                raise NotImplementedError()
         
     def run(self,
             endtime,
             solve = None,
-            write_initial_outputs = True):
+            write_initial_outputs = True,
+            plot = False):
         
         if write_initial_outputs:
         
-            self.write_outputs(write_headers = True)
+            self.write_outputs(write_headers = True, plot = plot)
         
         if solve is None:
         
@@ -244,7 +286,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             
             print("Solved at time t = {0}".format(self.time.__float__()))
             
-            self.write_outputs(write_headers = False)
+            self.write_outputs(write_headers = False, plot = plot)
             
             self.solutions = self.push_back_solutions()
             
