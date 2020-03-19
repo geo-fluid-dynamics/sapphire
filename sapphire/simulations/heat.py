@@ -3,7 +3,7 @@ import firedrake as fe
 import sapphire.simulation
 
     
-def variational_form_residual(sim, solution):
+def weak_form_residual(sim, solution):
     
     u = solution
     
@@ -47,7 +47,7 @@ class Simulation(sapphire.simulation.Simulation):
             mesh = mesh,
             element = element(
                 cell = mesh.ufl_cell(), degree = element_degree),
-            variational_form_residual = variational_form_residual,
+            weak_form_residual = weak_form_residual,
             solver_parameters = solver_parameters,
             **kwargs)
     

@@ -40,7 +40,7 @@ def water_buoyancy(sim, temperature):
     return Gr/(beta*M)*(rho_0 - rho(T))/rho_0*ghat
     
     
-def heat_driven_cavity_variational_form_residual(sim, solution):
+def heat_driven_cavity_weak_form_residual(sim, solution):
     
     mass = sapphire.simulations.convection_coupled_phasechange.\
         mass(sim, solution)
@@ -105,7 +105,7 @@ def initial_values(sim):
     
     T.assign(sim.cold_wall_temperature)
     
-    F = heat_driven_cavity_variational_form_residual(
+    F = heat_driven_cavity_weak_form_residual(
         sim = sim,
         solution = w)*fe.dx(degree = sim.quadrature_degree)
         
@@ -144,7 +144,7 @@ def initial_values(sim):
     return w
 
     
-def variational_form_residual(sim, solution):
+def weak_form_residual(sim, solution):
     
     return sum(
     [r(sim = sim, solution = solution)
@@ -197,7 +197,7 @@ class Simulation(sapphire.simulations.convection_coupled_phasechange.Simulation)
         super().__init__(
             *args,
             mesh = mesh,
-            variational_form_residual = variational_form_residual,
+            weak_form_residual = weak_form_residual,
             initial_values = initial_values,
             dirichlet_boundary_conditions = dirichlet_boundary_conditions,
             stefan_number = stefan_number,

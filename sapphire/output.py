@@ -1,3 +1,4 @@
+import typing
 import csv
 from collections import OrderedDict
 import matplotlib
@@ -6,7 +7,11 @@ import matplotlib.pyplot as plt
 import firedrake as fe
 
 
-def write_solution(sim, solution = None, time = None, file = None):
+def write_solution(sim, 
+        solution = None, 
+        dependent_functions = None, 
+        time = None, 
+        file = None):
     
     if solution is None:
     
@@ -20,10 +25,21 @@ def write_solution(sim, solution = None, time = None, file = None):
     
         time = sim.solution_file
         
+    functions_to_write = solution.split()
+    
+    if dependent_functions is None:
+    
+        if hasattr(sim, "postprocessed_functions"):
+        
+            dependent_functions = sim.postprocessed_functions
+        
+    if dependent_functions is not None:
+    
+        functions_to_write += dependent_functions
         
     if time is None:
         
-        file.write(*solution.split())
+        file.write(functions_to_write)
         
     else:
     
@@ -34,69 +50,37 @@ def write_solution(sim, solution = None, time = None, file = None):
         elif type(time) is fe.Constant:
         
             timefloat = time.__float__()
-        
-        file.write(*solution.split(), time = timefloat)
-    
-
-def default_plotvars(sim, solution = None):
-    
-    if solution is None:
-    
-        solution = sim.solution
-        
-    subscripts, functions = enumerate(solution.split())
-    
-    labels = [r"$w_{0}$".format(i) for i in subscripts]
-    
-    filenames = ["w{0}".format(i) for i in subscripts]
-    
-    return functions, labels, filenames
+            
+        file.write(*functions_to_write, time = timefloat)
     
     
-def plot(
-        sim,
-        solution = None,
-        time = None,
-        outdir_path = None,
-        plotvars = None):
-    
-    if solution is None:
-    
-        solution = sim.solution
-        
-    if time is None:
-    
-        time = sim.time.__float__()
-        
-    if outdir_path is None:
-    
-        outdir_path = sim.output_directory_path
-    
-    if plotvars is None:
-    
-        plotvars = default_plotvars
-    
+def writeplots(
+        fields: typing.List[typing.Union[fe.Function, fe.Mesh]],
+        labels: typing.List[str],
+        names: typing.List[str],
+        plotfuns: typing.List[typing.Callable],
+        time: typing.Union[float, None],
+        outdir_path: str):
+    """ Plot each field and write to files """
     outdir_path.mkdir(parents = True, exist_ok = True)
     
-    for f, label, name in zip(*plotvars(sim = sim, solution = solution)):
+    for f, label, name, plot in zip(fields, labels, names, plotfuns):
         
-        fe.plot(f)
+        plot(f)
         
-        plt.axis("square")
-        
-        title = "${0}$".format(label)
+        title = "${}$".format(label)
         
         if time is not None:
         
-            title += ", $t = {0}$".format(time)
+            title += ", $t = {}$".format(time)
         
         plt.title(title)
         
-        filename = "{0}_t{1}".format(name, str(time).replace(".", "p"))
+        filename = "{}_t{}".format(name, str(time).replace(".", "p"))
         
         filepath = outdir_path.joinpath(filename).with_suffix(".png")
             
-        print("Writing plot to {0}".format(filepath))
+        print("Writing plot to {}".format(filepath))
         
         plt.savefig(str(filepath))
         
