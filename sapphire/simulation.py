@@ -17,13 +17,12 @@ and are accessed via the Firedrake interface.
 This module imports `firedrake` as `fe` and its documentation writes
 `fe` instead of `firedrake`.
 """
+import typing
 import pathlib
-import logging
 import ufl
 import firedrake as fe
 import sapphire.time_discretization
 import sapphire.output
-import typing
 
 
 class Simulation(sapphire.output.ObjectWithOrderedDict):
@@ -121,6 +120,16 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         self.element = element
         
+        self.quadrature_degree = quadrature_degree
+        
+        self.solver_parameters = solver_parameters
+        
+        self.timestep_size = fe.Constant(timestep_size)
+        
+        self.time = fe.Constant(initial_time)
+        
+        
+        # Solution components
         self.function_space = fe.FunctionSpace(mesh, element)
         
         assert(time_stencil_size > 0)
@@ -133,12 +142,23 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         self.backup_solution = fe.Function(self.solution)
         
-        self.postprocessing_function_space = \
-            fe.FunctionSpace(
-                self.mesh,
-                fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
+        self.initial_values = initial_values(sim = self)
         
-        
+        for solution in self.solutions:
+            # Assume that the initial solution is at a steady state.
+            solution.assign(self.initial_values)
+            
+            
+        # Problem components
+        self.weak_form_residual = weak_form_residual(
+                sim = self,
+                solution = self.solution)
+                
+        self.dirichlet_boundary_conditions = \
+            dirichlet_boundary_conditions(sim = self)
+            
+            
+        # Output controls
         self.output_directory_path = pathlib.Path(output_directory_path)
         
         self.output_directory_path.mkdir(parents = True, exist_ok = True)
@@ -147,31 +167,13 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         self.plotvars = None
         
-        
-        self.quadrature_degree = quadrature_degree
-        
-        self.timestep_size = fe.Constant(timestep_size)
-        
-        self.time = fe.Constant(initial_time)
-        
-        self.solver_parameters = solver_parameters
+        self.postprocessing_function_space = \
+            fe.FunctionSpace(
+                self.mesh,
+                fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
         
         self.snes_iteration_count = 0
         
-        self.initial_values = initial_values(sim = self)
-        
-        for solution in self.solutions:
-        
-            solution.assign(self.initial_values)
-        
-        
-        self.weak_form_residual = weak_form_residual(
-                sim = self,
-                solution = self.solution)
-                
-        self.dirichlet_boundary_conditions = \
-            dirichlet_boundary_conditions(sim = self)
-            
     def run(self,
             endtime: float,
             plot: bool = False,
