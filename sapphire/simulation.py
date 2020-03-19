@@ -1,4 +1,4 @@
-"""Provides a PDE-governed Simulation class using Firedrake.
+"""Provides a class for constructing simulations based on Firedrake.
 
 Simulations proceed forward in time by solving 
 a sequence of Initial Boundary Values Problems (IBVP's).
@@ -6,7 +6,7 @@ a sequence of Initial Boundary Values Problems (IBVP's).
 Using the Firedrake framework, 
 the PDE's are discretized in space with Finite Elements (FE).
 
-Furthermore, the symbolic capabilities of Firedrake are used to 
+The symbolic capabilities of Firedrake are used to 
 automatically implement backward difference formula (BDF) time 
 discretizations and to automatically linearize nonlinear problems 
 with Newton's method.
@@ -26,10 +26,13 @@ import sapphire.output
 
 
 class Simulation(sapphire.output.ObjectWithOrderedDict):
-    """A PDE simulation that solves an IBVP using FE in space and BDF in time
+    """A PDE-based simulation using the Firedrake framework.
+
+    The PDE's are discretized in space using finite elements 
+    and in time using backward difference formulas.
     
-    Implementing a simulation requires at least instantiating this class 
-    and calling the instance's `run` method.
+    Implementing a simulation requires at least instantiating this 
+    class and calling the instance's `run` method.
     
     This class is derived from `sapphire.output.ObjectWithOrderedDict`
     so that all attributes can be consistently written to a CSV file
