@@ -95,6 +95,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 automatically choose a suitable quadrature degree.
             time_stencil_size (int): The number of solutions at 
                 discrete times used for approximating time derivatives.
+                This also determines the number of stored solutions.
                 Must be greater than zero.
                 Defaults to 2. Set to 1 for steady state problems.
                 Increase for higher-order time accuracy.
@@ -148,8 +149,6 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         
         self.quadrature_degree = quadrature_degree
-        
-        self.time_stencil_size = time_stencil_size
         
         self.timestep_size = fe.Constant(timestep_size)
         
@@ -355,7 +354,10 @@ def time_discrete_terms(
     a mixed finite element. For mixed finite elements, a list of time
     discrete terms will be returned, each item corresponding to one of 
     the sub-elements of the mixed element. Otherwise, a single term
-    will be returned. This design choice was made, rather than always
+    will be returned.
+    """
+    """
+    The return type design choice was made, rather than always
     returning a list (e.g. with only one item if not using a mixed 
     element), so that it would be more intuitive when not using mixed 
     elements.
