@@ -1,4 +1,4 @@
-""" Provides a PDE-governed Simulation class using Firedrake.
+"""Provides a PDE-governed Simulation class using Firedrake.
 
 Simulations proceed forward in time by solving 
 a sequence of Initial Boundary Values Problems (IBVP's).
@@ -19,16 +19,15 @@ This module imports `firedrake` as `fe` and its documentation writes
 """
 import pathlib
 import logging
+import ufl
 import firedrake as fe
 import sapphire.time_discretization
 import sapphire.output
 import typing
 
 
-time_tolerance = 1.e-8
-
 class Simulation(sapphire.output.ObjectWithOrderedDict):
-    """ A PDE simulation that solves an IBVP using FE in space and BDF in time
+    """A PDE simulation that solves an IBVP using FE in space and BDF in time
     
     Implementing a simulation requires at least instantiating this class 
     and calling the instance's `run` method.
@@ -58,6 +57,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             output_directory_path: str = "output/",
             solution_name: str = None):
         """
+        
         Instantiating this class requires enough information to fully 
         specify the FE spatial discretization, weak form residual,
         boundary conditions, and initial values. All of these required
@@ -172,9 +172,60 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 
         self.dirichlet_boundary_conditions = \
             dirichlet_boundary_conditions(sim = self)
+            
+    def run(self,
+            endtime: float,
+            plot: bool = False,
+            write_initial_outputs: bool = True,
+            endtime_tolerance: float = 1.e-8,
+            solve: typing.Callable = None) \
+            -> (typing.List[fe.Function], float):
+        """Run simulation forward in time.
         
-    def solve(self):
-        """ Set up the problem and solver, and solve.
+        Args:
+            endtime (float): Run until reaching this time.
+            plot (bool): Write plots if True. Defaults to False.
+                Writing the plots to disk can in some cases dominate
+                the processing time. Additionally, much more data
+                is generated, requiring more disk storage space.
+            write_initial_outputs (bool): Write for initial values
+                before solving the first time step. Default to True.
+                You may want to set this to False if, for example, you
+                are calling `run` repeatedly with later endtimes.
+                In such a case, the initial values are the same as 
+                the previously computed solution, and so they should
+                not be written again.
+            endtime_tolerance (float): Allows endtime to be only
+                approximately reached. This is larger than a 
+                typical floating point comparison tolerance
+                because errors accumulate between timesteps.
+            solve (callable): This is called to solve each time step.
+                By default, this will be set to `self.solve`.
+        """
+        if write_initial_outputs:
+        
+            self.write_outputs(write_headers = True, plot = plot)
+        
+        if solve is None:
+        
+            solve = self.solve
+        
+        while self.time.__float__() < (endtime - endtime_tolerance):
+            
+            self.time = self.time.assign(self.time + self.timestep_size)
+            
+            self.solution = solve()
+            
+            print("Solved at time t = {}".format(self.time.__float__()))
+            
+            self.write_outputs(write_headers = False, plot = plot)
+            
+            self.solutions = self.push_back_solutions()
+            
+        return self.solutions, self.time
+        
+    def solve(self) -> fe.Function:
+        """Set up the problem and solver, and solve.
         
         This is a JIT (just in time), ensuring that the problem and 
         solver setup are up-to-date before calling the solver.
@@ -197,8 +248,8 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         return self.solution
     
-    def push_back_solutions(self):
-        """ Push back listed solutions from discrete times.
+    def push_back_solutions(self) -> typing.List[fe.Function]:
+        """Push back listed solutions from discrete times.
         
         Only enough solutions are stored for the time discretization.
         Advancing the simulation forward in time requires re-indexing
@@ -211,15 +262,15 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 
         return self.solutions
         
-    def postprocess(self):
+    def postprocess(self) -> 'Simulation':
         """ This is called by `write_outputs` before writing. 
         
         Redefine this to add post-processing.
         """
         return self
         
-    def kwargs_for_writeplots(self):
-        """ Return kwargs needed for `writeplots`
+    def kwargs_for_writeplots(self) -> dict:
+        """Return kwargs needed for `sappphire.outupt.writeplots`.
         
         By default, no plots are made.
         This must be redefined to return a dict 
@@ -230,11 +281,17 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
     def write_outputs(self, 
             write_headers: bool, 
             plot: bool = False):
-        """ Write all outputs.
+        """Write all outputs.
         
         This creates or appends the CSV report, 
         writes the latest solution, and plots (in 1D/2D case).
         Redefine this to control outputs.
+        
+        Args:
+            write_headers (bool): Write header line to report if True.
+                You may want to set this to False, for example, if the 
+                header has already been written.
+            plot (bool): Write plots if True.
         """
         if self.solution_file is None:
             
@@ -259,53 +316,50 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                     outdir_path = self.output_directory_path)
                 
             elif self.mesh.geometric_dimension() == 3:
-                # This could be done with VTK and PyVista, but VTK is a 
-                # heavy dependency. It may be best to run a separate 
+                # This could be done with VTK and PyVista, but VTK can be a
+                # difficult dependency. It may be best to run a separate 
                 # program for generating 3D plots from the solution files.
                 raise NotImplementedError()
-        
-    def run(self,
-            endtime,
-            solve = None,
-            write_initial_outputs = True,
-            plot = False):
-        
-        if write_initial_outputs:
-        
-            self.write_outputs(write_headers = True, plot = plot)
-        
-        if solve is None:
-        
-            solve = self.solve
-        
-        while self.time.__float__() < (endtime - time_tolerance):
-            
-            self.time = self.time.assign(self.time + self.timestep_size)
-            
-            self.solution = solve()
-            
-            print("Solved at time t = {0}".format(self.time.__float__()))
-            
-            self.write_outputs(write_headers = False, plot = plot)
-            
-            self.solutions = self.push_back_solutions()
-            
-        return self.solutions, self.time
-        
-    def unit_vectors(self):
-    
+                
+    def unit_vectors(self) -> typing.Tuple[ufl.tensors.ListTensor]:
+        """Returns the spatial unit vectors in each dimension."""
         return unit_vectors(self.mesh)
         
         
-def unit_vectors(mesh):
+def unit_vectors(mesh) -> typing.Tuple[ufl.tensors.ListTensor]:
+    """Returns the mesh's spatial unit vectors in each dimension.
     
+    Args:
+        mesh (fe.Mesh): The mesh for the spatial discretization.
+    """
     dim = mesh.geometric_dimension()
     
     return tuple([fe.unit_vector(i, dim) for i in range(dim)])
     
     
-def time_discrete_terms(solutions, timestep_size):
+def time_discrete_terms(
+        solutions: typing.List[fe.Function],
+        timestep_size: fe.Constant) \
+        -> typing.Union[
+            ufl.core.operator.Operator,
+            typing.List[ufl.core.operator.Operator]]:
+    """Returns backward difference time discretization.
     
+    The backward difference formula's stencil size is determine by the
+    number of solutions provided, i.e. `len(solutions)`.
+    For example, if `len(solutions == 3)`, then the second-order BDF2
+    method will be used, because it involves solutions at three 
+    discrete times.
+    
+    The return type depends on whether or not the solution is based on
+    a mixed finite element. For mixed finite elements, a list of time
+    discrete terms will be returned, each item corresponding to one of 
+    the sub-elements of the mixed element. Otherwise, a single term
+    will be returned. This design choice was made, rather than always
+    returning a list (e.g. with only one item if not using a mixed 
+    element), so that it would be more intuitive when not using mixed 
+    elements.
+    """
     time_discrete_terms = [
         sapphire.time_discretization.bdf(
             [fe.split(solutions[n])[i] for n in range(len(solutions))],
@@ -319,6 +373,6 @@ def time_discrete_terms(solutions, timestep_size):
     else:
     
         time_discrete_terms = time_discrete_terms
-
+    
     return time_discrete_terms
     
