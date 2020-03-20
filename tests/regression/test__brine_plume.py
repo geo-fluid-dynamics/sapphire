@@ -84,6 +84,13 @@ def test__brine_plume(tempdir):
     
     Delta_t = 0.001
     
+    solver_parameters = sapphire.simulations.\
+        convection_coupled_alloy_phasechange.default_solver_parameters
+    
+    solver_parameters["snes_view"] = None
+
+    solver_parameters["snes_linesearch_monitor"] = None
+    
     sim = benchmark_module.Simulation(
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
         darcy_number = 1.e-4,
@@ -108,6 +115,7 @@ def test__brine_plume(tempdir):
         element_degrees = (1, 2, 1, 1), 
         quadrature_degree = 4,
         adaptive_timestep_minimum = 1.e-6,
+        solver_parameters = solver_parameters,
         output_directory_path = tempdir)
     
     sim.run(endtime = 0.025, solve_with_adaptive_timestep = True)

@@ -442,8 +442,10 @@ class Simulation(sapphire.simulation.Simulation):
                 
                 Delta_t = self.timestep_size.__float__()
                 
-                print("Attempting to solve with timestep size = {}".format(
-                    Delta_t))
+                print(
+                    "Attempting to solve with timestep size = {}".format(
+                        Delta_t),
+                    flush=True)
                 
                 self.solution = self.solve()
                 
@@ -451,8 +453,10 @@ class Simulation(sapphire.simulation.Simulation):
             
             except fe.exceptions.ConvergenceError as exception:
                 
-                print("Failed to solve with timestep size = {}".format(
-                    Delta_t))
+                print(
+                    "Failed to solve with timestep size = {}".format(
+                        Delta_t),
+                        flush=True)
                 
                 self.solution = self.solution.assign(self.solutions[1])
                 
@@ -498,7 +502,9 @@ class Simulation(sapphire.simulation.Simulation):
                 
             self.time = self.time.assign(self.time + self.timestep_size)
             
-            print("Solved at time t = {0}".format(self.time.__float__()))
+            print(
+                "Solved at time t = {}".format(self.time.__float__()),
+                flush=True)
             
             self.write_outputs(write_headers = False, plot = plot)
             
