@@ -10,7 +10,7 @@ class SimWithoutSolutionOutput(BaseSim):
     """ Redefine output to skip solution writing and plotting 
         (which otherwise slows down the test)
     """
-    def write_outputs(self, write_headers, plotvars = None):
+    def write_outputs(self, write_headers, plot = False):
         
         pass
         

@@ -6,7 +6,7 @@ import sapphire.simulation
 inner, dot, grad, div, sym = \
         fe.inner, fe.dot, fe.grad, fe.div, fe.sym
         
-def variational_form_residual(sim, solution):
+def weak_form_residual(sim, solution):
     
     u, p = fe.split(solution)
     
@@ -48,7 +48,7 @@ class Simulation(sapphire.simulation.Simulation):
             mesh = mesh,
             element = element(
                 cell = mesh.ufl_cell(), degree = element_degree),
-            variational_form_residual = variational_form_residual,
-            time_dependent = False,
+            weak_form_residual = weak_form_residual,
+            time_stencil_size = 1,
             **kwargs)
         

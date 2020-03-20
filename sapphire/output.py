@@ -1,3 +1,4 @@
+import typing
 import csv
 from collections import OrderedDict
 import matplotlib
@@ -51,32 +52,21 @@ def write_solution(sim,
             timefloat = time.__float__()
             
         file.write(*functions_to_write, time = timefloat)
-    
-    
-def plot(
-        sim,
-        plotvars,
-        solution = None,
-        time = None,
-        outdir_path = None):
-    """ Write plots defined by plotvars """
-    if solution is None:
-    
-        solution = sim.solution
         
-    if time is None:
-    
-        time = sim.time.__float__()
         
-    if outdir_path is None:
-    
-        outdir_path = sim.output_directory_path
-    
+def writeplots(
+        fields: typing.List[typing.Union[fe.Function, fe.Mesh]],
+        labels: typing.List[str],
+        names: typing.List[str],
+        plotfuns: typing.List[typing.Callable],
+        time: typing.Union[float, None],
+        outdir_path: str):
+    """ Plot each field and write to files """
     outdir_path.mkdir(parents = True, exist_ok = True)
     
-    for f, label, name, plotfun in zip(*plotvars(sim = sim, solution = solution)):
+    for f, label, name, plot in zip(fields, labels, names, plotfuns):
         
-        plotfun(f)
+        plot(f)
         
         title = "${}$".format(label)
         

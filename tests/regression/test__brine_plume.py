@@ -10,30 +10,6 @@ equations_module = sapphire.simulations.convection_coupled_alloy_phasechange
 
 benchmark_module = sapphire.benchmarks.freeze_salt_water_from_above
 
-BaseSim = benchmark_module.Simulation
-
-
-class SimWithoutPlots(BaseSim):
-    """ Redefine output to skip plotting (which otherwise slows down the test)
-    
-    Solutions and post-processed functions are still written to VTK.
-    """
-    def write_outputs(self, write_headers, plotvars = None):
-        
-        if self.solution_file is None:
-            
-            solution_filepath = self.output_directory_path.joinpath(
-                "solution").with_suffix(".pvd")
-            
-            self.solution_file = fe.File(str(solution_filepath))
-        
-        self = self.postprocess()
-        
-        sapphire.output.report(sim = self, write_header = write_headers)
-        
-        sapphire.output.write_solution(sim = self, file = self.solution_file)
-
-
 def dirichlet_boundary_conditions(sim):
 
     W = sim.function_space
@@ -108,9 +84,7 @@ def test__brine_plume(tempdir):
     
     Delta_t = 0.001
     
-    Sim = SimWithoutPlots
-    
-    sim = Sim(
+    sim = benchmark_module.Simulation(
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
         darcy_number = 1.e-4,
         lewis_number = Le,

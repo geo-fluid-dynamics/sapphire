@@ -220,30 +220,13 @@ def pressure_penalty(sim, solution):
     return gamma*psi_p*p
     
     
-def variational_form_residual(sim, solution):
+def weak_form_residual(sim, solution):
     
     return sum(
             [r(sim = sim, solution = solution) 
             for r in (mass, momentum, energy, pressure_penalty)])\
         *fe.dx(degree = sim.quadrature_degree)
 
-    
-def plotvars(sim, solution = None):
-    
-    if solution is None:
-    
-        solution = sim.solution
-        
-    p, u, T = solution.split()
-    
-    phil = fe.interpolate(liquid_volume_fraction(
-        sim = sim, temperature = T), T.function_space())
-    
-    return (p, u, T, phil), \
-        ("p", "\\mathbf{u}", "T", "\\phi_l"), \
-        ("p", "u", "T", "phil"), \
-        (fe.tripcolor, fe.quiver, fe.tripcolor, fe.tripcolor)
-    
     
 class Simulation(sapphire.simulation.Simulation):
     
@@ -300,9 +283,9 @@ class Simulation(sapphire.simulation.Simulation):
         
         self.smoothing_sequence = None
         
-        if "variational_form_residual" not in kwargs:
+        if "weak_form_residual" not in kwargs:
         
-            kwargs["variational_form_residual"] = variational_form_residual
+            kwargs["weak_form_residual"] = weak_form_residual
         
         if "time_stencil_size" not in kwargs:
         
@@ -372,6 +355,19 @@ class Simulation(sapphire.simulation.Simulation):
         
         return self.solution
     
+    def kwargs_for_writeplots(self):
+        
+        p, u, T = self.solution.split()
+        
+        phil = fe.interpolate(liquid_volume_fraction(
+            sim = self, temperature = T), T.function_space())
+        
+        return {
+            "fields": (p, u, T, phil),
+            "labels": ("p", "\\mathbf{u}", "T", "\\phi_l"),
+            "names": ("p", "u", "T", "phil"),
+            "plotfuns": (fe.tripcolor, fe.quiver, fe.tripcolor, fe.tripcolor)}
+    
     def run(self, *args, **kwargs):
         
         return super().run(*args,
@@ -395,8 +391,4 @@ class Simulation(sapphire.simulation.Simulation):
         self.liquid_area = fe.assemble(phil*dx)
         
         return self
-        
-    def write_outputs(self, *args, **kwargs):
-        
-        super().write_outputs(*args, plotvars = plotvars, **kwargs)
         

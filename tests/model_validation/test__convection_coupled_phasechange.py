@@ -40,7 +40,7 @@ def test__validate__freeze_water__regression(tempdir):
         liquidus_smoothing_factor = 1./200.,
         output_directory_path = tempdir)
     
-    sim.run(endtime = endtime)
+    sim.run(endtime = endtime, plot = True)
     
     print("Liquid area = {}".format(sim.liquid_area))
     

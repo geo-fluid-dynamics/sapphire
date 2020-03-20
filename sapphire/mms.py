@@ -1,6 +1,6 @@
 """ Verify a FEM simulation via the Method of Manufactured Solution (MMS).
 
-This module assumes that the FEM simulation solves a variational problem
+This module assumes that the FEM simulation solves a weak form  problem
 which approximates solutions to a strong form PDE.
 """
 import firedrake as fe
@@ -110,7 +110,7 @@ def make_mms_verification_sim_class(
                 dirichlet_boundary_conditions = dirichlet_boundary_conditions,
                 **kwargs)
                 
-            self.variational_form_residual -= mms_source(
+            self.weak_form_residual -= mms_source(
                     sim = self,
                     strong_residual = strong_residual,
                     manufactured_solution = manufactured_solution)\
@@ -157,8 +157,8 @@ def verify_spatial_order_of_accuracy(
         
         sim = MMSVerificationSimulation(mesh = mesh, **sim_parameters)
         
-        if sim.time is not None:
-            
+        if len(sim.solutions) > 1:
+            # If time-dependent
             sim.solutions, _ = sim.run(endtime = endtime)
             
         else:

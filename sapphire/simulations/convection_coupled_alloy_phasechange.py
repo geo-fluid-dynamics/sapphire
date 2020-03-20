@@ -303,33 +303,13 @@ def stabilization(sim, solution):
     return gamma*psi_p*p
     
     
-def variational_form_residual(sim, solution):
+def weak_form_residual(sim, solution):
     
     return sum(
             [r(sim = sim, solution = solution) 
             for r in (mass, momentum, energy, solute, stabilization)])\
         *fe.dx(degree = sim.quadrature_degree)
 
-    
-def plotvars(sim, solution = None):
-    
-    if solution is None:
-    
-        solution = sim.solution
-    
-    p, u, h, S_l = solution.split()
-    
-    phi_l = sim.postprocessed_porosity
-    
-    T = sim.postprocessed_temperature
-    
-    S = sim.postprocessed_bulk_solute_concentration
-    
-    return (p, u, h, S_l, S, phi_l, T), \
-        ("p", "\\mathbf{u}", "h", "S_l", "S", "\\phi_l", "T"), \
-        ("p", "u", "h", "Sl", "S", "phil", "T"), \
-        (fe.tripcolor, fe.quiver,) + (fe.tripcolor,)*5
-    
     
 default_solver_parameters = {
     "snes_type": "newtonls",
@@ -408,9 +388,9 @@ class Simulation(sapphire.simulation.Simulation):
         self.adaptive_timestep_minimum = fe.Constant(adaptive_timestep_minimum)
         
         
-        if "variational_form_residual" not in kwargs:
+        if "weak_form_residual" not in kwargs:
         
-            kwargs["variational_form_residual"] = variational_form_residual
+            kwargs["weak_form_residual"] = weak_form_residual
         
         if "time_stencil_size" not in kwargs:
         
@@ -480,20 +460,21 @@ class Simulation(sapphire.simulation.Simulation):
                 
     def run(self,
             endtime,
-            solve_with_adaptive_timestep = True,
+            plot = False,
             write_initial_outputs = True,
+            endtime_tolerance = 1.e-8,
+            solve_with_adaptive_timestep = True,
             validate_state = True):
-        
+            
         if write_initial_outputs:
         
-            self.write_outputs(write_headers = True)
+            self.write_outputs(write_headers = True, plot = plot)
         
         if solve_with_adaptive_timestep:
         
             Delta_t_0 = self.timestep_size.__float__()
         
-        while self.time.__float__() < (
-                endtime - sapphire.simulation.time_tolerance):
+        while self.time.__float__() < (endtime - endtime_tolerance):
             
             if solve_with_adaptive_timestep:
             
@@ -507,8 +488,9 @@ class Simulation(sapphire.simulation.Simulation):
                 
                     self.timestep_size = self.timestep_size.assign(endtime - t)
             
-                self.solution, self.timestep_size = self.solve_with_adaptive_timestep(
-                    minimum = self.adaptive_timestep_minimum.__float__())
+                self.solution, self.timestep_size = \
+                    self.solve_with_adaptive_timestep(
+                        minimum = self.adaptive_timestep_minimum.__float__())
             
             else:            
                 
@@ -518,7 +500,7 @@ class Simulation(sapphire.simulation.Simulation):
             
             print("Solved at time t = {0}".format(self.time.__float__()))
             
-            self.write_outputs(write_headers = False)
+            self.write_outputs(write_headers = False, plot = plot)
             
             if validate_state:
             
@@ -592,9 +574,18 @@ class Simulation(sapphire.simulation.Simulation):
         
         return self
     
-    def write_outputs(self, *args, **kwargs):
+    def kwargs_for_writeplots(self):
         
-        super().write_outputs(*args, plotvars = plotvars, **kwargs)
+        p, u, T = self.solution.split()
+        
+        phil = fe.interpolate(liquid_volume_fraction(
+            sim = self, temperature = T), T.function_space())
+        
+        return {
+            "fields": (p, u, h, S_l, S, phi_l, T),
+            "labels": ("p", "\\mathbf{u}", "h", "S_l", "S", "\\phi_l", "T"),
+            "names": ("p", "u", "h", "Sl", "S", "phil", "T"),
+            "plotfuns": (fe.tripcolor, fe.quiver,) + (fe.tripcolor,)*5}
         
     def validate_state(self):
         
