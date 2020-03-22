@@ -26,7 +26,7 @@ def test__validate_heat_driven_cavity_benchmark():
         subcomponent = 0,
         coordinates = [(0.5, y) 
             for y in (0., 0.15, 0.34999, 0.5, 0.65, 0.84999, 0.99999)],
-        truth_values = [val*Ra**0.5/Pr
+        expected_values = [val*Ra**0.5/Pr
             for val in (0.0000, -0.0649, -0.0194, 0.0000, 
                         0.0194, 0.0649, 0.0000)],
         relative_tolerance = 1.e-2,
