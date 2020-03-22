@@ -1,4 +1,8 @@
-""" A steady incompressible Navier-Stokes-Boussinesq simulation class """
+"""Provides a simulation class governed by Navier-Stokes-Boussinesq.
+
+This can be used to simulate natural convection,
+e.g the heat-driven cavity.
+"""
 import firedrake as fe
 import sapphire.simulation
 
