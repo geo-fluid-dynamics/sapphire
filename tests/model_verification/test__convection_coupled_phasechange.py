@@ -183,7 +183,7 @@ def test__verify__second_order_temporal_convergence__via_mms(
             sim_module = sim_module,
             sim_kwargs = sim_kwargs,
             manufactured_solution = time_verification_solution,
-            norms = ("L2", "L2", "L2"),
+            norms = (None, "L2", "L2"),
             expected_orders = (None, 2, 2),
             tolerance = 0.2,
             timestep_sizes = (1/2, 1/4, 1/8, 1/16),
