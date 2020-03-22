@@ -52,12 +52,13 @@ def time_verification_solution(sim):
 sim_kwargs = {
     "grashof_number": 2.,
     "prandtl_number": 0.71,
-    "quadrature_degree": None,
-    "element_degree": (1, 2, 2)}
+    "quadrature_degree": None}
     
 def test__verify_spatial_convergence__second_order__via_mms():
     
     sim_kwargs["timestep_size"] = 1.
+    
+    sim_kwargs["element_degree"] = (1, 2, 2)
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
@@ -72,9 +73,11 @@ def test__verify_spatial_convergence__second_order__via_mms():
  
 def test__verify_temporal_convergence__first_order__via_mms():
     
-    meshsize = 64
+    meshsize = 48
     
     sim_kwargs["mesh"] = fe.UnitSquareMesh(meshsize, meshsize)
+    
+    sim_kwargs["element_degree"] = (2, 3, 3)
     
     sim_kwargs["time_stencil_size"] = 2
     
