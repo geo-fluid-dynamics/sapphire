@@ -90,4 +90,59 @@ def test__verify_temporal_convergence__first_order__via_mms():
         norms = (None, "L2", "L2"),
         expected_orders = (None, 1, 1),
         tolerance = 0.1)
+        
+        
+def test__steady_state_heat_driven_cavity_benchmark():
+    """ Verify against steady state heat-driven cavity benchmark.
     
+    Comparing to data published in @cite{wang2010comprehensive}.
+    """
+    Ra = 1.e6
+
+    Pr = 0.71
+
+    Gr = Ra/Pr
+
+    def initial_values(sim):
+
+        return sim.solution
+        
+    def dirichlet_boundary_conditions(sim):
+        
+        W = sim.function_space
+        
+        return [
+            fe.DirichletBC(W.sub(1), (0., 0.), "on_boundary"),
+            fe.DirichletBC(W.sub(2), 0.5, 1),
+            fe.DirichletBC(W.sub(2), -0.5, 2)]
+    
+    meshsize = 40
+    
+    endtime = 1.e12
+    
+    sim = sapphire.simulations.unsteady_navier_stokes_boussinesq.Simulation(
+        prandtl_number = Pr,
+        grashof_number = Gr,
+        initial_values = initial_values,
+        dirichlet_boundary_conditions = dirichlet_boundary_conditions,
+        mesh = fe.UnitSquareMesh(meshsize, meshsize),
+        element_degree = (1, 2, 2),
+        timestep_size = endtime)
+    
+    sim.solutions, _ = sim.run(endtime = endtime)
+    
+    # Check coordinates (0.3499, 0.8499, 0.9999) instead of (0.35, 0.85, 1)
+    # because the Function evaluation fails at the exact coordinates.
+    # See https://github.com/firedrakeproject/firedrake/issues/1340 
+    sapphire.test.check_scalar_solution_component(
+        solution = sim.solutions[0],
+        component = 1,
+        subcomponent = 0,
+        coordinates = [(0.5, y) 
+            for y in (0., 0.15, 0.34999, 0.5, 0.65, 0.84999, 0.99999)],
+        expected_values = [val*Ra**0.5/Pr
+            for val in (0.0000, -0.0649, -0.0194, 0.0000, 
+                        0.0194, 0.0649, 0.0000)],
+        relative_tolerance = 1.e-2,
+        absolute_tolerance = 1.e-2*0.0649*Ra**0.5/Pr)
+        
