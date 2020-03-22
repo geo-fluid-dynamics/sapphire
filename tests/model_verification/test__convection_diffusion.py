@@ -26,7 +26,7 @@ def test__verify_convergence_order_via_mms():
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
-        sim_parameters = {
+        sim_kwargs = {
             "diffusion_coefficient": 0.1,
             "advection_velocity": advection_velocity,
             },

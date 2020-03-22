@@ -18,7 +18,7 @@ def test__verify_spatial_convergence__first_order__via_mms():
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
-        sim_parameters = {
+        sim_kwargs = {
             "stefan_number": 0.1,
             "liquidus_smoothing_factor": 1./32.,
             "timestep_size": 1./256.,
@@ -35,7 +35,7 @@ def test__verify_spatial_convergence__second_order__via_mms():
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
-        sim_parameters = {
+        sim_kwargs = {
             "stefan_number": 0.1,
             "liquidus_smoothing_factor": 1./32.,
             "element_degree": 2,
@@ -53,7 +53,7 @@ def test__verify_temporal_convergence__first_order__via_mms():
     
     sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
-        sim_parameters = {
+        sim_kwargs = {
             "stefan_number": 0.1,
             "liquidus_smoothing_factor": 1./32.,
             "mesh": fe.UnitIntervalMesh(256),
@@ -70,7 +70,7 @@ def test__verify_temporal_convergence__second_order__via_mms():
     
     sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
-        sim_parameters = {
+        sim_kwargs = {
             "stefan_number": 0.1,
             "liquidus_smoothing_factor": 1./32.,
             "element_degree": 2,
