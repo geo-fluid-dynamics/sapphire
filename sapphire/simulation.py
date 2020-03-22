@@ -327,8 +327,16 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 
     def unit_vectors(self) -> typing.Tuple[ufl.tensors.ListTensor]:
         """Returns the spatial unit vectors in each dimension."""
-        return unit_vectors(self.mesh)
+        return unit_vectors(mesh = self.mesh)
         
+    def time_discrete_terms(self) -> typing.Union[
+            ufl.core.operator.Operator,
+            typing.List[ufl.core.operator.Operator]]:
+        """Returns time derivative for each solution component."""
+        return time_discrete_terms(
+            solutions = self.solutions,
+            timestep_size = self.timestep_size)
+            
         
 def unit_vectors(mesh) -> typing.Tuple[ufl.tensors.ListTensor]:
     """Returns the mesh's spatial unit vectors in each dimension.
