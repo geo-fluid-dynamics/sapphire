@@ -18,9 +18,9 @@ def linear_boussinesq_buoyancy(sim, temperature):
     return Gr*T*ghat
     
     
-inner, dot, grad, div, sym = \
-        fe.inner, fe.dot, fe.grad, fe.div, fe.sym
-        
+_,       diff,    inner,    dot,    grad,    div,    sym = \
+None, fe.diff, fe.inner, fe.dot, fe.grad, fe.div, fe.sym
+    
 def weak_form_residual(
         sim, solution, buoyancy = linear_boussinesq_buoyancy):
     
@@ -28,18 +28,20 @@ def weak_form_residual(
     
     p, u, T = fe.split(solution)
     
+    _, u_t, T_t = sim.time_discrete_terms()
+    
     psi_p, psi_u, psi_T = fe.TestFunctions(solution.function_space())
     
     b = buoyancy(sim = sim, temperature = T)
     
     mass = psi_p*div(u)
     
-    momentum = dot(psi_u, grad(u)*u + b) \
+    momentum = dot(psi_u, u_t + grad(u)*u + b) \
         - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), sym(grad(u)))
     
-    energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))
+    energy = psi_T*(T_t + dot(u, grad(T))) + dot(grad(psi_T), 1./Pr*grad(T))
     
-    gamma = sim.pressure_penalty_constant
+    gamma = sim.pressure_penalty_factor
     
     pressure_penalty = gamma*psi_p*p
     
@@ -54,28 +56,28 @@ def strong_residual(sim, solution, buoyancy = linear_boussinesq_buoyancy):
     
     p, u, T = solution
     
+    t = sim.time
+    
     b = buoyancy(sim = sim, temperature = T)
     
     r_p = div(u)
     
-    r_u = grad(u)*u + grad(p) - 2.*div(sym(grad(u))) + b
+    r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(sym(grad(u))) + b
     
-    r_T = dot(u, grad(T)) - 1./Pr*div(grad(T))
+    r_T = diff(T, t) + dot(u, grad(T)) - 1./Pr*div(grad(T))
     
     return r_p, r_u, r_T
     
     
 def element(cell, degree):
     
-    if type(degree) is type(1):
+    pdeg, udeg, Tdeg = degree
     
-        degree = (degree,)*3
-        
-    pressure_element = fe.FiniteElement("P", cell, degree[0])
+    pressure_element = fe.FiniteElement("P", cell, pdeg)
     
-    velocity_element = fe.VectorElement("P", cell, degree[1])
+    velocity_element = fe.VectorElement("P", cell, udeg)
     
-    temperature_element = fe.FiniteElement("P", cell, degree[2])
+    temperature_element = fe.FiniteElement("P", cell, Tdeg)
     
     return fe.MixedElement(
         pressure_element, velocity_element, temperature_element)
@@ -88,20 +90,19 @@ class Simulation(sapphire.simulation.Simulation):
             element_degree = (1, 2, 2),
             grashof_number = 1.,
             prandtl_number = 1.,
-            pressure_penalty_constant = 0.,
+            pressure_penalty_factor = 0.,
             **kwargs):
         
         self.grashof_number = fe.Constant(grashof_number)
         
         self.prandtl_number = fe.Constant(prandtl_number)
         
-        self.pressure_penalty_constant = fe.Constant(pressure_penalty_constant)
+        self.pressure_penalty_factor = fe.Constant(pressure_penalty_factor)
         
         super().__init__(*args,
             mesh = mesh,
             element = element(
                 cell = mesh.ufl_cell(), degree = element_degree),
             weak_form_residual = weak_form_residual,
-            time_stencil_size = 1,
             **kwargs)
             

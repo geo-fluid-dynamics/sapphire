@@ -18,7 +18,7 @@ def test__verify_spatial_convergence__first_order__via_mms():
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
-        sim_parameters = {"timestep_size": 1./64.},
+        sim_kwargs = {"timestep_size": 1./64.},
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitIntervalMesh(n) for n in (4, 8, 16, 32)],
         norms = ("H1",),
@@ -31,7 +31,7 @@ def test__verify_temporal_convergence__first_order__via_mms():
     
     sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
-        sim_parameters = {"mesh": fe.UnitIntervalMesh(256)},
+        sim_kwargs = {"mesh": fe.UnitIntervalMesh(256)},
         manufactured_solution = manufactured_solution,
         norms = ("L2",),
         expected_orders = (1,),
@@ -44,7 +44,7 @@ def test__verify_temporal_convergence__second_order__via_mms():
     
     sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
-        sim_parameters = {
+        sim_kwargs = {
             "mesh": fe.UnitIntervalMesh(128),
             "element_degree": 2,
             "time_stencil_size": 3,
@@ -61,7 +61,7 @@ def test__verify_temporal_convergence__third_order__via_mms():
     
     sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
-        sim_parameters = {
+        sim_kwargs = {
             "mesh": fe.UnitIntervalMesh(128),
             "element_degree": 2,
             "time_stencil_size": 4,

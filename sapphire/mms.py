@@ -132,7 +132,7 @@ def verify_spatial_order_of_accuracy(
         norms,
         expected_orders,
         tolerance,
-        sim_parameters = {},
+        sim_kwargs = {},
         endtime = 0.,
         strong_residual = None,
         dirichlet_boundary_conditions = None,
@@ -155,7 +155,7 @@ def verify_spatial_order_of_accuracy(
         
         h = mesh.cell_sizes((0.,)*mesh.geometric_dimension())
         
-        sim = MMSVerificationSimulation(mesh = mesh, **sim_parameters)
+        sim = MMSVerificationSimulation(mesh = mesh, **sim_kwargs)
         
         if len(sim.solutions) > 1:
             # If time-dependent
@@ -177,8 +177,14 @@ def verify_spatial_order_of_accuracy(
             
         for w_i, wh_i, norm in zip(w, wh.split(), norms):
             
-            errors.append(fe.errornorm(w_i, wh_i, norm_type = norm))
+            if norm is not None:
             
+                errors.append(fe.errornorm(w_i, wh_i, norm_type = norm))
+                
+            else:
+                
+                errors.append(None)
+                
         cellcount = mesh.topology.num_cells()
             
         dofcount = len(wh.vector().array())
@@ -195,14 +201,20 @@ def verify_spatial_order_of_accuracy(
             
             for i in range(len(sim.solution.split())):
             
-                r = h[-2]/h[-1]
+                if e[0][i] is None:
+                
+                    orders.append(None)
+                    
+                else:
+                
+                    r = h[-2]/h[-1]
             
-                orders.append(log(e[-2][i]/e[-1][i])/log(r))
-            
-                table.data["spatial_orders"][-1] = orders
-        
+                    orders.append(log(e[-2][i]/e[-1][i])/log(r))
+                    
+            table.data["spatial_orders"][-1] = orders
+                
         print(str(table))
-    
+        
     print("Last observed spatial orders of accuracy are {}".format(orders))
     
     if outfile:
@@ -210,7 +222,7 @@ def verify_spatial_order_of_accuracy(
         print("Writing convergence table to {}".format(outfile.name))
         
         outfile.write(str(table))
-    
+        
     for order, expected_order in zip(orders, expected_orders):
         
         if expected_order is not None:
@@ -226,7 +238,7 @@ def verify_temporal_order_of_accuracy(
         norms,
         expected_orders,
         tolerance,
-        sim_parameters = {},
+        sim_kwargs = {},
         starttime = 0.,
         strong_residual = None,
         dirichlet_boundary_conditions = None,
@@ -246,7 +258,7 @@ def verify_temporal_order_of_accuracy(
     
     for timestep_size in timestep_sizes:
         
-        sim = MMSVerificationSimulation(**sim_parameters)
+        sim = MMSVerificationSimulation(**sim_kwargs)
     
         assert(len(sim.solutions) > 1)
         
@@ -272,8 +284,14 @@ def verify_temporal_order_of_accuracy(
             
         for w_i, wh_i, norm in zip(w, wh.split(), norms):
             
-            errors.append(fe.errornorm(w_i, wh_i, norm_type = norm))
+            if norm is not None:
             
+                errors.append(fe.errornorm(w_i, wh_i, norm_type = norm))
+                
+            else:
+                
+                errors.append(None)
+                
         table.append({"Delta_t": timestep_size, "errors": errors})
         
         if len(table) > 1:
@@ -286,11 +304,17 @@ def verify_temporal_order_of_accuracy(
             
             for i in range(len(sim.solution.split())):
             
-                r = Delta_t[-2]/Delta_t[-1]
+                if e[0][i] is None:
+                
+                    orders.append(None)
+                    
+                else:
             
-                orders.append(log(e[-2][i]/e[-1][i])/log(r))
+                    r = Delta_t[-2]/Delta_t[-1]
             
-                table.data["temporal_orders"][-1] = orders
+                    orders.append(log(e[-2][i]/e[-1][i])/log(r))
+                    
+            table.data["temporal_orders"][-1] = orders
         
         print(str(table))
         

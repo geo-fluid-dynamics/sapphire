@@ -104,7 +104,6 @@ def strong_residual(sim, solution, buoyancy = linear_boussinesq_buoyancy):
     
     r_T = diff(C*T, t) + 1./Ste*diff(phil, t) + dot(u, grad(C*T)) \
         - 1./Pr*div(k*grad(T))
-        
     
     return r_p, r_u, r_T
     

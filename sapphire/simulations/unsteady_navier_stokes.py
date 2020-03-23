@@ -1,4 +1,8 @@
-""" Unsteady incompressible Navier-Stokes simulation """
+"""Provides a simulation class governed by Navier-Stokes. 
+
+This can be used to simulate incompressible flow,
+e.g. the lid-driven cavity.
+"""
 import firedrake as fe
 import sapphire.simulation
 
@@ -10,8 +14,7 @@ def weak_form_residual(sim, solution):
     
     u, p = fe.split(sim.solution)
     
-    u_t, _ = sapphire.simulation.time_discrete_terms(
-        solutions = sim.solutions, timestep_size = sim.timestep_size)
+    u_t, _ = sim.time_discrete_terms()
     
     psi_u, psi_p = fe.TestFunctions(sim.solution.function_space())
     

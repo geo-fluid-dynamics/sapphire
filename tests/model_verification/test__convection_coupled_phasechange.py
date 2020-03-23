@@ -52,7 +52,7 @@ def time_verification_solution(sim):
     return p, u, T
     
 
-parameters = {
+sim_kwargs = {
     "grashof_number": 3.6e5,
     "prandtl_number": 7.0,
     "stefan_number": 0.13,
@@ -79,9 +79,9 @@ def test__verify__taylor_hood_second_order_spatial_convergence__via_mms(
         where the magnitude hits a floor around 0.5.
     To keep the test cheap, only up to nx = 32 is shown here.
     """
-    parameters["element_degree"] = (1, 2, 2)
+    sim_kwargs["element_degree"] = (1, 2, 2)
     
-    parameters["timestep_size"] = endtime
+    sim_kwargs["timestep_size"] = endtime
     
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
@@ -94,7 +94,7 @@ def test__verify__taylor_hood_second_order_spatial_convergence__via_mms(
         
         sapphire.mms.verify_spatial_order_of_accuracy(
             sim_module = sim_module,
-            sim_parameters = parameters,
+            sim_kwargs = sim_kwargs,
             manufactured_solution = space_verification_solution,
             #strong_residual = sim_module.strong_residual_with_pressure_penalty, #Adding the penalty term to the strong residual removes the floor and maintains superconvergence.
             meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
@@ -108,9 +108,9 @@ def test__verify__taylor_hood_second_order_spatial_convergence__via_mms(
 def test__verify__taylor_hood_third_order_spatial_convergence__via_mms(
         tempdir):
     
-    parameters["element_degree"] = (2, 3, 3)
+    sim_kwargs["element_degree"] = (2, 3, 3)
     
-    parameters["timestep_size"] = endtime
+    sim_kwargs["timestep_size"] = endtime
     
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
@@ -123,7 +123,7 @@ def test__verify__taylor_hood_third_order_spatial_convergence__via_mms(
         
         sapphire.mms.verify_spatial_order_of_accuracy(
             sim_module = sim_module,
-            sim_parameters = parameters,
+            sim_kwargs = sim_kwargs,
             manufactured_solution = space_verification_solution,
             meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
             norms = ("L2", "H1", "H1"),
@@ -136,9 +136,9 @@ def test__verify__taylor_hood_third_order_spatial_convergence__via_mms(
 def test__verify__equal_order_first_order_spatial_convergence__via_mms(
         tempdir):
     
-    parameters["element_degree"] = (1, 1, 1)
+    sim_kwargs["element_degree"] = (1, 1, 1)
     
-    parameters["timestep_size"] = endtime
+    sim_kwargs["timestep_size"] = endtime
     
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
@@ -151,7 +151,7 @@ def test__verify__equal_order_first_order_spatial_convergence__via_mms(
         
         sapphire.mms.verify_spatial_order_of_accuracy(
             sim_module = sim_module,
-            sim_parameters = parameters,
+            sim_kwargs = sim_kwargs,
             manufactured_solution = space_verification_solution,
             meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
             norms = ("L2", "H1", "H1"),
@@ -164,11 +164,11 @@ def test__verify__equal_order_first_order_spatial_convergence__via_mms(
 def test__verify__second_order_temporal_convergence__via_mms(
         tempdir):
     
-    parameters["element_degree"] = (1, 2, 2)
+    sim_kwargs["element_degree"] = (1, 2, 2)
     
     meshsize = 32
     
-    parameters["mesh"] = fe.UnitSquareMesh(meshsize, meshsize)
+    sim_kwargs["mesh"] = fe.UnitSquareMesh(meshsize, meshsize)
     
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
@@ -181,9 +181,9 @@ def test__verify__second_order_temporal_convergence__via_mms(
     
         sapphire.mms.verify_temporal_order_of_accuracy(
             sim_module = sim_module,
-            sim_parameters = parameters,
+            sim_kwargs = sim_kwargs,
             manufactured_solution = time_verification_solution,
-            norms = ("L2", "L2", "L2"),
+            norms = (None, "L2", "L2"),
             expected_orders = (None, 2, 2),
             tolerance = 0.2,
             timestep_sizes = (1/2, 1/4, 1/8, 1/16),
