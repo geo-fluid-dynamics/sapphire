@@ -16,12 +16,14 @@ def weak_form_residual(sim, solution):
     
     u_t, _ = sim.time_discrete_terms()
     
+    Re = sim.reynolds_number
+    
     psi_u, psi_p = fe.TestFunctions(sim.solution.function_space())
     
     mass = psi_p*div(u)
     
     momentum = dot(psi_u, u_t + grad(u)*u) - div(psi_u)*p + \
-        2.*inner(sym(grad(psi_u)), sym(grad(u)))
+        2./Re*inner(sym(grad(psi_u)), sym(grad(u)))
     
     dx = fe.dx(degree = sim.quadrature_degree)
     
@@ -34,7 +36,9 @@ def strong_residual(sim, solution):
     
     t = sim.time
     
-    r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(sym(grad(u)))
+    Re = sim.reynolds_number
+    
+    r_u = diff(u, t) + grad(u)*u + grad(p) - 2./Re*div(sym(grad(u)))
     
     r_p = div(u)
     
@@ -43,16 +47,22 @@ def strong_residual(sim, solution):
     
 def element(cell, degree):
 
-    vector = fe.VectorElement("P", cell, degree + 1)
+    vector = fe.VectorElement("P", cell, degree[0])
     
-    scalar = fe.FiniteElement("P", cell, degree)
+    scalar = fe.FiniteElement("P", cell, degree[1])
     
     return fe.MixedElement(vector, scalar)
     
     
 class Simulation(sapphire.simulation.Simulation):
     
-    def __init__(self, *args, mesh, element_degree, **kwargs):
+    def __init__(self, *args,
+            mesh,
+            element_degree,
+            reynolds_number,
+            **kwargs):
+            
+        self.reynolds_number = fe.Constant(reynolds_number)
         
         super().__init__(*args,
             mesh = mesh,
