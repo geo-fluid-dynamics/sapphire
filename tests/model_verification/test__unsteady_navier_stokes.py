@@ -23,6 +23,7 @@ def manufactured_solution(sim):
     
     
 sim_kwargs = {
+    "reynolds_number": 3,
     "quadrature_degree": 4,
     "element_degree": (2, 1),
     "time_stencil_size": 2}
