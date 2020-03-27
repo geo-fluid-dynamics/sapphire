@@ -31,8 +31,7 @@ def check_scalar_solution_component(
         component, 
         coordinates, 
         expected_values, 
-        relative_tolerance, 
-        absolute_tolerance,
+        absolute_tolerances,
         subcomponent = None):
     """Verify the scalar values of a specified solution component.
     
@@ -46,15 +45,15 @@ def check_scalar_solution_component(
             spatial dimension and will be converted to a `fe.Point`.
         expected_values (Tuple[float]): Truth values 
             at each coordinate.
-        relative_tolerance (float): Used to assert relative error 
-            is not too large.
-        absolute_tolerance (float): Used to assert absolute error
-            is not too large. This will be used instead of 
-            relative error for small values.
+        absolute_tolerances (Tuple[float]): Used to assert absolute error 
+            is not too large. Specify a tolerance for each value.
     """
     assert(len(expected_values) == len(coordinates))
     
-    for i, verified_value in enumerate(expected_values):
+    indices = range(len(expected_values))
+    
+    for i, expected_value, tolerance in zip(
+            indices, expected_values, absolute_tolerances):
         
         values = solution.at(coordinates[i])
         
@@ -64,15 +63,9 @@ def check_scalar_solution_component(
         
             value = value[subcomponent]
         
-        absolute_error = abs(value - verified_value)
+        print("Expected {} and found {}.".format(expected_value, value))
         
-        if abs(verified_value) > absolute_tolerance:
+        absolute_error = abs(value - expected_value)
         
-            relative_error = absolute_error/verified_value
-       
-            assert(relative_error < relative_tolerance)
-            
-        else:
+        assert absolute_error <= tolerance
         
-            assert(absolute_error < absolute_tolerance)
-            
