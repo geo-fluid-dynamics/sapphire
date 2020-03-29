@@ -24,9 +24,10 @@ def test__verify_convergence_order_via_mms(
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
+        sim_kwargs = {"reynolds_number": 3.},
         manufactured_solution = manufactured_solution,
         meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
         norms = ("H1", "L2"),
         expected_orders = (2, 2),
         tolerance = tolerance)
-    
+
