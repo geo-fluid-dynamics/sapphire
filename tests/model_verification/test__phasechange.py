@@ -28,7 +28,7 @@ def test__verify_spatial_convergence__first_order__via_mms():
         norms = ("H1",),
         expected_orders = (1,),
         endtime = 1.,
-        tolerance = 0.1)
+        decimal_places = 1)
         
      
 def test__verify_spatial_convergence__second_order__via_mms():
@@ -42,11 +42,11 @@ def test__verify_spatial_convergence__second_order__via_mms():
             "timestep_size": 1./256.,
             },
         manufactured_solution = manufactured_solution,
-        meshes = [fe.UnitIntervalMesh(size) for size in (4, 8, 16, 32)],
+        meshes = [fe.UnitIntervalMesh(size) for size in (4, 8, 16)],
         norms = ("H1",),
         expected_orders = (2,),
         endtime = 1.,
-        tolerance = 0.1)
+        decimal_places = 1)
         
         
 def test__verify_temporal_convergence__first_order__via_mms():
@@ -56,14 +56,14 @@ def test__verify_temporal_convergence__first_order__via_mms():
         sim_kwargs = {
             "stefan_number": 0.1,
             "liquidus_smoothing_factor": 1./32.,
-            "mesh": fe.UnitIntervalMesh(256),
+            "mesh": fe.UnitIntervalMesh(512),
             },
         manufactured_solution = manufactured_solution,
         norms = ("L2",),
         expected_orders = (1,),
         endtime = 1.,
         timestep_sizes = (1./16., 1./32., 1./64., 1./128.),
-        tolerance = 0.1)
+        decimal_places = 1)
 
     
 def test__verify_temporal_convergence__second_order__via_mms():
@@ -75,12 +75,12 @@ def test__verify_temporal_convergence__second_order__via_mms():
             "liquidus_smoothing_factor": 1./32.,
             "element_degree": 2,
             "time_stencil_size": 3,
-            "mesh": fe.UnitIntervalMesh(128),
+            "mesh": fe.UnitIntervalMesh(256),
             },
         manufactured_solution = manufactured_solution,
         norms = ("L2",),
         expected_orders = (2,),
         endtime = 1.,
-        timestep_sizes = (1./64., 1./128., 1./256.),
-        tolerance = 0.1)
+        timestep_sizes = (1./32., 1./64., 1./128.),
+        decimal_places = 1)
     

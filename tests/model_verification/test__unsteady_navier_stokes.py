@@ -1,45 +1,65 @@
 import firedrake as fe 
 import sapphire.mms
-from sapphire.simulation import unit_vectors
-from sapphire.simulations import unsteady_navier_stokes as sim_module
+import sapphire.simulations.unsteady_navier_stokes as sim_module
 
 
 def manufactured_solution(sim):
     
-    exp, sin, pi = fe.exp, fe.sin, fe.pi
+    sin, pi = fe.sin, fe.pi
     
-    x = fe.SpatialCoordinate(sim.mesh)
+    exp = fe.exp
+    
+    x, y = fe.SpatialCoordinate(sim.mesh)
     
     t = sim.time
     
-    ihat, jhat = unit_vectors(sim.mesh)
+    ihat, jhat = sim.unit_vectors()
     
-    u = exp(t)*(sin(2.*pi*x[0])*sin(pi*x[1])*ihat + \
-        sin(pi*x[0])*sin(2.*pi*x[1])*jhat)
+    u =(sin(2.*pi*x)*sin(pi*y)*ihat + \
+        sin(pi*x)*sin(2.*pi*y)*jhat)*exp(1. - t)
     
     p = -0.5*(u[0]**2 + u[1]**2)
     
     return u, p
     
     
+def dirichlet_boundary_conditions(sim, manufactured_solution):
+    """Apply velocity Dirichlet BC's on every boundary."""
+    W = sim.function_space
+    
+    u, p = manufactured_solution
+    
+    return [fe.DirichletBC(W.sub(0), u, "on_boundary"),]
+    
+    
+def nullspace(sim):
+    
+    W = sim.function_space
+    
+    return fe.MixedVectorSpaceBasis(
+        W, [W.sub(0), fe.VectorSpaceBasis(constant=True)])
+    
+    
 sim_kwargs = {
-    "reynolds_number": 3,
-    "quadrature_degree": 4,
+    "reynolds_number": 3.,
+    "quadrature_degree": None,
     "element_degree": (2, 1),
-    "time_stencil_size": 2}
+    "time_stencil_size": 2,
+    "nullspace": nullspace}
     
 def test__verify_spatial_convergence__second_order__via_mms():
     
-    sim_kwargs["timestep_size"] = 1./32.
+    sim_kwargs["timestep_size"] = 1.
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
         sim_kwargs = sim_kwargs,
         manufactured_solution = manufactured_solution,
-        meshes = [fe.UnitSquareMesh(n, n) for n in (3, 6, 12, 24)],
+        dirichlet_boundary_conditions = dirichlet_boundary_conditions,
+        meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16)],
         norms = ("H1", "L2"),
         expected_orders = (2, 2),
-        tolerance = 0.3,
+        decimal_places = 1,
         endtime = 1.)
     
  
@@ -51,11 +71,12 @@ def test__verify_temporal_convergence__first_order__via_mms():
         sim_module = sim_module,
         sim_kwargs = sim_kwargs,
         manufactured_solution = manufactured_solution,
+        dirichlet_boundary_conditions = dirichlet_boundary_conditions,
         norms = (None, "L2"),
         expected_orders = (None, 1),
         endtime = 1.,
         timestep_sizes = (1./2., 1./4., 1./8.),
-        tolerance = 0.1)
+        decimal_places = 1)
         
  
 def test__steady_state_lid_driven_cavity_benchmark():
@@ -92,6 +113,7 @@ def test__steady_state_lid_driven_cavity_benchmark():
         reynolds_number = 100.,
         initial_values = initial_values,
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
+        nullspace = nullspace,
         mesh = fe.UnitSquareMesh(50, 50),
         element_degree = (2, 1),
         timestep_size = endtime)

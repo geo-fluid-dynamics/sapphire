@@ -24,9 +24,7 @@ def manufactured_solution(sim):
     return p, u, T
     
     
-def test__verify_spatial_accuracy_via_mms(
-        mesh_sizes = (4, 8, 16, 32), 
-        tolerance = 0.1):
+def test__verify_spatial_accuracy_via_mms():
     
     Ra = 10.
     
@@ -40,15 +38,13 @@ def test__verify_spatial_accuracy_via_mms(
             "element_degree": (1, 2, 2),
             },
         manufactured_solution = manufactured_solution,
-        meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
+        meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32, 64)],
         norms = ("L2", "H1", "H1"),
         expected_orders = (2, 2, 2),
-        tolerance = tolerance)
+        decimal_places = 1)
 
     
-def test__verify_spatial_accuracy_with_pressure_penalty_via_mms(
-        mesh_sizes = (4, 8, 16, 32), 
-        tolerance = 0.1):
+def test__verify_spatial_accuracy_with_pressure_penalty_via_mms():
     
     Ra = 10.
     
@@ -65,7 +61,7 @@ def test__verify_spatial_accuracy_with_pressure_penalty_via_mms(
             "element_degree": (1, 2, 2),
             },
         manufactured_solution = manufactured_solution,
-        meshes = [fe.UnitSquareMesh(n, n) for n in mesh_sizes],
+        meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32, 64)],
         norms = ("L2", "H1", "H1"),
         expected_orders = (2, 2, 2),
-        tolerance = tolerance)
+        decimal_places = 1)

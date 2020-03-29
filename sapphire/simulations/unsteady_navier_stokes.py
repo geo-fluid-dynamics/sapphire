@@ -7,18 +7,27 @@ import firedrake as fe
 import sapphire.simulation
 
 
-diff, inner, dot, grad, div, sym = \
-    fe.diff, fe.inner, fe.dot, fe.grad, fe.div, fe.sym
+def element(cell, degree):
+    
+    return fe.MixedElement(
+        fe.VectorElement("P", cell, degree[0]),
+        fe.FiniteElement("P", cell, degree[1]))
+    
+    
+inner, dot, grad, div, sym = \
+    fe.inner, fe.dot, fe.grad, fe.div, fe.sym
+    
+diff = fe.diff
     
 def weak_form_residual(sim, solution):
     
-    u, p = fe.split(sim.solution)
+    u, p = fe.split(solution)
     
     u_t, _ = sim.time_discrete_terms()
     
     Re = sim.reynolds_number
     
-    psi_u, psi_p = fe.TestFunctions(sim.solution.function_space())
+    psi_u, psi_p = fe.TestFunctions(solution.function_space())
     
     mass = psi_p*div(u)
     
@@ -43,23 +52,14 @@ def strong_residual(sim, solution):
     r_p = div(u)
     
     return r_u, r_p
-    
-    
-def element(cell, degree):
 
-    vector = fe.VectorElement("P", cell, degree[0])
-    
-    scalar = fe.FiniteElement("P", cell, degree[1])
-    
-    return fe.MixedElement(vector, scalar)
-    
     
 class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args,
             mesh,
-            element_degree,
             reynolds_number,
+            element_degree = (2, 1),
             **kwargs):
             
         self.reynolds_number = fe.Constant(reynolds_number)
