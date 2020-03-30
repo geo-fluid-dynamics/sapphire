@@ -43,13 +43,36 @@ def nullspace(sim):
 sim_kwargs = {
     "reynolds_number": 3.,
     "quadrature_degree": None,
-    "element_degree": (2, 1),
-    "time_stencil_size": 2,
     "nullspace": nullspace}
+    
     
 def test__verify_spatial_convergence__second_order__via_mms():
     
-    sim_kwargs["timestep_size"] = 1.
+    sim_kwargs["element_degree"] = (2, 1)
+    
+    sim_kwargs["timestep_size"] = 1./4.
+    
+    sim_kwargs["time_stencil_size"] = 3
+    
+    sapphire.mms.verify_spatial_order_of_accuracy(
+        sim_module = sim_module,
+        sim_kwargs = sim_kwargs,
+        manufactured_solution = manufactured_solution,
+        dirichlet_boundary_conditions = dirichlet_boundary_conditions,
+        meshes = [fe.UnitSquareMesh(n, n) for n in (8, 16, 32)],
+        norms = ("H1", "L2"),
+        expected_orders = (2, 2),
+        decimal_places = 1,
+        endtime = 1.)
+    
+    
+def test__verify_spatial_convergence__third_order__via_mms():
+    
+    sim_kwargs["element_degree"] = (3, 2)
+    
+    sim_kwargs["timestep_size"] = 1./32.
+    
+    sim_kwargs["time_stencil_size"] = 3
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
@@ -58,24 +81,28 @@ def test__verify_spatial_convergence__second_order__via_mms():
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
         meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16)],
         norms = ("H1", "L2"),
-        expected_orders = (2, 2),
+        expected_orders = (3, 3),
         decimal_places = 1,
         endtime = 1.)
     
  
-def test__verify_temporal_convergence__first_order__via_mms():
+def test__verify_temporal_convergence__second_order__via_mms():
     
-    sim_kwargs["mesh"] = fe.UnitSquareMesh(32, 32)
+    sim_kwargs["element_degree"] = (3, 2)
+    
+    sim_kwargs["mesh"] = fe.UnitSquareMesh(64, 64)
+    
+    sim_kwargs["time_stencil_size"] = 3
     
     sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
         sim_kwargs = sim_kwargs,
         manufactured_solution = manufactured_solution,
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
-        norms = (None, "L2"),
-        expected_orders = (None, 1),
+        norms = ("L2", None),
+        expected_orders = (2, None),
         endtime = 1.,
-        timestep_sizes = (1./2., 1./4., 1./8.),
+        timestep_sizes = (1./4., 1./8., 1./16., 1./32.),
         decimal_places = 1)
         
  
