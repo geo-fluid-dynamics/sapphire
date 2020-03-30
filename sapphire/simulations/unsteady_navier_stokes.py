@@ -2,6 +2,8 @@
 
 This can be used to simulate incompressible flow,
 e.g. the lid-driven cavity.
+
+Dirichlet BC's should not be placed on the pressure.
 """
 import firedrake as fe
 import sapphire.simulation
@@ -34,9 +36,13 @@ def weak_form_residual(sim, solution):
     momentum = dot(psi_u, u_t + grad(u)*u) - div(psi_u)*p + \
         2./Re*inner(sym(grad(psi_u)), sym(grad(u)))
     
+    gamma = sim.pressure_penalty_constant
+    
+    pressure_penalty = gamma*psi_p*p
+    
     dx = fe.dx(degree = sim.quadrature_degree)
     
-    return (mass + momentum)*dx
+    return (mass + momentum + pressure_penalty)*dx
     
     
 def strong_residual(sim, solution):
@@ -53,21 +59,34 @@ def strong_residual(sim, solution):
     
     return r_u, r_p
 
+
+def nullspace(sim):
+    """Inform solver that pressure is only defined up to a constant."""
+    W = sim.function_space
+    
+    return fe.MixedVectorSpaceBasis(
+        W, [W.sub(0), fe.VectorSpaceBasis(constant=True)])
+        
     
 class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args,
             mesh,
             reynolds_number,
+            pressure_penalty_constant = 0.,
             element_degree = (2, 1),
             **kwargs):
             
         self.reynolds_number = fe.Constant(reynolds_number)
+        
+        self.pressure_penalty_constant = fe.Constant(
+            pressure_penalty_constant)
         
         super().__init__(*args,
             mesh = mesh,
             element = element(
                 cell = mesh.ufl_cell(), degree = element_degree),
             weak_form_residual = weak_form_residual,
+            nullspace = nullspace,
             **kwargs)
             

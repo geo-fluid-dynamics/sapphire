@@ -1,3 +1,9 @@
+"""
+Verify accuracy of the unsteady Navier-Stokes solver.
+
+Pressure accuracy is not verified, because the pressure is only defined
+up to a constant.
+"""
 import firedrake as fe 
 import sapphire.mms
 import sapphire.simulations.unsteady_navier_stokes as sim_module
@@ -15,8 +21,8 @@ def manufactured_solution(sim):
     
     ihat, jhat = sim.unit_vectors()
     
-    u =(sin(2.*pi*x)*sin(pi*y)*ihat + \
-        sin(pi*x)*sin(2.*pi*y)*jhat)*exp(1. - t)
+    u = (sin(2.*pi*x)*sin(pi*y)*ihat + \
+         sin(pi*x)*sin(2.*pi*y)*jhat)*exp(1. - t)
     
     p = -0.5*(u[0]**2 + u[1]**2)
     
@@ -32,18 +38,9 @@ def dirichlet_boundary_conditions(sim, manufactured_solution):
     return [fe.DirichletBC(W.sub(0), u, "on_boundary"),]
     
     
-def nullspace(sim):
-    
-    W = sim.function_space
-    
-    return fe.MixedVectorSpaceBasis(
-        W, [W.sub(0), fe.VectorSpaceBasis(constant=True)])
-    
-    
 sim_kwargs = {
     "reynolds_number": 3.,
-    "quadrature_degree": None,
-    "nullspace": nullspace}
+    "quadrature_degree": None}
     
     
 def test__verify_spatial_convergence__second_order__via_mms():
@@ -60,8 +57,8 @@ def test__verify_spatial_convergence__second_order__via_mms():
         manufactured_solution = manufactured_solution,
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
         meshes = [fe.UnitSquareMesh(n, n) for n in (8, 16, 32)],
-        norms = ("H1", "L2"),
-        expected_orders = (2, 2),
+        norms = ("H1", None),
+        expected_orders = (2, None),
         decimal_places = 1,
         endtime = 1.)
     
@@ -80,8 +77,8 @@ def test__verify_spatial_convergence__third_order__via_mms():
         manufactured_solution = manufactured_solution,
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
         meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16)],
-        norms = ("H1", "L2"),
-        expected_orders = (3, 3),
+        norms = ("H1", None),
+        expected_orders = (3, None),
         decimal_places = 1,
         endtime = 1.)
     
@@ -140,7 +137,6 @@ def test__steady_state_lid_driven_cavity_benchmark():
         reynolds_number = 100.,
         initial_values = initial_values,
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
-        nullspace = nullspace,
         mesh = fe.UnitSquareMesh(50, 50),
         element_degree = (2, 1),
         timestep_size = endtime)

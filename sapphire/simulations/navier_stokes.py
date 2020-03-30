@@ -2,6 +2,8 @@
 
 This can be used to simulate incompressible flow,
 e.g. the lid-driven cavity.
+
+Dirichlet BC's should not be placed on the pressure.
 """
 import firedrake as fe
 import sapphire.simulation
@@ -17,13 +19,9 @@ def element(cell, degree):
 inner, dot, grad, div, sym = \
     fe.inner, fe.dot, fe.grad, fe.div, fe.sym
     
-    
-    
 def weak_form_residual(sim, solution):
     
     u, p = fe.split(solution)
-    
-    
     
     Re = sim.reynolds_number
     
@@ -43,8 +41,6 @@ def strong_residual(sim, solution):
     
     u, p = solution
     
-    
-    
     Re = sim.reynolds_number
     
     r_u = grad(u)*u + grad(p) - 2./Re*div(sym(grad(u)))
@@ -52,6 +48,14 @@ def strong_residual(sim, solution):
     r_p = div(u)
     
     return r_u, r_p
+    
+    
+def nullspace(sim):
+    """Inform solver that pressure is only defined up to a constant."""
+    W = sim.function_space
+    
+    return fe.MixedVectorSpaceBasis(
+        W, [W.sub(0), fe.VectorSpaceBasis(constant=True)])
     
     
 class Simulation(sapphire.simulation.Simulation):
@@ -69,6 +73,7 @@ class Simulation(sapphire.simulation.Simulation):
             element = element(
                 cell = mesh.ufl_cell(), degree = element_degree),
             weak_form_residual = weak_form_residual,
+            nullspace = nullspace,
             time_stencil_size = 1,
             **kwargs)
         
