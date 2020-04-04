@@ -31,13 +31,17 @@ def water_buoyancy(sim, temperature):
     
     beta = fe.Constant(6.91e-5)  # [K^-1]
     
-    Gr = sim.grashof_number
+    Ra = sim.rayleigh_number
+    
+    Pr = sim.prandtl_number
+    
+    Re = sim.reynolds_number
     
     ghat = fe.Constant(-sapphire.simulation.unit_vectors(sim.mesh)[1])
     
     rho_0 = rho(T = 0.)
     
-    return Gr/(beta*M)*(rho_0 - rho(T))/rho_0*ghat
+    return Ra/(Pr*Re**2*beta*M)*(rho_0 - rho(T))/rho_0*ghat
     
     
 def heat_driven_cavity_weak_form_residual(sim, solution):
@@ -80,14 +84,6 @@ def dirichlet_boundary_conditions(sim):
 def initial_values(sim):
     
     print("Solving steady heat driven cavity to obtain initial values")
-    
-    Ra = 2.518084e6
-
-    Pr = 6.99
-
-    sim.grashof_number = sim.grashof_number.assign(Ra/Pr)
-    
-    sim.prandtl_number = sim.prandtl_number.assign(Pr)
     
     w = fe.Function(sim.function_space)
     
@@ -137,9 +133,9 @@ def initial_values(sim):
             solve = solve,
             solution = w,
             backup_solution = fe.Function(w),
-            regularization_parameter = sim.grashof_number,
+            regularization_parameter = sim.rayleigh_number,
             initial_regularization_sequence = (
-                0., sim.grashof_number.__float__()))
+                0., sim.rayleigh_number.__float__()))
                 
     return w
 
@@ -180,6 +176,8 @@ class Simulation(sapphire.simulations.convection_coupled_phasechange.Simulation)
             reference_temperature_range__degC = 10.,
             cold_wall_temperature_before_freezing = 0.,
             cold_wall_temperature_during_freezing = -1.,
+            rayleigh_number = 2.518084e6,
+            prandtl_number = 6.99,
             stefan_number = 0.125,
             liquidus_temperature = 0.,
             density_solid_to_liquid_ratio = 916.70/999.84,
@@ -200,6 +198,9 @@ class Simulation(sapphire.simulations.convection_coupled_phasechange.Simulation)
             weak_form_residual = weak_form_residual,
             initial_values = initial_values,
             dirichlet_boundary_conditions = dirichlet_boundary_conditions,
+            reynolds_number = 1.,
+            rayleigh_number = rayleigh_number,
+            prandtl_number = prandtl_number,
             stefan_number = stefan_number,
             liquidus_temperature = liquidus_temperature,
             density_solid_to_liquid_ratio = density_solid_to_liquid_ratio,

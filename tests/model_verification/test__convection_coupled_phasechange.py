@@ -53,7 +53,7 @@ def time_verification_solution(sim):
     
 
 sim_kwargs = {
-    "grashof_number": 3.6e5,
+    "rayleigh_number": 2.5e6,
     "prandtl_number": 7.0,
     "stefan_number": 0.13,
     "density_solid_to_liquid_ratio": 0.92,

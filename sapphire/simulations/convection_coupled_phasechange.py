@@ -45,14 +45,18 @@ def phase_dependent_material_property(solid_to_liquid_ratio):
     
     
 def linear_boussinesq_buoyancy(sim, temperature):
-    
+    """Classical linear Boussinesq buoyancy"""
     T = temperature
     
-    Gr = sim.grashof_number
+    Ra = sim.rayleigh_number
+    
+    Pr = sim.prandtl_number
+    
+    Re = sim.reynolds_number
     
     ghat = fe.Constant(-sapphire.simulation.unit_vectors(sim.mesh)[1])
     
-    return Gr*T*ghat
+    return Ra/(Pr*Re**2)*T*ghat
     
     
 def solid_velocity_relaxation(sim, temperature):
@@ -106,17 +110,6 @@ def strong_residual(sim, solution, buoyancy = linear_boussinesq_buoyancy):
         - 1./Pr*div(k*grad(T))
     
     return r_p, r_u, r_T
-    
-    
-def strong_residual_with_pressure_penalty(sim, solution, buoyancy = linear_boussinesq_buoyancy):
-    
-    r_p, r_u, r_T = strong_residual(sim = sim, solution = solution, buoyancy = buoyancy)
-    
-    p, _, _ = solution
-    
-    gamma = sim.pressure_penalty_factor
-    
-    return r_p + gamma*p, r_u, r_T 
     
     
 def time_discrete_terms(sim):
@@ -174,10 +167,12 @@ def momentum(sim, solution, buoyancy = linear_boussinesq_buoyancy):
     
     d = solid_velocity_relaxation(sim = sim, temperature = T)
     
+    Re = sim.reynolds_number
+    
     _, psi_u, _ = fe.TestFunctions(solution.function_space())
-        
+    
     return dot(psi_u, u_t + grad(u)*u + b + d*u) \
-        - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), sym(grad(u)))
+        - div(psi_u)*p + 2./Re*inner(sym(grad(psi_u)), sym(grad(u)))
     
     
 def energy(sim, solution):
@@ -234,7 +229,8 @@ class Simulation(sapphire.simulation.Simulation):
             *args, 
             mesh, 
             element_degree = (1, 2, 2), 
-            grashof_number = 1.,
+            reynolds_number = 1.,
+            rayleigh_number = 1.,
             prandtl_number = 1.,
             stefan_number = 1.,
             pressure_penalty_factor = 1.e-7,
@@ -255,7 +251,9 @@ class Simulation(sapphire.simulation.Simulation):
                 "pc_factor_mat_solver_type": "mumps"},
             **kwargs):
         
-        self.grashof_number = fe.Constant(grashof_number)
+        self.reynolds_number = fe.Constant(reynolds_number)
+        
+        self.rayleigh_number = fe.Constant(rayleigh_number)
         
         self.prandtl_number = fe.Constant(prandtl_number)
         

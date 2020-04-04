@@ -1,6 +1,6 @@
 import firedrake as fe 
 import sapphire.mms
-import sapphire.benchmarks.melt_octadecane_in_cavity
+import sapphire.benchmarks.melt_octadecane
 import sapphire.benchmarks.freeze_water_in_cavity
 import sapphire.test
 
@@ -9,7 +9,7 @@ tempdir = sapphire.test.datadir
 
 def test__validate__melt_octadecane__regression(tempdir):
     
-    sim = sapphire.benchmarks.melt_octadecane_in_cavity.Simulation(
+    sim = sapphire.benchmarks.melt_octadecane.Simulation(
         element_degree = (1, 1, 1),
         meshsize = 24,
         quadrature_degree = 4,

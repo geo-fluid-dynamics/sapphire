@@ -46,14 +46,13 @@ class Simulation(sapphire.simulations.\
         
         self.initial_temperature = fe.Constant(initial_temperature)
         
-        grashof_number = rayleigh_number/prandtl_number
-        
         super().__init__(
             *args,
             liquidus_temperature = liquidus_temperature,
-            stefan_number = stefan_number,
-            grashof_number = grashof_number,
+            reynolds_number = 1.,
+            rayleigh_number = rayleigh_number,
             prandtl_number = prandtl_number,
+            stefan_number = stefan_number,
             mesh = fe.UnitSquareMesh(meshsize, meshsize),
             initial_values = initial_values,
             dirichlet_boundary_conditions = dirichlet_boundary_conditions,
