@@ -339,7 +339,7 @@ class Simulation(sapphire.simulation.Simulation):
             self.solution, self.smoothing_sequence = \
                 solve_with_bounded_regularization_sequence(self)
                 
-        except fe.exceptions.ConvergenceError: 
+        except fe.exceptions.ConvergenceError as error: 
         
             if initial_smoothing_sequence is not None:
                 # Try to find a new smoothing sequence from scratch.
@@ -351,6 +351,10 @@ class Simulation(sapphire.simulation.Simulation):
                 
                 self.solution, self.smoothing_sequence = \
                     solve_with_bounded_regularization_sequence(self)
+                    
+            else:
+            
+                raise error
                
         assert(self.liquidus_smoothing_factor.__float__() == s0)
         
