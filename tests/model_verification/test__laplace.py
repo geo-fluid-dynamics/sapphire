@@ -12,14 +12,13 @@ def manufactured_solution(sim):
     return sin(2.*pi*x)
     
     
-def test__verify_convergence_order_via_mms(
-        mesh_sizes = (8, 16, 32), tolerance = 0.1):
+def test__verify_convergence_order_via_mms():
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
         manufactured_solution = manufactured_solution,
-        meshes = [fe.UnitIntervalMesh(n) for n in mesh_sizes],
+        meshes = [fe.UnitIntervalMesh(n) for n in (8, 16, 32)],
         norms = ("L2",),
         expected_orders = (2,),
-        tolerance = tolerance)
+        decimal_places = 1)
     

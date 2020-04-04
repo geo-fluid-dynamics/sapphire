@@ -65,8 +65,6 @@ sim_kwargs = {
     "quadrature_degree": None,
     "element_degree": None,
     }
-    
-
 
 
 endtime = 1.
@@ -97,10 +95,10 @@ def test__verify__taylor_hood_second_order_spatial_convergence__via_mms(
             sim_kwargs = sim_kwargs,
             manufactured_solution = space_verification_solution,
             #strong_residual = sim_module.strong_residual_with_pressure_penalty, #Adding the penalty term to the strong residual removes the floor and maintains superconvergence.
-            meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
+            meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32, 64)],
             norms = ("L2", "H1", "H1"),
             expected_orders = (None, 2, 2),
-            tolerance = 0.1,
+            decimal_places = 1,
             endtime = endtime,
             outfile = outfile)
 
@@ -128,7 +126,7 @@ def test__verify__taylor_hood_third_order_spatial_convergence__via_mms(
             meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
             norms = ("L2", "H1", "H1"),
             expected_orders = (None, 3, 3),
-            tolerance = 0.1,
+            decimal_places = 1,
             endtime = endtime,
             outfile = outfile)
             
@@ -156,7 +154,7 @@ def test__verify__equal_order_first_order_spatial_convergence__via_mms(
             meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
             norms = ("L2", "H1", "H1"),
             expected_orders = (None, 1, 1),
-            tolerance = 0.1,
+            decimal_places = 1,
             endtime = endtime,
             outfile = outfile)
 
@@ -185,7 +183,7 @@ def test__verify__second_order_temporal_convergence__via_mms(
             manufactured_solution = time_verification_solution,
             norms = (None, "L2", "L2"),
             expected_orders = (None, 2, 2),
-            tolerance = 0.2,
-            timestep_sizes = (1/2, 1/4, 1/8, 1/16),
+            decimal_places = 1,
+            timestep_sizes = (1/2, 1/4, 1/8, 1/16, 1/32),
             endtime = endtime,
             outfile = outfile)

@@ -56,6 +56,8 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 "pc_type": "lu", 
                 "mat_type": "aij",
                 "pc_factor_mat_solver_type": "mumps"},
+            nullspace: typing.Union[ \
+                fe.VectorSpaceBasis, fe.MixedVectorSpaceBasis] = None,
             output_directory_path: str = "output/",
             solution_name: str = None):
         """
@@ -160,7 +162,14 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         self.dirichlet_boundary_conditions = \
             dirichlet_boundary_conditions(sim = self)
             
-            
+        if nullspace is not None:
+        
+            self.nullspace = nullspace(sim = self)
+        
+        else:
+        
+            self.nullspace = None
+        
         # Output controls
         self.output_directory_path = pathlib.Path(output_directory_path)
         
@@ -244,6 +253,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             
         solver = fe.NonlinearVariationalSolver(
             problem = problem,
+            nullspace = self.nullspace,
             solver_parameters = self.solver_parameters)
             
         solver.solve()

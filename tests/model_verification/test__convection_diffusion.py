@@ -34,4 +34,4 @@ def test__verify_convergence_order_via_mms():
         meshes = [fe.UnitSquareMesh(n, n) for n in (8, 16, 32)],
         norms = ("H1",),
         expected_orders = (1,),
-        tolerance = 0.1)
+        decimal_places = 1)

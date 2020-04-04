@@ -1,61 +1,106 @@
+"""
+Verify accuracy of the unsteady Navier-Stokes solver.
+
+Pressure accuracy is not verified, because the pressure is only defined
+up to a constant.
+"""
 import firedrake as fe 
 import sapphire.mms
-from sapphire.simulation import unit_vectors
-from sapphire.simulations import unsteady_navier_stokes as sim_module
+import sapphire.simulations.unsteady_navier_stokes as sim_module
 
 
 def manufactured_solution(sim):
     
-    exp, sin, pi = fe.exp, fe.sin, fe.pi
+    sin, pi = fe.sin, fe.pi
     
-    x = fe.SpatialCoordinate(sim.mesh)
+    exp = fe.exp
+    
+    x, y = fe.SpatialCoordinate(sim.mesh)
     
     t = sim.time
     
-    ihat, jhat = unit_vectors(sim.mesh)
+    ihat, jhat = sim.unit_vectors()
     
-    u = exp(t)*(sin(2.*pi*x[0])*sin(pi*x[1])*ihat + \
-        sin(pi*x[0])*sin(2.*pi*x[1])*jhat)
+    u = (sin(2.*pi*x)*sin(pi*y)*ihat + \
+         sin(pi*x)*sin(2.*pi*y)*jhat)*exp(1. - t)
     
     p = -0.5*(u[0]**2 + u[1]**2)
     
     return u, p
     
     
+def dirichlet_boundary_conditions(sim, manufactured_solution):
+    """Apply velocity Dirichlet BC's on every boundary."""
+    W = sim.function_space
+    
+    u, p = manufactured_solution
+    
+    return [fe.DirichletBC(W.sub(0), u, "on_boundary"),]
+    
+    
 sim_kwargs = {
-    "reynolds_number": 3,
-    "quadrature_degree": 4,
-    "element_degree": (2, 1),
-    "time_stencil_size": 2}
+    "reynolds_number": 3.,
+    "quadrature_degree": None}
+    
     
 def test__verify_spatial_convergence__second_order__via_mms():
     
-    sim_kwargs["timestep_size"] = 1./32.
+    sim_kwargs["element_degree"] = (2, 1)
+    
+    sim_kwargs["timestep_size"] = 1./4.
+    
+    sim_kwargs["time_stencil_size"] = 3
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
         sim_kwargs = sim_kwargs,
         manufactured_solution = manufactured_solution,
-        meshes = [fe.UnitSquareMesh(n, n) for n in (3, 6, 12, 24)],
-        norms = ("H1", "L2"),
-        expected_orders = (2, 2),
-        tolerance = 0.3,
+        dirichlet_boundary_conditions = dirichlet_boundary_conditions,
+        meshes = [fe.UnitSquareMesh(n, n) for n in (8, 16, 32)],
+        norms = ("H1", None),
+        expected_orders = (2, None),
+        decimal_places = 1,
+        endtime = 1.)
+    
+    
+def test__verify_spatial_convergence__third_order__via_mms():
+    
+    sim_kwargs["element_degree"] = (3, 2)
+    
+    sim_kwargs["timestep_size"] = 1./32.
+    
+    sim_kwargs["time_stencil_size"] = 3
+    
+    sapphire.mms.verify_spatial_order_of_accuracy(
+        sim_module = sim_module,
+        sim_kwargs = sim_kwargs,
+        manufactured_solution = manufactured_solution,
+        dirichlet_boundary_conditions = dirichlet_boundary_conditions,
+        meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16)],
+        norms = ("H1", None),
+        expected_orders = (3, None),
+        decimal_places = 1,
         endtime = 1.)
     
  
-def test__verify_temporal_convergence__first_order__via_mms():
+def test__verify_temporal_convergence__second_order__via_mms():
     
-    sim_kwargs["mesh"] = fe.UnitSquareMesh(32, 32)
+    sim_kwargs["element_degree"] = (3, 2)
+    
+    sim_kwargs["mesh"] = fe.UnitSquareMesh(64, 64)
+    
+    sim_kwargs["time_stencil_size"] = 3
     
     sapphire.mms.verify_temporal_order_of_accuracy(
         sim_module = sim_module,
         sim_kwargs = sim_kwargs,
         manufactured_solution = manufactured_solution,
-        norms = (None, "L2"),
-        expected_orders = (None, 1),
+        dirichlet_boundary_conditions = dirichlet_boundary_conditions,
+        norms = ("L2", None),
+        expected_orders = (2, None),
         endtime = 1.,
-        timestep_sizes = (1./2., 1./4., 1./8.),
-        tolerance = 0.1)
+        timestep_sizes = (1./4., 1./8., 1./16., 1./32.),
+        decimal_places = 1)
         
  
 def test__steady_state_lid_driven_cavity_benchmark():

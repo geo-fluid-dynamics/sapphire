@@ -1,18 +1,31 @@
-""" A steady incompressible Navier-Stokes simulation class """
+"""Provides a simulation class governed by steady Navier-Stokes. 
+
+This can be used to simulate incompressible flow,
+e.g. the lid-driven cavity.
+
+Dirichlet BC's should not be placed on the pressure.
+"""
 import firedrake as fe
 import sapphire.simulation
 
 
-inner, dot, grad, div, sym = \
-        fe.inner, fe.dot, fe.grad, fe.div, fe.sym
+def element(cell, degree):
+
+    return fe.MixedElement(
+        fe.VectorElement("P", cell, degree[0]),
+        fe.FiniteElement("P", cell, degree[1]))
         
+        
+inner, dot, grad, div, sym = \
+    fe.inner, fe.dot, fe.grad, fe.div, fe.sym
+    
 def weak_form_residual(sim, solution):
     
     u, p = fe.split(solution)
     
-    psi_u, psi_p = fe.TestFunctions(solution.function_space())
-    
     Re = sim.reynolds_number
+    
+    psi_u, psi_p = fe.TestFunctions(solution.function_space())
     
     mass = psi_p*div(u)
     
@@ -24,13 +37,6 @@ def weak_form_residual(sim, solution):
     return (mass + momentum)*dx
     
     
-def element(cell, degree):
-
-    return fe.MixedElement(
-        fe.VectorElement("P", cell, degree[0]),
-        fe.FiniteElement("P", cell, degree[1]))
-        
-        
 def strong_residual(sim, solution):
     
     u, p = solution
@@ -44,12 +50,20 @@ def strong_residual(sim, solution):
     return r_u, r_p
     
     
+def nullspace(sim):
+    """Inform solver that pressure is only defined up to a constant."""
+    W = sim.function_space
+    
+    return fe.MixedVectorSpaceBasis(
+        W, [W.sub(0), fe.VectorSpaceBasis(constant=True)])
+    
+    
 class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args, 
             mesh,
+            reynolds_number,
             element_degree = (2, 1),
-            reynolds_number = 1.,
             **kwargs):
         
         self.reynolds_number = fe.Constant(reynolds_number)
@@ -59,6 +73,7 @@ class Simulation(sapphire.simulation.Simulation):
             element = element(
                 cell = mesh.ufl_cell(), degree = element_degree),
             weak_form_residual = weak_form_residual,
+            nullspace = nullspace,
             time_stencil_size = 1,
             **kwargs)
         

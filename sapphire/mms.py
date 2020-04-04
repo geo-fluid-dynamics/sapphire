@@ -131,7 +131,7 @@ def verify_spatial_order_of_accuracy(
         meshes,
         norms,
         expected_orders,
-        tolerance,
+        decimal_places,
         sim_kwargs = {},
         endtime = 0.,
         strong_residual = None,
@@ -225,11 +225,21 @@ def verify_spatial_order_of_accuracy(
         
     for order, expected_order in zip(orders, expected_orders):
         
-        if expected_order is not None:
+        if expected_order is None:
+            
+            continue
+            
+        order = round(order, decimal_places)
         
-            assert(abs(order - expected_order) < tolerance)
-    
-    
+        expected_order = round(float(expected_order), decimal_places)
+        
+        if not (order == expected_order):
+        
+            raise ValueError("\n" +
+                "\tObserved order {} differs from\n".format(order) + 
+                "\texpected order {}".format(expected_order))
+                    
+                    
 def verify_temporal_order_of_accuracy(
         sim_module,
         manufactured_solution,
@@ -237,7 +247,7 @@ def verify_temporal_order_of_accuracy(
         endtime,
         norms,
         expected_orders,
-        tolerance,
+        decimal_places,
         sim_kwargs = {},
         starttime = 0.,
         strong_residual = None,
@@ -328,7 +338,17 @@ def verify_temporal_order_of_accuracy(
         
     for order, expected_order in zip(orders, expected_orders):
         
-        if expected_order is not None:
+        if expected_order is None:
         
-            assert(abs(order - expected_order) < tolerance)
-    
+            continue
+        
+        order = round(order, decimal_places)
+        
+        expected_order = round(float(expected_order), decimal_places)
+        
+        if not (order == expected_order):
+        
+            raise ValueError("\n" +
+                "\tObserved order {} differs from\n".format(order) + 
+                "\texpected order {}".format(expected_order))
+                
