@@ -12,13 +12,6 @@ Physical parameters are based on
         journal = {Numerical Heat Transfer, Part A: Applications},
         doi = {10.1080/10407782.2019.1627837},
     }
-    
-The scaling (and therefore also the Boussinesq buoyancy term) is different in \cite{belhamadia2019adaptive}.
-They chose the reference time $t_r = \rho_l c_l x_r^2 / k_l$.
-Their momentum equation therefore has $Pr$ in front of the momentum diffusion term
-and their buoyancy equation for Gallium is $b(T) = Pr Ra T$.
-We chose before $t_r = \nu_l / x^2_r$ which sets $Re = 1$.
-The choice of $t_r = \rho_l c_l x_r^2 / k_l$ in \cite{belhamadia2019adaptive} sets $Re = 1/Pr$.
 """
 import firedrake as fe
 import sapphire.simulations.convection_coupled_phasechange
@@ -36,6 +29,8 @@ reference_time = 292.90  # s
 dimensionless_liquidus_temperature = 0.1525
 
 prandtl_number = 0.0216
+
+reynolds_number = 1./prandtl_number
 
 rayleigh_number = 7.e5
 
@@ -83,14 +78,13 @@ class Simulation(sapphire.simulations.\
         
         self.initial_temperature = fe.Constant(self.coldwall_temperature)
         
-        grashof_number = rayleigh_number/prandtl_number
-        
         super().__init__(
             *args,
             liquidus_temperature = dimensionless_liquidus_temperature,
-            stefan_number = stefan_number,
-            grashof_number = grashof_number,
+            reynolds_number = reynolds_number,
+            rayleigh_number = rayleigh_number,
             prandtl_number = prandtl_number,
+            stefan_number = stefan_number,
             mesh = fe.RectangleMesh(
                 horizontal_edges,
                 vertical_edges,
