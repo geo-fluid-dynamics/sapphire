@@ -317,7 +317,9 @@ class Simulation(sapphire.simulation.Simulation):
                     regularization_parameter = self.liquidus_smoothing_factor,
                     initial_regularization_sequence = self.smoothing_sequence)
                     
-        if self.smoothing_sequence is None:
+        initial_smoothing_sequence = self.smoothing_sequence
+        
+        if initial_smoothing_sequence is None:
         
             self.solution, smax = solve_with_over_regularization(
                 self, startval = None)
@@ -338,15 +340,17 @@ class Simulation(sapphire.simulation.Simulation):
                 solve_with_bounded_regularization_sequence(self)
                 
         except fe.exceptions.ConvergenceError: 
-            # Try one more time.
-            self.solution, smax = solve_with_over_regularization(
-                self, startval = self.smoothing_sequence[-1])
-            
-            self.smoothing_sequence = (
-                smax, self.liquidus_smoothing_factor.__float__())
-            
-            self.solution, self.smoothing_sequence = \
-                solve_with_bounded_regularization_sequence(self)
+        
+            if initial_smoothing_sequence is not None:
+                # Try to find a new smoothing sequence from scratch.
+                self.solution, smax = solve_with_over_regularization(
+                    self, startval = self.smoothing_sequence[-1])
+                
+                self.smoothing_sequence = (
+                    smax, self.liquidus_smoothing_factor.__float__())
+                
+                self.solution, self.smoothing_sequence = \
+                    solve_with_bounded_regularization_sequence(self)
                
         assert(self.liquidus_smoothing_factor.__float__() == s0)
         
