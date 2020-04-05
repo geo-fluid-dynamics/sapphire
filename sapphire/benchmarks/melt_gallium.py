@@ -17,7 +17,7 @@ import firedrake as fe
 import sapphire.simulations.convection_coupled_phasechange
 
 
-reference_length = 6.35  # cm
+reference_length = 0.0635  # m
 
 reference_temperature = 301.3  # K
 
@@ -60,7 +60,7 @@ def dirichlet_boundary_conditions(sim):
     return [
         fe.DirichletBC(W.sub(1), (0., 0.), "on_boundary"),
         fe.DirichletBC(W.sub(2), sim.hotwall_temperature, 1),
-        fe.DirichletBC(W.sub(2), sim.initial_temperature, 2)]
+        fe.DirichletBC(W.sub(2), sim.coldwall_temperature, 2)]
         
         
 class Simulation(sapphire.simulations.\
@@ -69,7 +69,6 @@ class Simulation(sapphire.simulations.\
     def __init__(self, *args,
             horizontal_edges,
             vertical_edges,
-            cutoff_length = 0.5,
             **kwargs):
         
         self.hotwall_temperature = fe.Constant(1.)
@@ -88,7 +87,7 @@ class Simulation(sapphire.simulations.\
             mesh = fe.RectangleMesh(
                 horizontal_edges,
                 vertical_edges,
-                cutoff_length,
+                0.5,
                 1.),
             initial_values = initial_values,
             dirichlet_boundary_conditions = dirichlet_boundary_conditions,
