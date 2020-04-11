@@ -1,3 +1,4 @@
+"""Verify accuracy of the Navier-Stokes-Boussinesq solver."""
 import firedrake as fe 
 import sapphire.mms
 import sapphire.simulations.navier_stokes_boussinesq as sim_module

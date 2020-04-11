@@ -1,8 +1,9 @@
-"""
-Verify accuracy of the unsteady Navier-Stokes solver.
+"""Verify accuracy of the unsteady Navier-Stokes solver.
 
-Pressure accuracy is not verified, because the pressure is only defined
-up to a constant.
+The pressure accuracy is not verified.
+On the other hand, the pressure accuracy in `test__navier_stokes.py`
+(steady state) is verified.
+This should be investigated further.
 """
 import firedrake as fe 
 import sapphire.mms
@@ -30,7 +31,10 @@ def manufactured_solution(sim):
     
     
 def dirichlet_boundary_conditions(sim, manufactured_solution):
-    """Apply velocity Dirichlet BC's on every boundary."""
+    """Apply velocity Dirichlet BC's on every boundary.
+    
+    Do not apply Dirichlet BC's on the pressure.
+    """
     W = sim.function_space
     
     u, p = manufactured_solution

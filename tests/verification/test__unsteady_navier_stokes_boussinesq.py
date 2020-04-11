@@ -1,3 +1,4 @@
+"""Verify accuracy of the unsteady Navier-Stokes-Boussinesq solver."""
 import firedrake as fe 
 import sapphire.mms
 from sapphire.simulation import unit_vectors

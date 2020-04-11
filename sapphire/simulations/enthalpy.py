@@ -1,4 +1,7 @@
-""" A simulation class for melting and solidification in enthalpy form """
+"""A simulation class using the enthalpy method.
+
+Use this for melting and solidification.
+"""
 import firedrake as fe
 import sapphire.simulation
 

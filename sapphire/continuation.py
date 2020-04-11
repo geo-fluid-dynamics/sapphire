@@ -1,3 +1,7 @@
+"""Nonlinear solver continuation
+
+for regularized nonlinear problems.
+"""
 import firedrake as fe
 
 

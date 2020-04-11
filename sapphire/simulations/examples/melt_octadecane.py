@@ -1,5 +1,21 @@
+""" Octadecane melting simulation
+
+based on
+
+    @article{danaila2014newton,
+        title={A {N}ewton method with adaptive finite elements 
+            for solving phase-change problems with natural convection},
+        author={Danaila, Ionut and Moglan, Raluca and Hecht, 
+            Fr{\'e}d{\'e}ric and Le Masson, St{\'e}phane},
+        journal={Journal of Computational Physics},
+        volume={274},
+        pages={826--840},
+        year={2014},
+        publisher={Elsevier}
+    }
+"""
 import firedrake as fe
-import sapphire.simulations.convection_coupled_phasechange
+import sapphire.simulations.enthalpy_porosity
 
 
 def initial_values(sim):
@@ -29,8 +45,7 @@ def dirichlet_boundary_conditions(sim):
         fe.DirichletBC(W.sub(2), sim.initial_temperature, 2)]
         
         
-class Simulation(sapphire.simulations.\
-        convection_coupled_phasechange.Simulation):
+class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
     
     def __init__(self, *args, 
             meshsize,

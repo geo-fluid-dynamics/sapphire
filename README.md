@@ -1,6 +1,6 @@
 ![Sapphire](https://github.com/geo-fluid-dynamics/sapphire-docs/blob/master/Sapphire-Logo.png?raw=true)
 
-Sapphire (memnonically: Simulations automatically programmed with [Firedrake](https://www.firedrakeproject.org/)) 
+Sapphire (mnemonically: Simulations automatically programmed with [Firedrake](https://www.firedrakeproject.org/)) 
 is an engine for constructing PDE-based simulations 
 discretized in space with mixed finite elements
 and in time with finite differences.
@@ -16,10 +16,6 @@ and in time with finite differences.
 [Melting Octadecane](https://www.researchgate.net/publication/245092223_Analysis_of_heat_transfer_during_melting_from_a_vertical_wall)
 
 ![Octadecane melting benchmark](https://github.com/geo-fluid-dynamics/sapphire-docs/blob/master/OctadecaneMelting.gif?raw=true)
-
-### Applications
-
-[Sapphire-Ice](https://github.com/geo-fluid-dynamics/sapphire-ice)
 
 
 ## Setup

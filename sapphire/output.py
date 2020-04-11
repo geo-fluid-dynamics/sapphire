@@ -1,3 +1,4 @@
+"""Helper functions for simulation output"""
 import typing
 import csv
 from collections import OrderedDict

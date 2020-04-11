@@ -1,16 +1,31 @@
+""" Validate against steady state heat-driven cavity benchmark.
+
+Comparing to data published in 
+
+    @article{wang2010comprehensive,
+        author = {Ghia, Urmila and Ghia, K.N and Shin, C.T},
+        year = {1982},
+        month = {12},
+        pages = {387-411},
+        title = {High-Re solutions for incompressible flow using the 
+        Navier-Stokes equations and a multigrid method},
+        volume = {48},
+        journal = {Journal of Computational Physics},
+        doi = {10.1016/0021-9991(82)90058-4}
+    }
+"""
 import firedrake as fe 
-import sapphire.benchmarks.heat_driven_cavity
+import sapphire.simulations.examples.heat_driven_cavity
 import sapphire.test
 
 
 def test__validate_heat_driven_cavity_benchmark():
 
-    sim = sapphire.benchmarks.heat_driven_cavity.Simulation(
+    sim = sapphire.simulations.examples.heat_driven_cavity.Simulation(
         element_degree = (1, 2, 2), meshsize = 40)
     
     sim.solution = sim.solve()
     
-    # Verify against the result published in @cite{wang2010comprehensive}.
     Gr = sim.grashof_number.__float__()
     
     Pr = sim.prandtl_number.__float__()
