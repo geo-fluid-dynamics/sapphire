@@ -1,6 +1,7 @@
+"""Verify accuracy of the enthalpy phase-change solver."""
 import firedrake as fe 
 import sapphire.mms
-from sapphire.simulations import phasechange as sim_module
+from sapphire.simulations import enthalpy as sim_module
 
 
 def manufactured_solution(sim):

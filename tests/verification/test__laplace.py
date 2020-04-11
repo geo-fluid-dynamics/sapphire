@@ -1,3 +1,4 @@
+"""Verify accuracy of the Laplace solver."""
 import firedrake as fe 
 import sapphire.mms
 import sapphire.simulations.laplace as sim_module

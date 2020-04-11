@@ -1,3 +1,4 @@
+"""Verify accuracy of the heat equation solver."""
 import firedrake as fe 
 import sapphire.mms
 import sapphire.simulations.heat as sim_module

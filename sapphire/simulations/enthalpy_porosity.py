@@ -1,4 +1,7 @@
-"""A sim class for convection-coupled melting and solidification in enthalpy form"""
+"""A simulation class using the enthalpy-porosity method.
+
+Use this for convection-coupled melting and solidification.
+"""
 import firedrake as fe
 import sapphire.simulation
 import sapphire.continuation

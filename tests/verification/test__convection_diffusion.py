@@ -1,3 +1,4 @@
+"""Verify accuracy of the convection-diffusion solver."""
 import firedrake as fe
 import sapphire.mms
 import sapphire.simulations.convection_diffusion as sim_module
@@ -22,7 +23,7 @@ def advection_velocity(mesh):
         + sin(pi*x[0])*sin(2.*pi*x[1])*jhat
     
     
-def test__verify_convergence_order_via_mms():
+def test__verify_convergence_order__via_mms():
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,

@@ -1,5 +1,21 @@
+""" Water freezing benchmark simulation
+
+based on
+
+    @article{danaila2014newton,
+        title={A {N}ewton method with adaptive finite elements 
+            for solving phase-change problems with natural convection},
+        author={Danaila, Ionut and Moglan, Raluca and Hecht, 
+            Fr{\'e}d{\'e}ric and Le Masson, St{\'e}phane},
+        journal={Journal of Computational Physics},
+        volume={274},
+        pages={826--840},
+        year={2014},
+        publisher={Elsevier}
+    }
+"""
 import firedrake as fe
-import sapphire.simulations.convection_coupled_phasechange
+import sapphire.simulations.enthalpy_porosity
 import typing
 
 
@@ -42,10 +58,9 @@ def water_buoyancy(sim, temperature):
     
 def heat_driven_cavity_weak_form_residual(sim, solution):
     
-    mass = sapphire.simulations.convection_coupled_phasechange.\
-        mass(sim, solution)
+    mass = sapphire.simulations.enthalpy_porosity.mass(sim, solution)
     
-    pressure_penalty = sapphire.simulations.convection_coupled_phasechange.\
+    pressure_penalty = sapphire.simulations.enthalpy_porosity.\
         pressure_penalty(sim, solution)
     
     p, u, T = fe.split(solution)
@@ -149,14 +164,14 @@ def weak_form_residual(sim, solution):
     return sum(
     [r(sim = sim, solution = solution)
         for r in (
-            sapphire.simulations.convection_coupled_phasechange.mass,
+            sapphire.simulations.enthalpy_porosity.mass,
             lambda sim, solution: \
-                sapphire.simulations.convection_coupled_phasechange.momentum(
+                sapphire.simulations.enthalpy_porosity.momentum(
                     sim = sim,
                     solution = solution,
                     buoyancy = water_buoyancy),
-            sapphire.simulations.convection_coupled_phasechange.energy,
-            sapphire.simulations.convection_coupled_phasechange.pressure_penalty)])\
+            sapphire.simulations.enthalpy_porosity.energy,
+            sapphire.simulations.enthalpy_porosity.pressure_penalty)])\
         *fe.dx(degree = sim.quadrature_degree)
     
     
@@ -173,7 +188,7 @@ def default_mesh(meshsize, spatial_dimensions):
     return mesh    
     
     
-class Simulation(sapphire.simulations.convection_coupled_phasechange.Simulation):
+class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
 
     def __init__(self, *args,
             mesh: typing.Union[fe.UnitSquareMesh, fe.UnitCubeMesh],

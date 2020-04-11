@@ -1,3 +1,4 @@
+"""Helper functions for test code"""
 from pytest import fixture
 from distutils import dir_util
 import os

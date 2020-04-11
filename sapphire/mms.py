@@ -1,7 +1,10 @@
-""" Verify a FEM simulation via the Method of Manufactured Solution (MMS).
+""" Verify a Simulation via the Method of Manufactured Solution (MMS).
 
-This module assumes that the FEM simulation solves a weak form  problem
-which approximates solutions to a strong form PDE.
+This module assumes that the solution to the 
+simulation's governing equations,
+written as a weak form residual and defined using UFL,
+approximate solutions to a strong form residual, 
+which must also be defined using UFL.
 """
 import firedrake as fe
 import sapphire.table

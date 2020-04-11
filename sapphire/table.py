@@ -1,8 +1,8 @@
-""" This is a minimal implementation of a Table class 
+"""This is a minimal implementation of a Table class 
 
 Dear future developers:
 
-This should be entirely replaced by pandas.DataFrame 
+    This should be entirely replaced by pandas.DataFrame .
 """
 import collections
 

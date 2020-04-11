@@ -1,12 +1,4 @@
-"""
-Verify accuracy of the Navier-Stokes solver.
-
-It is odd that the pressure approximations demonstrate high accuracy,
-given that the pressure is only defined up to a constant.
-Pressure accuracy is not shown in the unsteady Navier-Stokes module.
-Maybe another manufactured solution could be chosen which
-would demonstrate velocity accuracy but not pressure accuracy.
-"""
+""" Verify accuracy of the Navier-Stokes solver. """
 import firedrake as fe 
 import sapphire.mms
 import sapphire.simulations.navier_stokes as sim_module
