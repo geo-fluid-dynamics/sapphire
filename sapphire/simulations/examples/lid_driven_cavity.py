@@ -21,6 +21,7 @@ class Simulation(sapphire.simulations.navier_stokes.Simulation):
     
     def __init__(self, *args, 
             mesh: fe.UnitSquareMesh = None,
+            reynolds_number = 100.,
             **kwargs):
         
         if mesh is None:
@@ -30,6 +31,7 @@ class Simulation(sapphire.simulations.navier_stokes.Simulation):
         super().__init__(
             *args,
             mesh = mesh,
+            reynolds_number = reynolds_number,
             initial_values = initial_values,
             dirichlet_boundary_conditions = dirichlet_boundary_conditions,
             **kwargs)
