@@ -137,30 +137,22 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         assert(time_stencil_size > 0)
         
-        self.solutions = [
-            fe.Function(self.function_space, name = solution_name) 
+        self.states = [
+            {"solution": fe.Function(self.function_space, name = solution_name),
+             "time": fe.Constant(initial_time - i*timestep_size),
+             "index": -i}
             for i in range(time_stencil_size)]
             
-        self.solution = self.solutions[0]
+        self.state = self.states[0]
         
-        self.times = [
-            fe.Constant(0.)
-            for i in range(time_stencil_size)]
+        self.solutions = [state["solution"] for state in self.states]
         
-        self.time = self.times[0]
+        self.solution = self.states[0]["solution"]
         
-        self.time_indices = [it 
-            for it in range(0, -len(time_stencil_size), -1)]
+        self.times = [state["time"] for state in self.states]
         
-        self.time_index = self.time_indices[0]
+        self.time = self.states[0]["time"]
         
-        self.time = self.time.assign(initial_time)
-        
-        for it in range(1, len(self.times)):
-        
-            self.times[it] = self.times[it].assign(
-                self.times[it - 1] - self.timestep_size)
-                
         self.backup_solution = fe.Function(self.solution)
         
         self.initial_values = initial_values(sim = self)
@@ -191,7 +183,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         self.output_directory_path.mkdir(parents = True, exist_ok = True)
         
-        self.solution_file = None
+        self.vtk_solution_file = None
         
         self.plotvars = None
         
@@ -204,7 +196,9 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
     def run(self,
             endtime: float,
-            plot: bool = False,
+            write_checkpoints: bool = True,
+            write_vtk_solutions: bool = False,
+            write_plots: bool = False,
             write_initial_outputs: bool = True,
             endtime_tolerance: float = 1.e-8,
             solve: typing.Callable = None) \
@@ -233,7 +227,11 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         """
         if write_initial_outputs:
         
-            self.write_outputs(write_headers = True, plot = plot)
+            self.write_outputs(
+                headers = True,
+                checkpoint = write_checkpoints,
+                vtk = write_vtk_solutions,
+                plots = write_plots)
         
         if solve is None:
         
@@ -241,20 +239,23 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         while self.time.__float__() < (endtime - endtime_tolerance):
             
-            self.solutions, self.times, self.time_indices = \
-                self.push_back_solutions_and_times()
+            self.states = self.push_back_states()
             
             self.time = self.time.assign(self.time + self.timestep_size)
             
-            self.time_index += 1
+            self.state["index"] += 1
             
             self.solution = solve()
             
             print("Solved at time t = {}".format(self.time.__float__()))
             
-            self.write_outputs(write_headers = False, plot = plot)
+            self.write_outputs(
+                headers = False,
+                checkpoint = write_checkpoints,
+                vtk = write_vtk_solutions,
+                plots = write_plots)
             
-        return self.solutions, self.times, self.time_indices
+        return self.states
         
     def solve(self) -> fe.Function:
         """Set up the problem and solver, and solve.
@@ -281,27 +282,27 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         return self.solution
     
-    def push_back_solutions_and_times(self) -> typing.List[fe.Function]:
-        """Push back listed solutions and times.
+    def push_back_states(self) -> typing.List[typing.Dict]:
+        """Push back states, including solutions, times, and indices.
         
         Sufficient solutions are stored for the time discretization.
         Advancing the simulation forward in time requires re-indexing
         the solutions and times.
-        """
-        for list in self.solutions, self.times:
-        
-            for i in range(len(list[1:])):
+        """        
+        for i in range(len(self.states[1:])):
+            
+            rightstate = self.states[-1 - i]
+            
+            leftstate = self.states[-2 - i]
+            
+            rightstate["index"] = leftstate["index"]
+            
+            for key in "solution", "time":
                 # Set values of `fe.Function` and `fe.Constant` 
                 # with their `assign` methods.
-                list[-(i + 1)] = list[-(i + 1)].assign(list[-(i + 2)])
-        
-        list = self.time_indices
-        
-        for i in range(len(list)):
-            
-            list[-(i + 1)] = list[-(i + 2)]
-            
-        return self.solutions, self.times, self.time_indices
+                rightstate[key] = rightstate[key].assign(leftstate[key])
+                
+        return self.states
         
     def postprocess(self) -> 'Simulation':
         """ This is called by `write_outputs` before writing. 
@@ -320,8 +321,10 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         return None
         
     def write_outputs(self, 
-            write_headers: bool, 
-            plot: bool = False):
+            headers: bool,
+            checkpoint: bool = True,
+            vtk: bool = False,
+            plots: bool = False):
         """Write all outputs.
         
         This creates or appends the CSV report, 
@@ -332,31 +335,40 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             write_headers (bool): Write header line to report if True.
                 You may want to set this to False, for example, if the 
                 header has already been written.
-            plot (bool): Write plots if True.
-        """
-        if self.solution_file is None:
-        
-            solution_filepath = self.output_directory_path.joinpath(
-                "solution").with_suffix(".pvd")
-                
-            self.solution_file = fe.File(str(solution_filepath))
-            
+            checkpoint (bool): Write checkpoint if True.
+            vtk (bool): Write solution to VTK if True.
+            plots (bool): Write plots if True.
+        """    
         self = self.postprocess()
         
-        sapphire.output.report(sim = self, write_header = write_headers)
+        sapphire.output.report(sim = self, write_header = headers)
         
-        sapphire.output.write_solution(sim = self, file = self.solution_file)
+        if checkpoint:
         
-        if plot:
+            sapphire.output.write_checkpoint(sim = self)
+            
+        if vtk:
+           
+            if self.vtk_solution_file is None:
+        
+                vtk_solution_filepath = self.output_directory_path.joinpath(
+                    "solution").with_suffix(".pvd")
+                
+                self.vtk_solution_file = fe.File(str(vtk_solution_filepath))
+            
+            sapphire.output.write_solution_to_vtk(
+                sim = self, file = self.vtk_solution_file)
+                
+        if plots:
             
             if self.mesh.geometric_dimension() < 3:
                 
                 sapphire.output.writeplots(
                     **self.kwargs_for_writeplots(),
                     time = self.time.__float__(),
-                    time_index = self.time_index,
+                    time_index = self.state["index"],
                     outdir_path = self.output_directory_path)
-                
+                    
             elif self.mesh.geometric_dimension() == 3:
                 # This could be done with VTK and PyVista, but VTK can be a
                 # difficult dependency. It may be best to run a separate 
@@ -373,7 +385,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         """Returns time derivative for each solution component."""
         return time_discrete_terms(
             solutions = self.solutions,
-            times = self.times)
+            timestep_size = self.timestep_size)
             
             
 def unit_vectors(mesh) -> typing.Tuple[ufl.tensors.ListTensor]:

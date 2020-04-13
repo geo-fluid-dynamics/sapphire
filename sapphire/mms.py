@@ -162,7 +162,7 @@ def verify_spatial_order_of_accuracy(
         
         if len(sim.solutions) > 1:
             # If time-dependent
-            sim.solutions, _ = sim.run(endtime = endtime)
+            sim.states = sim.run(endtime = endtime)
             
         else:
         
@@ -283,7 +283,7 @@ def verify_temporal_order_of_accuracy(
             
             solution = solution.assign(sim.initial_values)
             
-        sim.solutions, _, = sim.run(endtime = endtime)
+        sim.states = sim.run(endtime = endtime)
         
         errors = []
         

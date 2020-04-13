@@ -19,10 +19,14 @@ import sapphire.simulations.examples.heat_driven_cavity
 import sapphire.test
 
 
-def test__validate_heat_driven_cavity_benchmark():
+tempdir = sapphire.test.datadir
+
+def test__validate_heat_driven_cavity_benchmark(tempdir):
 
     sim = sapphire.simulations.examples.heat_driven_cavity.Simulation(
-        element_degree = (1, 2, 2), mesh = fe.UnitSquareMesh(40, 40))
+        element_degree = (1, 2, 2),
+        mesh = fe.UnitSquareMesh(40, 40),
+        output_directory_path = tempdir)
     
     sim.solution = sim.solve()
     
