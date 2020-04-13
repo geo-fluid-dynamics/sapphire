@@ -149,13 +149,18 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         self.time = self.times[0]
         
+        self.time_indices = [it 
+            for it in range(0, -len(time_stencil_size), -1)]
+        
+        self.time_index = self.time_indices[0]
+        
         self.time = self.time.assign(initial_time)
         
         for it in range(1, len(self.times)):
         
             self.times[it] = self.times[it].assign(
                 self.times[it - 1] - self.timestep_size)
-        
+                
         self.backup_solution = fe.Function(self.solution)
         
         self.initial_values = initial_values(sim = self)
@@ -236,9 +241,12 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         while self.time.__float__() < (endtime - endtime_tolerance):
             
-            self.solutions, self.times = self.push_back_solutions_and_times()
+            self.solutions, self.times, self.time_indices = \
+                self.push_back_solutions_and_times()
             
             self.time = self.time.assign(self.time + self.timestep_size)
+            
+            self.time_index += 1
             
             self.solution = solve()
             
@@ -246,7 +254,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             
             self.write_outputs(write_headers = False, plot = plot)
             
-        return self.solutions, self.times
+        return self.solutions, self.times, self.time_indices
         
     def solve(self) -> fe.Function:
         """Set up the problem and solver, and solve.
@@ -280,15 +288,20 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         Advancing the simulation forward in time requires re-indexing
         the solutions and times.
         """
-        for i in range(len(self.solutions[1:])):
+        for list in self.solutions, self.times:
         
-            self.solutions[-(i + 1)].assign(
-                self.solutions[-(i + 2)])
-                
-            self.times[-(i + 1)].assign(
-                self.times[-(i + 2)])
-                
-        return self.solutions, self.times
+            for i in range(len(list[1:])):
+                # Set values of `fe.Function` and `fe.Constant` 
+                # with their `assign` methods.
+                list[-(i + 1)] = list[-(i + 1)].assign(list[-(i + 2)])
+        
+        list = self.time_indices
+        
+        for i in range(len(list)):
+            
+            list[-(i + 1)] = list[-(i + 2)]
+            
+        return self.solutions, self.times, self.time_indices
         
     def postprocess(self) -> 'Simulation':
         """ This is called by `write_outputs` before writing. 
@@ -341,6 +354,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 sapphire.output.writeplots(
                     **self.kwargs_for_writeplots(),
                     time = self.time.__float__(),
+                    time_index = self.time_index,
                     outdir_path = self.output_directory_path)
                 
             elif self.mesh.geometric_dimension() == 3:
@@ -359,7 +373,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         """Returns time derivative for each solution component."""
         return time_discrete_terms(
             solutions = self.solutions,
-            timestep_size = self.timestep_size)
+            times = self.times)
             
             
 def unit_vectors(mesh) -> typing.Tuple[ufl.tensors.ListTensor]:
@@ -398,6 +412,11 @@ def time_discrete_terms(
     returning a list (e.g. with only one item if not using a mixed 
     element), so that it would be more intuitive when not using mixed 
     elements.
+    """
+    """
+    This implementation assumes constant time step size.
+    Variable time step sizes change the BDF formula 
+    for all except first order.
     """
     time_discrete_terms = [
         sapphire.time_discretization.bdf(
