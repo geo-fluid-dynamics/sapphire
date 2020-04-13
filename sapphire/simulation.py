@@ -347,7 +347,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             solutions = self.solutions,
             timestep_size = self.timestep_size)
             
-        
+            
 def unit_vectors(mesh) -> typing.Tuple[ufl.tensors.ListTensor]:
     """Returns the mesh's spatial unit vectors in each dimension.
     
