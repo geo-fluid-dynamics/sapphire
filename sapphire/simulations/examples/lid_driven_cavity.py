@@ -1,5 +1,6 @@
 import firedrake as fe
 import sapphire.simulations.navier_stokes
+import typing
 
 
 def initial_values(sim):
@@ -8,7 +9,7 @@ def initial_values(sim):
 
     
 def dirichlet_boundary_conditions(sim):
-        
+    
     W = sim.function_space
     
     return [
@@ -19,14 +20,16 @@ def dirichlet_boundary_conditions(sim):
 class Simulation(sapphire.simulations.navier_stokes.Simulation):
     
     def __init__(self, *args, 
-            horizontal_cellcount, 
-            vertical_cellcount,
+            mesh: fe.UnitSquareMesh = None,
             **kwargs):
         
+        if mesh is None:
+        
+            mesh = fe.UnitSquareMesh(50, 50)
+            
         super().__init__(
             *args,
-            mesh = fe.UnitSquareMesh(
-                horizontal_cellcount, vertical_cellcount),
+            mesh = mesh,
             initial_values = initial_values,
             dirichlet_boundary_conditions = dirichlet_boundary_conditions,
             **kwargs)
