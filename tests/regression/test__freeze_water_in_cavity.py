@@ -5,7 +5,7 @@ import sapphire.test
 
 tempdir = sapphire.test.datadir
 
-def test__validate__freeze_water__regression(tempdir):
+def test__freeze_water__regression(tempdir):
     
     endtime = 1.44
     
@@ -26,7 +26,7 @@ def test__validate__freeze_water__regression(tempdir):
     assert(abs(sim.liquid_area - 0.69) < 0.01)
     
     
-def test__validate__freeze_water_3d__regression(tempdir):
+def test__freeze_water_3d__regression(tempdir):
     
     X = 0.038  # m
 

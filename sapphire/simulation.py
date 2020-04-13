@@ -131,8 +131,6 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         self.timestep_size = fe.Constant(timestep_size)
         
-        self.time = fe.Constant(initial_time)
-        
         
         # Solution components
         self.function_space = fe.FunctionSpace(mesh, element)
@@ -145,19 +143,32 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             
         self.solution = self.solutions[0]
         
+        self.times = [
+            fe.Constant(0.)
+            for i in range(time_stencil_size)]
+        
+        self.time = self.times[0]
+        
+        self.time = self.time.assign(initial_time)
+        
+        for it in range(1, len(self.times)):
+        
+            self.times[it] = self.times[it].assign(
+                self.times[it - 1] - self.timestep_size)
+        
         self.backup_solution = fe.Function(self.solution)
         
         self.initial_values = initial_values(sim = self)
         
         for solution in self.solutions:
             # Assume that the initial solution is at a steady state.
-            solution.assign(self.initial_values)
+            solution = solution.assign(self.initial_values)
             
             
         # Problem components
         self.weak_form_residual = weak_form_residual(
-                sim = self,
-                solution = self.solution)
+            sim = self,
+            solution = self.solution)
                 
         self.dirichlet_boundary_conditions = \
             dirichlet_boundary_conditions(sim = self)
@@ -225,6 +236,8 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         while self.time.__float__() < (endtime - endtime_tolerance):
             
+            self.solutions, self.times = self.push_back_solutions_and_times()
+            
             self.time = self.time.assign(self.time + self.timestep_size)
             
             self.solution = solve()
@@ -233,9 +246,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             
             self.write_outputs(write_headers = False, plot = plot)
             
-            self.solutions = self.push_back_solutions()
-            
-        return self.solutions, self.time
+        return self.solutions, self.times
         
     def solve(self) -> fe.Function:
         """Set up the problem and solver, and solve.
@@ -262,19 +273,22 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         return self.solution
     
-    def push_back_solutions(self) -> typing.List[fe.Function]:
-        """Push back listed solutions from discrete times.
+    def push_back_solutions_and_times(self) -> typing.List[fe.Function]:
+        """Push back listed solutions and times.
         
-        Only enough solutions are stored for the time discretization.
+        Sufficient solutions are stored for the time discretization.
         Advancing the simulation forward in time requires re-indexing
-        the solutions.
+        the solutions and times.
         """
         for i in range(len(self.solutions[1:])):
         
             self.solutions[-(i + 1)].assign(
                 self.solutions[-(i + 2)])
                 
-        return self.solutions
+            self.times[-(i + 1)].assign(
+                self.times[-(i + 2)])
+                
+        return self.solutions, self.times
         
     def postprocess(self) -> 'Simulation':
         """ This is called by `write_outputs` before writing. 

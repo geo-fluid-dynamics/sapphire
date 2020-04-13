@@ -5,7 +5,7 @@ import sapphire.test
 
 tempdir = sapphire.test.datadir
 
-def test__validate__melt_octadecane__regression(tempdir):
+def test__melt_octadecane__regression(tempdir):
     
     sim = sapphire.simulations.examples.melt_octadecane.Simulation(
         element_degree = (1, 1, 1),
