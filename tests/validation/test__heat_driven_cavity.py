@@ -22,7 +22,7 @@ import sapphire.test
 def test__validate_heat_driven_cavity_benchmark():
 
     sim = sapphire.simulations.examples.heat_driven_cavity.Simulation(
-        element_degree = (1, 2, 2), meshsize = 40)
+        element_degree = (1, 2, 2), mesh = fe.UnitSquareMesh(40, 40))
     
     sim.solution = sim.solve()
     

@@ -2,8 +2,8 @@
 
 Sapphire is an engine for constructing PDE-based simulations based on
 the Firedrake framework.
-This package provides the `sapphire.Simulation` base class, along with
-packages of simulations and benchmarks using that class.
+It provides the `sapphire.Simulation` base class, along with packages 
+of general simulations and specific examples.
 
 Simulations proceed forward in time by solving a sequence of 
 initial boundary value problems (IBVP's).

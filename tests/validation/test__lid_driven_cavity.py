@@ -21,8 +21,7 @@ def test__lid_driven_cavity_benchmark():
     
     sim = sapphire.simulations.examples.lid_driven_cavity.Simulation(
         reynolds_number = 100.,
-        horizontal_cellcount = 50,
-        vertical_cellcount = 50,
+        mesh = fe.UnitSquareMesh(50, 50),
         element_degree = (2, 1))
     
     sim.solution = sim.solve()
