@@ -16,6 +16,7 @@ based on
 """
 import firedrake as fe
 import sapphire.simulations.enthalpy_porosity
+import typing
 
 
 def initial_values(sim):

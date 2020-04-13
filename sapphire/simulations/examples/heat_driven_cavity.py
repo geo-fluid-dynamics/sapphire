@@ -1,5 +1,6 @@
 import firedrake as fe
 import sapphire.simulations.navier_stokes_boussinesq
+import typing
 
 
 def initial_values(sim):
