@@ -398,6 +398,6 @@ def time_discrete_terms(
     else:
     
         time_discrete_terms = time_discrete_terms
-    
+        
     return time_discrete_terms
     
