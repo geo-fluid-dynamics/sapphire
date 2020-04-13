@@ -1,3 +1,4 @@
+import firedrake as fe
 import sapphire.simulations.examples.melt_octadecane
 import sapphire.test
 
