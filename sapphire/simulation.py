@@ -308,12 +308,12 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             plot (bool): Write plots if True.
         """
         if self.solution_file is None:
-            
+        
             solution_filepath = self.output_directory_path.joinpath(
                 "solution").with_suffix(".pvd")
-            
+                
             self.solution_file = fe.File(str(solution_filepath))
-        
+            
         self = self.postprocess()
         
         sapphire.output.report(sim = self, write_header = write_headers)
