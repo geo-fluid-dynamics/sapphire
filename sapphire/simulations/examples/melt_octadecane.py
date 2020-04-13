@@ -40,7 +40,8 @@ def dirichlet_boundary_conditions(sim):
     W = sim.function_space
     
     return [
-        fe.DirichletBC(W.sub(1), (0., 0.), "on_boundary"),
+        fe.DirichletBC(
+            W.sub(1), (0.,)*sim.mesh.geometric_dimension(), "on_boundary"),
         fe.DirichletBC(W.sub(2), sim.hotwall_temperature, 1),
         fe.DirichletBC(W.sub(2), sim.initial_temperature, 2)]
         
@@ -48,7 +49,7 @@ def dirichlet_boundary_conditions(sim):
 class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
     
     def __init__(self, *args, 
-            meshsize,
+            mesh: typing.Union[fe.UnitSquareMesh, fe.UnitCubeMesh] = None,
             hotwall_temperature = 1.,
             initial_temperature = -0.01, 
             stefan_number = 0.045,
@@ -57,6 +58,10 @@ class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
             liquidus_temperature = 0.,
             **kwargs):
         
+        if mesh is None:
+        
+            mesh = fe.UnitSquareMesh(24, 24)
+            
         self.hotwall_temperature = fe.Constant(hotwall_temperature)
         
         self.initial_temperature = fe.Constant(initial_temperature)
@@ -69,7 +74,7 @@ class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
             stefan_number = stefan_number,
             grashof_number = grashof_number,
             prandtl_number = prandtl_number,
-            mesh = fe.UnitSquareMesh(meshsize, meshsize),
+            mesh = mesh,
             initial_values = initial_values,
             dirichlet_boundary_conditions = dirichlet_boundary_conditions,
             **kwargs)

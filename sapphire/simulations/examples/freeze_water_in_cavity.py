@@ -86,8 +86,9 @@ def dirichlet_boundary_conditions(sim):
 
     W = sim.function_space
     
-    return [fe.DirichletBC(
-        W.sub(1), (0.,)*sim.mesh.geometric_dimension(), "on_boundary"),
+    return [
+        fe.DirichletBC(
+            W.sub(1), (0.,)*sim.mesh.geometric_dimension(), "on_boundary"),
         fe.DirichletBC(W.sub(2), sim.hot_wall_temperature, 1),
         fe.DirichletBC(W.sub(2), sim.cold_wall_temperature, 2)]
         
@@ -173,25 +174,12 @@ def weak_form_residual(sim, solution):
             sapphire.simulations.enthalpy_porosity.energy,
             sapphire.simulations.enthalpy_porosity.pressure_penalty)])\
         *fe.dx(degree = sim.quadrature_degree)
-    
-    
-def default_mesh(meshsize, spatial_dimensions):
-
-    if spatial_dimensions == 2:
         
-        mesh = fe.UnitSquareMesh(meshsize, meshsize)
         
-    elif spatial_dimensions == 3:
-    
-        mesh = fe.UnitCubeMesh(meshsize, meshsize, meshsize)
-    
-    return mesh    
-    
-    
 class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
 
     def __init__(self, *args,
-            mesh: typing.Union[fe.UnitSquareMesh, fe.UnitCubeMesh],
+            mesh: typing.Union[fe.UnitSquareMesh, fe.UnitCubeMesh] = None,
             reference_temperature_range__degC = 10.,
             cold_wall_temperature_before_freezing = 0.,
             cold_wall_temperature_during_freezing = -1.,
@@ -201,6 +189,10 @@ class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
             heat_capacity_solid_to_liquid_ratio = 0.500,
             thermal_conductivity_solid_to_liquid_ratio = 2.14/0.561,
             **kwargs):
+            
+        if mesh is None:
+        
+            mesh = fe.UnitSquareMesh(24, 24)
         
         self.reference_temperature_range__degC = fe.Constant(
             reference_temperature_range__degC)

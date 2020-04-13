@@ -8,7 +8,7 @@ def test__validate__melt_octadecane__regression(tempdir):
     
     sim = sapphire.simulations.examples.melt_octadecane.Simulation(
         element_degree = (1, 1, 1),
-        meshsize = 24,
+        mesh = fe.UnitSquareMesh(24, 24),
         quadrature_degree = 4,
         time_stencil_size = 3,
         timestep_size = 20.,
