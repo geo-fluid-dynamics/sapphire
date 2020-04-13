@@ -12,9 +12,14 @@ Derived from
 """
 
 
-def bdf(solutions, timestep_size):
-    """ Backward difference formulas """
+def bdf(solutions, times):
+    """ Backward difference formulas 
+    
+    with constant time step size.
+    """
     order = len(solutions) - 1
+    
+    timestep_size = times[0] - times[-1]
     
     """ Table of BDF method coefficients """
     if order == 1:
