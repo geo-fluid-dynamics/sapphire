@@ -5,7 +5,6 @@ import sapphire.test
 
 tempdir = sapphire.test.datadir
 
-
 def test__validate__freeze_water__regression(tempdir):
     
     endtime = 1.44
