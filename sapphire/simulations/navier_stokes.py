@@ -3,6 +3,10 @@
 This can be used to simulate incompressible flow,
 e.g. the lid-driven cavity.
 
+The returned pressure solution will always have zero mean.
+
+Neumann BC's are not implemented.
+
 Dirichlet BC's should not be placed on the pressure.
 """
 import firedrake as fe
@@ -76,4 +80,18 @@ class Simulation(sapphire.simulation.Simulation):
             nullspace = nullspace,
             time_stencil_size = 1,
             **kwargs)
+        
+    def solve(self) -> fe.Function:
+        
+        self.solution = super().solve()
+        
+        u, p = self.solution.split()
+        
+        dx = fe.dx(degree = self.quadrature_degree)
+        
+        mean_pressure = fe.assemble(p*dx)
+        
+        p = p.assign(p - mean_pressure)
+        
+        return self.solution
         

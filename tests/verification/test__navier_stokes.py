@@ -17,6 +17,10 @@ def manufactured_solution(sim):
     
     p = -0.5*(u[0]**2 + u[1]**2)
     
+    mean_pressure = fe.assemble(p*fe.dx)
+    
+    p -= mean_pressure
+    
     return u, p
     
     
@@ -40,7 +44,7 @@ def test__verify_spatial_convergence__second_order__via_mms():
         sim_kwargs = sim_kwargs,
         manufactured_solution = manufactured_solution,
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
-        meshes = [fe.UnitSquareMesh(n, n) for n in (8, 16, 32, 64)],
+        meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32, 64)],
         norms = ("H1", "L2"),
         expected_orders = (2, 2),
         decimal_places = 1)
@@ -55,7 +59,7 @@ def test__verify_spatial_convergence__third_order__via_mms():
         sim_kwargs = sim_kwargs,
         manufactured_solution = manufactured_solution,
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
-        meshes = [fe.UnitSquareMesh(n, n) for n in (8, 16, 32, 64)],
+        meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32, 64)],
         norms = ("H1", "L2"),
         expected_orders = (3, 3),
         decimal_places = 1)
