@@ -147,13 +147,13 @@ def mass(sim, solution):
     
     phi_l = liquid_volume_fraction(sim = sim, temperature = T)
     
-    phi_s = 1. - phi_l
+    gamma_l = sim.liquid_pressure_penalty
     
     gamma_s = sim.solid_pressure_penalty
     
     div = fe.div
     
-    mass = psi_p*(div(u) + gamma_s*phi_s*p)
+    mass = psi_p*(div(u) + (gamma_l*phi_l + gamma_s*(1. - phi_l))*p)
     
     return mass
     
@@ -240,6 +240,7 @@ class Simulation(sapphire.simulation.Simulation):
             heat_capacity_solid_to_liquid_ratio = 1.,
             thermal_conductivity_solid_to_liquid_ratio = 1.,
             solid_velocity_relaxation_factor = 1.e-12,
+            liquid_pressure_penalty = 0.,
             solid_pressure_penalty = 1.e-4,
             liquidus_smoothing_factor = 0.01,
             solver_parameters = default_solver_parameters,
@@ -265,6 +266,9 @@ class Simulation(sapphire.simulation.Simulation):
         self.solid_velocity_relaxation_factor = fe.Constant(
             solid_velocity_relaxation_factor)
         
+        self.liquid_pressure_penalty = fe.Constant(
+            liquid_pressure_penalty)
+            
         self.solid_pressure_penalty = fe.Constant(
             solid_pressure_penalty)
         
