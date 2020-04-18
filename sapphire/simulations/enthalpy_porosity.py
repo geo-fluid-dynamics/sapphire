@@ -153,7 +153,13 @@ def mass(sim, solution):
     
     div = fe.div
     
-    mass = psi_p*(div(u) + (gamma_l*phi_l + gamma_s*(1. - phi_l))*p)
+    if gamma_l.__float__() == gamma_s.__float__():
+        
+        mass = psi_p*(div(u) + gamma_l*p)
+    
+    else:
+        
+        mass = psi_p*(div(u) + (gamma_l*phi_l + gamma_s*(1. - phi_l))*p)
     
     return mass
     
@@ -217,7 +223,7 @@ default_solver_parameters =  {
     "snes_linesearch_maxstep": 1.,
     "snes_linesearch_damping": 1.,
     "snes_atol": 1.e-9,
-    "snes_stol": 0.,
+    "snes_stol": 1.e-9,
     "snes_rtol": 0.,
     "snes_max_it": 24,
     "ksp_type": "preonly", 
@@ -255,6 +261,7 @@ class Simulation(sapphire.simulation.Simulation):
             liquid_pressure_penalty = 0.,
             solid_pressure_penalty = 0.,
             liquidus_smoothing_factor = 0.01,
+            enforce_zero_mean_pressure = True,
             solver_parameters = default_solver_parameters,
             nullspace = default_nullspace,
             **kwargs):
@@ -285,6 +292,8 @@ class Simulation(sapphire.simulation.Simulation):
         self.solid_pressure_penalty = fe.Constant(
             solid_pressure_penalty)
         
+        self.enforce_zero_mean_pressure = enforce_zero_mean_pressure
+        
         self.liquidus_smoothing_factor = fe.Constant(
             liquidus_smoothing_factor)
         
@@ -310,14 +319,16 @@ class Simulation(sapphire.simulation.Simulation):
         
         self.solution = super().solve()
         
-        p, u, T = self.solution.split()
-        
-        dx = fe.dx(degree = self.quadrature_degree)
-        
-        mean_pressure = fe.assemble(p*dx)
-        
-        p = p.assign(p - mean_pressure)
-        
+        if self.enforce_zero_mean_pressure:
+            
+            p, u, T = self.solution.split()
+            
+            dx = fe.dx(degree = self.quadrature_degree)
+            
+            mean_pressure = fe.assemble(p*dx)
+            
+            p = p.assign(p - mean_pressure)
+            
         return self.solution
         
     def solve_with_over_regularization(self):
@@ -352,8 +363,6 @@ class Simulation(sapphire.simulation.Simulation):
         
         if not given_smoothing_sequence:
             # Find an over-regularization that works.
-            given_initial_smoothing_sequence = False
-            
             self.solution, sigma_max = self.solve_with_over_regularization()
             
             if sigma_max == sigma:

@@ -16,7 +16,11 @@ def test__validate__freeze_water__regression(tempdir):
         time_stencil_size = 3,
         timestep_size = endtime/4.,
         solid_velocity_relaxation_factor = 1.e-12,
-        liquidus_smoothing_factor = 1./200.,
+        liquid_pressure_penalty = 1.e-7,
+        solid_pressure_penalty = 1.e-7,
+        nullspace = None,
+        enforce_zero_mean_pressure = False,
+        liquidus_smoothing_factor = 0.005,
         output_directory_path = tempdir)
     
     sim.run(endtime = endtime, plot = True)
@@ -45,7 +49,9 @@ def test__validate__freeze_water_3d__regression(tempdir):
         time_stencil_size = 3,
         timestep_size = nondimensional_target_time/2.,
         solid_velocity_relaxation_factor = 1.e-8,
-        pressure_penalty_factor = 1.e-7,
+        liquid_pressure_penalty = 1.e-7,
+        solid_pressure_penalty = 1.e-7,
+        nullspace = None,
         liquidus_smoothing_factor = 0.01,
         output_directory_path = tempdir)
     

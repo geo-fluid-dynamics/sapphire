@@ -64,6 +64,8 @@ def heat_driven_cavity_weak_form_residual(sim, solution):
     
     Pr = sim.prandtl_number
     
+    gamma_l = sim.liquid_pressure_penalty
+    
     psi_p, psi_u, psi_T = fe.TestFunctions(sim.function_space)
     
     inner, dot, grad, div, sym = \
@@ -76,7 +78,9 @@ def heat_driven_cavity_weak_form_residual(sim, solution):
     
     energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))
     
-    return mass + momentum + energy
+    pressure_penalty = psi_p*gamma_l*p
+    
+    return mass + momentum + energy + pressure_penalty
     
     
 def dirichlet_boundary_conditions(sim):
@@ -133,14 +137,16 @@ def initial_values(sim):
     
         solver.solve()
         
-        p, _, _ = sim.solution.split()
-        
-        dx = fe.dx(degree = sim.quadrature_degree)
-        
-        mean_pressure = fe.assemble(p*dx)
-        
-        p = p.assign(p - mean_pressure)
-        
+        if sim.enforce_zero_mean_pressure:
+            
+            p, _, _ = sim.solution.split()
+            
+            dx = fe.dx(degree = sim.quadrature_degree)
+            
+            mean_pressure = fe.assemble(p*dx)
+            
+            p = p.assign(p - mean_pressure)
+            
         return sim.solution
     
     sim.solution, _ = \
