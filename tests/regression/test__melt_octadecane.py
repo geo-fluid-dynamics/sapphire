@@ -21,7 +21,7 @@ def test__validate__melt_octadecane__regression(tempdir):
         liquidus_smoothing_factor = 0.005,
         solid_velocity_relaxation_factor = 1.e-12,
         liquid_pressure_penalty = 0.,
-        solid_pressure_penalty = 1.e-4,
+        solid_pressure_penalty = 0.,
         solver_parameters = solver_parameters,
         output_directory_path = tempdir)
     

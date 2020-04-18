@@ -10,7 +10,7 @@ def solve_with_over_regularization(
         solution,
         regularization_parameter,
         search_operator = lambda r: 2.*r,
-        attempts = 16,
+        attempts = 24,
         startval = None):
     
     original_regularization_parameter_value = \
@@ -61,7 +61,7 @@ def solve_with_bounded_regularization_sequence(
         backup_solution,
         regularization_parameter,
         initial_regularization_sequence,
-        maxcount = 16):
+        maxcount = 24):
     """ Solve a strongly nonlinear problem 
     by solving a sequence of over-regularized problems 
     with successively reduced regularization.

@@ -225,6 +225,18 @@ default_solver_parameters =  {
     "pc_factor_mat_solver_type": "mumps",
     "mat_type": "aij"}
 
+
+def nullspace(sim):
+    """Inform solver that pressure solution is not unique.
+    
+    It is only defined up to adding an arbitrary constant.
+    """
+    W = sim.function_space
+    
+    return fe.MixedVectorSpaceBasis(
+        W, [fe.VectorSpaceBasis(constant=True), W.sub(1), W.sub(2)])
+
+
 class Simulation(sapphire.simulation.Simulation):
     
     def __init__(
@@ -241,7 +253,7 @@ class Simulation(sapphire.simulation.Simulation):
             thermal_conductivity_solid_to_liquid_ratio = 1.,
             solid_velocity_relaxation_factor = 1.e-12,
             liquid_pressure_penalty = 0.,
-            solid_pressure_penalty = 1.e-4,
+            solid_pressure_penalty = 0.,
             liquidus_smoothing_factor = 0.01,
             solver_parameters = default_solver_parameters,
             **kwargs):
@@ -290,6 +302,7 @@ class Simulation(sapphire.simulation.Simulation):
             element = element(
                 cell = mesh.ufl_cell(), degree = element_degree),
             solver_parameters = solver_parameters,
+            nullspace = nullspace,
             **kwargs)
             
     def solve(self) -> fe.Function:
