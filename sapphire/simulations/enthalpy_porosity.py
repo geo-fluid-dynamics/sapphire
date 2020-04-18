@@ -1,6 +1,11 @@
 """A simulation class using the enthalpy-porosity method.
 
 Use this for convection-coupled melting and solidification.
+
+Dirichlet BC's should not be placed on the pressure.
+The returned pressure solution will always have zero mean.
+
+Non-homogeneous Neumann BC's are not implemented for the velocity.
 """
 import firedrake as fe
 import sapphire.simulation
@@ -141,27 +146,13 @@ def time_discrete_terms(sim):
 
 def mass(sim, solution):
     
-    p, u, T = fe.split(solution)
+    _, u, _ = fe.split(solution)
     
     psi_p, _, _ = fe.TestFunctions(solution.function_space())
     
-    phi_l = liquid_volume_fraction(sim = sim, temperature = T)
-    
-    gamma_l = sim.liquid_pressure_penalty
-    
-    gamma_s = sim.solid_pressure_penalty
-    
     div = fe.div
     
-    if gamma_l.__float__() == gamma_s.__float__():
-        
-        mass = psi_p*(div(u) + gamma_l*p)
-    
-    else:
-        
-        mass = psi_p*(div(u) + (gamma_l*phi_l + gamma_s*(1. - phi_l))*p)
-    
-    return mass
+    return psi_p*div(u)
     
     
 def momentum(sim, solution, buoyancy = linear_boussinesq_buoyancy):
@@ -232,7 +223,7 @@ default_solver_parameters =  {
     "mat_type": "aij"}
 
 
-def default_nullspace(sim):
+def nullspace(sim):
     """Inform solver that pressure solution is not unique.
     
     It is only defined up to adding an arbitrary constant.
@@ -258,12 +249,8 @@ class Simulation(sapphire.simulation.Simulation):
             heat_capacity_solid_to_liquid_ratio = 1.,
             thermal_conductivity_solid_to_liquid_ratio = 1.,
             solid_velocity_relaxation_factor = 1.e-12,
-            liquid_pressure_penalty = 0.,
-            solid_pressure_penalty = 0.,
             liquidus_smoothing_factor = 0.01,
-            enforce_zero_mean_pressure = True,
             solver_parameters = default_solver_parameters,
-            nullspace = default_nullspace,
             **kwargs):
             
         self.grashof_number = fe.Constant(grashof_number)
@@ -285,14 +272,6 @@ class Simulation(sapphire.simulation.Simulation):
         
         self.solid_velocity_relaxation_factor = fe.Constant(
             solid_velocity_relaxation_factor)
-        
-        self.liquid_pressure_penalty = fe.Constant(
-            liquid_pressure_penalty)
-            
-        self.solid_pressure_penalty = fe.Constant(
-            solid_pressure_penalty)
-        
-        self.enforce_zero_mean_pressure = enforce_zero_mean_pressure
         
         self.liquidus_smoothing_factor = fe.Constant(
             liquidus_smoothing_factor)
@@ -319,15 +298,13 @@ class Simulation(sapphire.simulation.Simulation):
         
         self.solution = super().solve()
         
-        if self.enforce_zero_mean_pressure:
-            
-            p, u, T = self.solution.split()
-            
-            dx = fe.dx(degree = self.quadrature_degree)
-            
-            mean_pressure = fe.assemble(p*dx)
-            
-            p = p.assign(p - mean_pressure)
+        p, u, T = self.solution.split()
+        
+        dx = fe.dx(degree = self.quadrature_degree)
+        
+        mean_pressure = fe.assemble(p*dx)
+        
+        p = p.assign(p - mean_pressure)
             
         return self.solution
         
@@ -404,7 +381,7 @@ class Simulation(sapphire.simulation.Simulation):
                 raise error
                 
                 
-        # For begugging purposes, ensure that the problem was solved with the 
+        # For debugging purposes, ensure that the problem was solved with the 
         # correct regularization and that the simulation's attribute for this
         # has been set to the correct value before returning.
         assert(self.liquidus_smoothing_factor.__float__() == sigma)
