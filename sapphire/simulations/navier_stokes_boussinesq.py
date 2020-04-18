@@ -2,6 +2,9 @@
 
 This can be used to simulate natural convection,
 e.g the heat-driven cavity.
+
+Dirichlet BC's should not be placed on the pressure.
+The returned pressure solution will always have zero mean.
 """
 import firedrake as fe
 import sapphire.simulation
@@ -39,13 +42,9 @@ def weak_form_residual(
     
     energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))
     
-    gamma = sim.pressure_penalty_constant
-    
-    pressure_penalty = gamma*psi_p*p
-    
     dx = fe.dx(degree = sim.quadrature_degree)
     
-    return (mass + momentum + energy + pressure_penalty)*dx
+    return (mass + momentum + energy)*dx
     
     
 def strong_residual(sim, solution, buoyancy = linear_boussinesq_buoyancy):
@@ -88,14 +87,11 @@ class Simulation(sapphire.simulation.Simulation):
             element_degree = (1, 2, 2),
             grashof_number = 1.,
             prandtl_number = 1.,
-            pressure_penalty_constant = 0.,
             **kwargs):
         
         self.grashof_number = fe.Constant(grashof_number)
         
         self.prandtl_number = fe.Constant(prandtl_number)
-        
-        self.pressure_penalty_constant = fe.Constant(pressure_penalty_constant)
         
         super().__init__(*args,
             mesh = mesh,
@@ -105,3 +101,17 @@ class Simulation(sapphire.simulation.Simulation):
             time_stencil_size = 1,
             **kwargs)
             
+    def solve(self) -> fe.Function:
+        
+        self.solution = super().solve()
+        
+        p, u, T = self.solution.split()
+        
+        dx = fe.dx(degree = self.quadrature_degree)
+        
+        mean_pressure = fe.assemble(p*dx)
+        
+        p = p.assign(p - mean_pressure)
+        
+        return self.solution
+        
