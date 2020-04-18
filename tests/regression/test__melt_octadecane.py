@@ -17,8 +17,8 @@ def test__validate__melt_octadecane__regression(tempdir):
         mesh = fe.UnitSquareMesh(24, 24),
         quadrature_degree = 4,
         time_stencil_size = 3,
-        timestep_size = 10.,
-        liquidus_smoothing_factor = 0.1,
+        timestep_size = 5.,
+        liquidus_smoothing_factor = 0.05,
         solid_velocity_relaxation_factor = 1.e-10,
         solver_parameters = solver_parameters,
         output_directory_path = tempdir)
