@@ -240,7 +240,7 @@ class Simulation(sapphire.simulation.Simulation):
             heat_capacity_solid_to_liquid_ratio = 1.,
             thermal_conductivity_solid_to_liquid_ratio = 1.,
             solid_velocity_relaxation_factor = 1.e-12,
-            solid_pressure_penalty = 1.e-5,
+            solid_pressure_penalty = 1.e-4,
             liquidus_smoothing_factor = 0.01,
             solver_parameters = default_solver_parameters,
             **kwargs):
