@@ -83,6 +83,14 @@ def element(cell, degree):
     return fe.MixedElement(
         pressure_element, velocity_element, temperature_element)
 
+
+def nullspace(sim):
+    """Inform solver that pressure is only defined up to a constant."""
+    W = sim.function_space
+    
+    return fe.MixedVectorSpaceBasis(
+        W, [fe.VectorSpaceBasis(constant=True), W.sub(1), W.sub(2)])
+
     
 class Simulation(sapphire.simulation.Simulation):
     
@@ -102,6 +110,7 @@ class Simulation(sapphire.simulation.Simulation):
             element = element(
                 cell = mesh.ufl_cell(), degree = element_degree),
             weak_form_residual = weak_form_residual,
+            nullspace = nullspace,
             **kwargs)
             
     def solve(self) -> fe.Function:
