@@ -226,7 +226,7 @@ default_solver_parameters =  {
     "mat_type": "aij"}
 
 
-def nullspace(sim):
+def default_nullspace(sim):
     """Inform solver that pressure solution is not unique.
     
     It is only defined up to adding an arbitrary constant.
@@ -256,6 +256,7 @@ class Simulation(sapphire.simulation.Simulation):
             solid_pressure_penalty = 0.,
             liquidus_smoothing_factor = 0.01,
             solver_parameters = default_solver_parameters,
+            nullspace = default_nullspace,
             **kwargs):
             
         self.grashof_number = fe.Constant(grashof_number)
