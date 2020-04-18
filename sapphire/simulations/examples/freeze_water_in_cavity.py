@@ -58,26 +58,27 @@ def water_buoyancy(sim, temperature):
     
 def heat_driven_cavity_weak_form_residual(sim, solution):
     
-    mass = sapphire.simulations.enthalpy_porosity.mass(sim, solution)
-    
-    pressure_penalty = sapphire.simulations.enthalpy_porosity.\
-        pressure_penalty(sim, solution)
-    
     p, u, T = fe.split(solution)
     
     b = water_buoyancy(sim = sim, temperature = T)
     
     Pr = sim.prandtl_number
     
-    _, psi_u, psi_T = fe.TestFunctions(sim.function_space)
+    gamma = sim.pressure_penalty_factor
+    
+    psi_p, psi_u, psi_T = fe.TestFunctions(sim.function_space)
     
     inner, dot, grad, div, sym = \
         fe.inner, fe.dot, fe.grad, fe.div, fe.sym
         
+    mass = psi_p*div(u)
+    
     momentum = dot(psi_u, grad(u)*u + b) \
         - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), sym(grad(u)))
     
     energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))
+    
+    pressure_penalty = psi_p*gamma*p
     
     return mass + momentum + energy + pressure_penalty
     
@@ -97,17 +98,7 @@ def initial_values(sim):
     
     print("Solving steady heat driven cavity to obtain initial values")
     
-    Ra = 2.518084e6
-
-    Pr = 6.99
-
-    sim.grashof_number = sim.grashof_number.assign(Ra/Pr)
-    
-    sim.prandtl_number = sim.prandtl_number.assign(Pr)
-    
-    w = fe.Function(sim.function_space)
-    
-    p, u, T = w.split()
+    p, u, T = sim.solution.split()
     
     p.assign(0.)
     
@@ -123,13 +114,13 @@ def initial_values(sim):
     
     F = heat_driven_cavity_weak_form_residual(
         sim = sim,
-        solution = w)*fe.dx(degree = sim.quadrature_degree)
+        solution = sim.solution)*fe.dx(degree = sim.quadrature_degree)
         
     problem = fe.NonlinearVariationalProblem(
         F = F,
-        u = w,
+        u = sim.solution,
         bcs = dirichlet_boundary_conditions(sim),
-        J = fe.derivative(F, w))
+        J = fe.derivative(F, sim.solution))
     
     solver = fe.NonlinearVariationalSolver(
         problem = problem,
@@ -146,18 +137,18 @@ def initial_values(sim):
     
         solver.solve()
         
-        return w
+        return sim.solution
     
-    w, _ = \
+    sim.solution, _ = \
         sapphire.continuation.solve_with_bounded_regularization_sequence(
             solve = solve,
-            solution = w,
-            backup_solution = fe.Function(w),
+            solution = sim.solution,
+            backup_solution = fe.Function(sim.solution),
             regularization_parameter = sim.grashof_number,
             initial_regularization_sequence = (
                 0., sim.grashof_number.__float__()))
                 
-    return w
+    return sim.solution
 
     
 def weak_form_residual(sim, solution):
@@ -183,6 +174,8 @@ class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
             reference_temperature_range__degC = 10.,
             cold_wall_temperature_before_freezing = 0.,
             cold_wall_temperature_during_freezing = -1.,
+            rayleigh_number = 2.518084e6,
+            prandtl_number = 6.99,
             stefan_number = 0.125,
             liquidus_temperature = 0.,
             density_solid_to_liquid_ratio = 916.70/999.84,
@@ -207,6 +200,8 @@ class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
             weak_form_residual = weak_form_residual,
             initial_values = initial_values,
             dirichlet_boundary_conditions = dirichlet_boundary_conditions,
+            grashof_number = rayleigh_number/prandtl_number,
+            prandtl_number = prandtl_number,
             stefan_number = stefan_number,
             liquidus_temperature = liquidus_temperature,
             density_solid_to_liquid_ratio = density_solid_to_liquid_ratio,
