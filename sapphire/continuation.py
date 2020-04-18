@@ -102,7 +102,7 @@ def solve_with_bounded_regularization_sequence(
             
             break
             
-        except fe.exceptions.ConvergenceError as exception:  
+        except fe.exceptions.ConvergenceError as exception:
             
             current_r = regularization_parameter.__float__()
             
