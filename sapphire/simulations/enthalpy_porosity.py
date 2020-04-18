@@ -141,13 +141,19 @@ def time_discrete_terms(sim):
 
 def mass(sim, solution):
     
-    _, u, _ = fe.split(solution)
+    p, u, T = fe.split(solution)
     
     psi_p, _, _ = fe.TestFunctions(solution.function_space())
     
+    phi_l = liquid_volume_fraction(sim = sim, temperature = T)
+    
+    phi_s = 1. - phi_l
+    
+    gamma_s = sim.solid_pressure_penalty
+    
     div = fe.div
     
-    mass = psi_p*div(u)
+    mass = psi_p*(div(u) + gamma_s*phi_s*p)
     
     return mass
     
@@ -234,6 +240,7 @@ class Simulation(sapphire.simulation.Simulation):
             heat_capacity_solid_to_liquid_ratio = 1.,
             thermal_conductivity_solid_to_liquid_ratio = 1.,
             solid_velocity_relaxation_factor = 1.e-12,
+            solid_pressure_penalty = 1.e-5,
             liquidus_smoothing_factor = 0.01,
             solver_parameters = default_solver_parameters,
             **kwargs):
@@ -257,6 +264,9 @@ class Simulation(sapphire.simulation.Simulation):
         
         self.solid_velocity_relaxation_factor = fe.Constant(
             solid_velocity_relaxation_factor)
+        
+        self.solid_pressure_penalty = fe.Constant(
+            solid_pressure_penalty)
         
         self.liquidus_smoothing_factor = fe.Constant(
             liquidus_smoothing_factor)
