@@ -5,6 +5,8 @@ e.g the heat-driven cavity.
 
 Dirichlet BC's should not be placed on the pressure.
 The returned pressure solution will always have zero mean.
+
+Non-homogeneous Neumann BC's are not implemented for the velocity.
 """
 import firedrake as fe
 import sapphire.simulation
