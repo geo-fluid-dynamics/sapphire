@@ -2,6 +2,11 @@
 
 This can be used to simulate natural convection,
 e.g the heat-driven cavity.
+
+Dirichlet BC's should not be placed on the pressure.
+The returned pressure solution will always have zero mean.
+
+Non-homogeneous Neumann BC's are not implemented for the velocity.
 """
 import firedrake as fe
 import sapphire.simulation
@@ -18,8 +23,8 @@ def linear_boussinesq_buoyancy(sim, temperature):
     return Gr*T*ghat
     
     
-_,       diff,    inner,    dot,    grad,    div,    sym = \
-None, fe.diff, fe.inner, fe.dot, fe.grad, fe.div, fe.sym
+diff, inner, dot, grad, div, sym = \
+    fe.diff, fe.inner, fe.dot, fe.grad, fe.div, fe.sym
     
 def weak_form_residual(
         sim, solution, buoyancy = linear_boussinesq_buoyancy):
