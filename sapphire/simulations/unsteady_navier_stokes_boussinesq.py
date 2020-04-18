@@ -46,13 +46,9 @@ def weak_form_residual(
     
     energy = psi_T*(T_t + dot(u, grad(T))) + dot(grad(psi_T), 1./Pr*grad(T))
     
-    gamma = sim.pressure_penalty_factor
-    
-    pressure_penalty = gamma*psi_p*p
-    
     dx = fe.dx(degree = sim.quadrature_degree)
     
-    return (mass + momentum + energy + pressure_penalty)*dx
+    return (mass + momentum + energy)*dx
     
     
 def strong_residual(sim, solution, buoyancy = linear_boussinesq_buoyancy):
@@ -95,14 +91,11 @@ class Simulation(sapphire.simulation.Simulation):
             element_degree = (1, 2, 2),
             grashof_number = 1.,
             prandtl_number = 1.,
-            pressure_penalty_factor = 0.,
             **kwargs):
         
         self.grashof_number = fe.Constant(grashof_number)
         
         self.prandtl_number = fe.Constant(prandtl_number)
-        
-        self.pressure_penalty_factor = fe.Constant(pressure_penalty_factor)
         
         super().__init__(*args,
             mesh = mesh,
@@ -111,3 +104,17 @@ class Simulation(sapphire.simulation.Simulation):
             weak_form_residual = weak_form_residual,
             **kwargs)
             
+    def solve(self) -> fe.Function:
+        
+        self.solution = super().solve()
+        
+        p, u, T = self.solution.split()
+        
+        dx = fe.dx(degree = self.quadrature_degree)
+        
+        mean_pressure = fe.assemble(p*dx)
+        
+        p = p.assign(p - mean_pressure)
+        
+        return self.solution
+        
