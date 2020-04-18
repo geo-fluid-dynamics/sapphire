@@ -83,7 +83,10 @@ def element(cell, degree):
 
 
 def nullspace(sim):
-    """Inform solver that pressure is only defined up to a constant."""
+    """Inform solver that pressure solution is not unique.
+    
+    It is only defined up to adding an arbitrary constant.
+    """
     W = sim.function_space
     
     return fe.MixedVectorSpaceBasis(
