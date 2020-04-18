@@ -353,6 +353,8 @@ class Simulation(sapphire.simulation.Simulation):
                 # This is sometimes useful after solving some time steps
                 # with a previously successful regularization sequence
                 # that is not working for a new time step.
+                self.solution = self.solution.assign(self.solutions[1])
+                
                 self.solution, smax = self.solve_with_over_regularization()
                 
                 self.smoothing_sequence = (smax, sigma)

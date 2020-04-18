@@ -104,8 +104,6 @@ def solve_with_bounded_regularization_sequence(
             
         except fe.exceptions.ConvergenceError as exception:  
             
-            solution = solution.assign(backup_solution)
-            
             current_r = regularization_parameter.__float__()
             
             rs = regularization_sequence
@@ -120,7 +118,9 @@ def solve_with_bounded_regularization_sequence(
                 regularization_parameter = regularization_parameter.assign(r0)
                 
                 raise(exception)
-                
+            
+            solution = solution.assign(backup_solution)
+            
             r_to_insert = (current_r + rs[index - 1])/2.
             
             new_rs = rs[:index] + (r_to_insert,) + rs[index:]
