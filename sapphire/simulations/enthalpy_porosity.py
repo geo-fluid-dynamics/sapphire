@@ -9,10 +9,6 @@ import sapphire.continuation
 
 def element(cell, degree):
     
-    if type(degree) is type(1):
-    
-        degree = (degree,)*3
-        
     pressure_element = fe.FiniteElement("P", cell, degree[0])
     
     velocity_element = fe.VectorElement("P", cell, degree[1])
@@ -111,17 +107,6 @@ def strong_residual(sim, solution, buoyancy = linear_boussinesq_buoyancy):
     return r_p, r_u, r_T
     
     
-def strong_residual_with_pressure_penalty(sim, solution, buoyancy = linear_boussinesq_buoyancy):
-    
-    r_p, r_u, r_T = strong_residual(sim = sim, solution = solution, buoyancy = buoyancy)
-    
-    p, _, _ = solution
-    
-    gamma = sim.pressure_penalty_factor
-    
-    return r_p + gamma*p, r_u, r_T 
-    
-    
 def time_discrete_terms(sim):
     
     _, u_t, _ = sapphire.simulation.time_discrete_terms(
@@ -178,7 +163,7 @@ def momentum(sim, solution, buoyancy = linear_boussinesq_buoyancy):
     d = solid_velocity_relaxation(sim = sim, temperature = T)
     
     _, psi_u, _ = fe.TestFunctions(solution.function_space())
-        
+    
     return dot(psi_u, u_t + grad(u)*u + b + d*u) \
         - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), sym(grad(u)))
     
@@ -209,27 +194,31 @@ def energy(sim, solution):
     
     return psi_T*(CT_t + 1./Ste*phil_t + dot(u, grad(C*T))) \
         + 1./Pr*dot(grad(psi_T), k*grad(T))
-        
-    
-def pressure_penalty(sim, solution):
 
-    p, _, _ = fe.split(solution)
-    
-    psi_p, _, _ = fe.TestFunctions(solution.function_space())
-    
-    gamma = sim.pressure_penalty_factor
-    
-    return gamma*psi_p*p
-    
-    
+
 def weak_form_residual(sim, solution):
     
     return sum(
             [r(sim = sim, solution = solution) 
-            for r in (mass, momentum, energy, pressure_penalty)])\
+            for r in (mass, momentum, energy)])\
         *fe.dx(degree = sim.quadrature_degree)
 
-    
+
+default_solver_parameters =  {
+    "snes_monitor": None,
+    "snes_type": "newtonls",
+    "snes_linesearch_type": "l2",
+    "snes_linesearch_maxstep": 1.,
+    "snes_linesearch_damping": 1.,
+    "snes_atol": 1.e-9,
+    "snes_stol": 0.,
+    "snes_rtol": 0.,
+    "snes_max_it": 24,
+    "ksp_type": "preonly", 
+    "pc_type": "lu", 
+    "pc_factor_mat_solver_type": "mumps",
+    "mat_type": "aij"}
+
 class Simulation(sapphire.simulation.Simulation):
     
     def __init__(
@@ -240,31 +229,20 @@ class Simulation(sapphire.simulation.Simulation):
             grashof_number = 1.,
             prandtl_number = 1.,
             stefan_number = 1.,
-            pressure_penalty_factor = 1.e-7,
             liquidus_temperature = 0.,
             density_solid_to_liquid_ratio = 1.,
             heat_capacity_solid_to_liquid_ratio = 1.,
             thermal_conductivity_solid_to_liquid_ratio = 1.,
             solid_velocity_relaxation_factor = 1.e-12,
             liquidus_smoothing_factor = 0.01,
-            solver_parameters = {
-                "snes_type": "newtonls",
-                "snes_max_it": 24,
-                "snes_monitor": None,
-                "snes_rtol": 0.,
-                "ksp_type": "preonly", 
-                "pc_type": "lu", 
-                "mat_type": "aij",
-                "pc_factor_mat_solver_type": "mumps"},
+            solver_parameters = default_solver_parameters,
             **kwargs):
-        
+            
         self.grashof_number = fe.Constant(grashof_number)
         
         self.prandtl_number = fe.Constant(prandtl_number)
         
         self.stefan_number = fe.Constant(stefan_number)
-        
-        self.pressure_penalty_factor = fe.Constant(pressure_penalty_factor)
         
         self.liquidus_temperature = fe.Constant(liquidus_temperature)
         
@@ -300,63 +278,100 @@ class Simulation(sapphire.simulation.Simulation):
             solver_parameters = solver_parameters,
             **kwargs)
             
-    def solve_with_auto_smoothing(self):
+    def solve(self) -> fe.Function:
         
-        s0 = self.liquidus_smoothing_factor.__float__()
+        self.solution = super().solve()
         
-        def solve_with_over_regularization(self, startval):
+        p, u, T = self.solution.split()
         
-            return sapphire.continuation.solve_with_over_regularization(
+        dx = fe.dx(degree = self.quadrature_degree)
+        
+        mean_pressure = fe.assemble(p*dx)
+        
+        p = p.assign(p - mean_pressure)
+        
+        return self.solution
+        
+    def solve_with_over_regularization(self):
+        
+        return sapphire.continuation.solve_with_over_regularization(
+            solve = self.solve,
+            solution = self.solution,
+            regularization_parameter = self.liquidus_smoothing_factor)
+            
+    def solve_with_bounded_regularization_sequence(self):
+        
+        return sapphire.continuation.\
+            solve_with_bounded_regularization_sequence(
                 solve = self.solve,
                 solution = self.solution,
+                backup_solution = self.backup_solution,
                 regularization_parameter = self.liquidus_smoothing_factor,
-                startval = startval)
+                initial_regularization_sequence = self.smoothing_sequence)
+                
+    def solve_with_auto_smoothing(self):
         
-        def solve_with_bounded_regularization_sequence(self):
+        sigma = self.liquidus_smoothing_factor.__float__()
         
-            return sapphire.continuation.\
-                solve_with_bounded_regularization_sequence(
-                    solve = self.solve,
-                    solution = self.solution,
-                    backup_solution = self.backup_solution,
-                    regularization_parameter = self.liquidus_smoothing_factor,
-                    initial_regularization_sequence = self.smoothing_sequence)
-                    
         if self.smoothing_sequence is None:
         
-            self.solution, smax = solve_with_over_regularization(
-                self, startval = None)
+            given_smoothing_sequence = False
             
-            s = self.liquidus_smoothing_factor.__float__()
+        else:
+        
+            given_smoothing_sequence = True
+        
+        
+        if not given_smoothing_sequence:
+            # Find an over-regularization that works.
+            given_initial_smoothing_sequence = False
             
-            if s == smax:
+            self.solution, sigma_max = self.solve_with_over_regularization()
             
-                self.smoothing_sequence = (s,)
+            if sigma_max == sigma:
+                # No over-regularization was necessary.
+                return self.solution
                 
             else:
-            
-                self.smoothing_sequence = (smax, s)
-            
+                # A working over-regularization was found, which becomes
+                # the upper bound of the sequence.
+                self.smoothing_sequence = (sigma_max, sigma)
+                
+                
+        # At this point, either a smoothing sequence has been provided,
+        # or a working upper bound has been found.
+        # Next, a viable sequence will be sought.
         try:
             
             self.solution, self.smoothing_sequence = \
-                solve_with_bounded_regularization_sequence(self)
+                self.solve_with_bounded_regularization_sequence()
                 
-        except fe.exceptions.ConvergenceError: 
-            # Try one more time.
-            self.solution, smax = solve_with_over_regularization(
-                self, startval = self.smoothing_sequence[-1])
+        except fe.exceptions.ConvergenceError as error: 
             
-            self.smoothing_sequence = (
-                smax, self.liquidus_smoothing_factor.__float__())
-            
-            self.solution, self.smoothing_sequence = \
-                solve_with_bounded_regularization_sequence(self)
-               
-        assert(self.liquidus_smoothing_factor.__float__() == s0)
+            if given_smoothing_sequence:
+                # Try one more time without using the given sequence.
+                # This is sometimes useful after solving some time steps
+                # with a previously successful regularization sequence
+                # that is not working for a new time step.
+                self.solution, smax = self.solve_with_over_regularization()
+                
+                self.smoothing_sequence = (smax, sigma)
+                
+                self.solution, self.smoothing_sequence = \
+                    self.solve_with_bounded_regularization_sequence()
+                    
+            else:
+                
+                raise error
+                
+                
+        # For begugging purposes, ensure that the problem was solved with the 
+        # correct regularization and that the simulation's attribute for this
+        # has been set to the correct value before returning.
+        assert(self.liquidus_smoothing_factor.__float__() == sigma)
         
         return self.solution
-    
+        
     def kwargs_for_writeplots(self):
         
         p, u, T = self.solution.split()
@@ -369,7 +384,7 @@ class Simulation(sapphire.simulation.Simulation):
             "labels": ("p", "\\mathbf{u}", "T", "\\phi_l"),
             "names": ("p", "u", "T", "phil"),
             "plotfuns": (fe.tripcolor, fe.quiver, fe.tripcolor, fe.tripcolor)}
-    
+            
     def run(self, *args, **kwargs):
         
         return super().run(*args,
@@ -384,8 +399,6 @@ class Simulation(sapphire.simulation.Simulation):
         
         div = fe.div
         
-        self.mean_pressure = fe.assemble(p*dx)
-        
         self.velocity_divergence = fe.assemble(div(u)*dx)
         
         phil = liquid_volume_fraction(sim = self, temperature = T)
@@ -393,4 +406,3 @@ class Simulation(sapphire.simulation.Simulation):
         self.liquid_area = fe.assemble(phil*dx)
         
         return self
-        
