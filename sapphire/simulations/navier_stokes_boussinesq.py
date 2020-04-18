@@ -24,8 +24,8 @@ def linear_boussinesq_buoyancy(sim, temperature):
     
     
 inner, dot, grad, div, sym = \
-        fe.inner, fe.dot, fe.grad, fe.div, fe.sym
-        
+    fe.inner, fe.dot, fe.grad, fe.div, fe.sym
+    
 def weak_form_residual(
         sim, solution, buoyancy = linear_boussinesq_buoyancy):
     
