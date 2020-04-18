@@ -300,60 +300,81 @@ class Simulation(sapphire.simulation.Simulation):
             solver_parameters = solver_parameters,
             **kwargs)
             
-    def solve_with_auto_smoothing(self):
-        
-        s0 = self.liquidus_smoothing_factor.__float__()
-        
-        def solve_with_over_regularization(self, startval):
-        
-            return sapphire.continuation.solve_with_over_regularization(
+    def solve_with_over_regularization(self):
+    
+        return sapphire.continuation.solve_with_over_regularization(
+            solve = self.solve,
+            solution = self.solution,
+            regularization_parameter = self.liquidus_smoothing_factor)
+            
+    def solve_with_bounded_regularization_sequence(self):
+    
+        return sapphire.continuation.\
+            solve_with_bounded_regularization_sequence(
                 solve = self.solve,
                 solution = self.solution,
+                backup_solution = self.backup_solution,
                 regularization_parameter = self.liquidus_smoothing_factor,
-                startval = startval)
-        
-        def solve_with_bounded_regularization_sequence(self):
-        
-            return sapphire.continuation.\
-                solve_with_bounded_regularization_sequence(
-                    solve = self.solve,
-                    solution = self.solution,
-                    backup_solution = self.backup_solution,
-                    regularization_parameter = self.liquidus_smoothing_factor,
-                    initial_regularization_sequence = self.smoothing_sequence)
+                initial_regularization_sequence = self.smoothing_sequence)
                     
+    def solve_with_auto_smoothing(self):
+        
+        s = self.liquidus_smoothing_factor.__float__()
+        
         if self.smoothing_sequence is None:
         
-            self.solution, smax = solve_with_over_regularization(
-                self, startval = None)
+            given_smoothing_sequence = False
             
-            s = self.liquidus_smoothing_factor.__float__()
+        else:
+        
+            given_smoothing_sequence = True
             
-            if s == smax:
+        if not given_smoothing_sequence:
+            # Find an over-regularization that works.
+            self.solution, smax = self.solve_with_over_regularization()
             
-                self.smoothing_sequence = (s,)
+            if smax == s:
+                # No over-regularization was necessary.
+                return self.solution
                 
             else:
             
                 self.smoothing_sequence = (smax, s)
-            
+                
+                
+        # At this point, either a smoothing sequence has been provided,
+        # or a working upper bound has been found.
+        # Next, a viable sequence will be sought.
         try:
             
             self.solution, self.smoothing_sequence = \
-                solve_with_bounded_regularization_sequence(self)
+                self.solve_with_bounded_regularization_sequence()
                 
-        except fe.exceptions.ConvergenceError: 
-            # Try one more time.
-            self.solution, smax = solve_with_over_regularization(
-                self, startval = self.smoothing_sequence[-1])
+        except fe.exceptions.ConvergenceError as error: 
             
-            self.smoothing_sequence = (
-                smax, self.liquidus_smoothing_factor.__float__())
-            
-            self.solution, self.smoothing_sequence = \
-                solve_with_bounded_regularization_sequence(self)
-               
-        assert(self.liquidus_smoothing_factor.__float__() == s0)
+            if given_smoothing_sequence:
+                # Try one more time without using the given sequence.
+                # This is sometimes useful after solving some time steps
+                # with a previously successful regularization sequence
+                # that is not working for a new time step.
+                self.solution = self.solution.assign(self.solutions[1])
+                    
+                self.solution, smax = self.solve_with_over_regularization()
+                
+                self.smoothing_sequence = (smax, s)
+                
+                self.solution, self.smoothing_sequence = \
+                    self.solve_with_bounded_regularization_sequence()
+                    
+            else:
+                
+                raise error
+                
+                
+        # For begugging purposes, ensure that the problem was solved with the 
+        # correct regularization and that the simulation's attribute for this
+        # has been set to the correct value before returning.
+        assert(self.liquidus_smoothing_factor.__float__() == s)
         
         return self.solution
     

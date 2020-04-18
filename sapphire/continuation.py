@@ -96,20 +96,20 @@ def solve_with_bounded_regularization_sequence(
                 
                 backup_solution = backup_solution.assign(solution)
                 
-                print("Solved with regularization parameter = {0}".format(r))
+                print("Solved with regularization parameter = {}".format(r))
                 
             solved = True
             
             break
             
-        except fe.exceptions.ConvergenceError as exception:  
+        except fe.exceptions.ConvergenceError as error:  
             
             current_r = regularization_parameter.__float__()
             
             rs = regularization_sequence
         
-            print("Failed to solve with regularization paramter = {0} \
-                from the sequence {1}".format(current_r, rs))
+            print("Failed to solve with continuation paramter = {}"
+                " from the sequence {}".format(current_r, rs))
                 
             index = rs.index(current_r)
             
@@ -117,7 +117,7 @@ def solve_with_bounded_regularization_sequence(
                 
                 regularization_parameter = regularization_parameter.assign(r0)
                 
-                raise(exception)
+                raise(error)
                 
             r_to_insert = (current_r + rs[index - 1])/2.
             
@@ -127,7 +127,7 @@ def solve_with_bounded_regularization_sequence(
             
             regularization_sequence = new_rs
             
-            print("Inserted new value of " + str(r_to_insert))
+            print("Inserted new value of {}".format(r_to_insert))
             
             first_r_to_solve = r_to_insert
             
