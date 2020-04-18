@@ -7,11 +7,6 @@ tempdir = sapphire.test.datadir
 
 def test__validate__melt_octadecane__regression(tempdir):
     
-    solver_parameters = sapphire.simulations.enthalpy_porosity.\
-        default_solver_parameters
-        
-    solver_parameters["snes_linesearch_damping"] = 1.
-    
     sim = sapphire.simulations.examples.melt_octadecane.Simulation(
         element_degree = (1, 2, 1),
         mesh = fe.UnitSquareMesh(24, 24),
@@ -22,7 +17,6 @@ def test__validate__melt_octadecane__regression(tempdir):
         solid_velocity_relaxation_factor = 1.e-12,
         liquid_pressure_penalty = 0.,
         solid_pressure_penalty = 0.,
-        solver_parameters = solver_parameters,
         output_directory_path = tempdir)
     
     sim.run(endtime = 80.)
