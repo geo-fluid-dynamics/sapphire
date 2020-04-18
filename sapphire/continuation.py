@@ -96,7 +96,7 @@ def solve_with_bounded_regularization_sequence(
                 
                 backup_solution = backup_solution.assign(solution)
                 
-                print("Solved with regularization parameter = {}".format(r))
+                print("Solved with continuation parameter = {}".format(r))
                 
             solved = True
             
@@ -108,7 +108,7 @@ def solve_with_bounded_regularization_sequence(
             
             rs = regularization_sequence
         
-            print("Failed to solve with regularization paramter = {}"
+            print("Failed to solve with continuation parameter = {}"
                   " from the sequence {}".format(current_r, rs))
                 
             index = rs.index(current_r)
