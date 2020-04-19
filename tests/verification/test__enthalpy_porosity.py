@@ -94,7 +94,7 @@ def test__verify__second_order_spatial_convergence__via_mms(
             manufactured_solution = space_verification_solution,
             meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16)],
             norms = ("L2", "H1", "H1"),
-            expected_orders = (2, 2, 2),
+            expected_orders = (None, 2, 2),
             decimal_places = 1,
             endtime = endtime,
             outfile = outfile)
@@ -120,9 +120,9 @@ def test__verify__third_order_spatial_convergence__via_mms(
             sim_module = sim_module,
             sim_kwargs = sim_kwargs,
             manufactured_solution = space_verification_solution,
-            meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32, 64)],
+            meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
             norms = ("L2", "H1", "H1"),
-            expected_orders = (3, 3, 3),
+            expected_orders = (None, 3, 3),
             decimal_places = 1,
             endtime = endtime,
             outfile = outfile)
@@ -133,9 +133,7 @@ def test__verify__second_order_temporal_convergence__via_mms(
     
     sim_kwargs["element_degree"] = (1, 2, 2)
     
-    meshsize = 32
-    
-    sim_kwargs["mesh"] = fe.UnitSquareMesh(meshsize, meshsize)
+    sim_kwargs["mesh"] = fe.UnitSquareMesh(32, 32)
     
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
