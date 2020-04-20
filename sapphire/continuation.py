@@ -10,7 +10,7 @@ def solve_with_over_regularization(
         solution,
         regularization_parameter,
         search_operator = lambda r: 2.*r,
-        attempts = 16,
+        attempts = 24,
         startval = None):
     
     original_regularization_parameter_value = \
@@ -34,7 +34,7 @@ def solve_with_over_regularization(
         
         regularization_parameter = regularization_parameter.assign(r)
         
-        print("Trying r = {0}".format(r))
+        print("Trying r = {}".format(r))
         
         try:
             
@@ -61,7 +61,7 @@ def solve_with_bounded_regularization_sequence(
         backup_solution,
         regularization_parameter,
         initial_regularization_sequence,
-        maxcount = 16):
+        maxcount = 24):
     """ Solve a strongly nonlinear problem 
     by solving a sequence of over-regularized problems 
     with successively reduced regularization.
@@ -96,20 +96,20 @@ def solve_with_bounded_regularization_sequence(
                 
                 backup_solution = backup_solution.assign(solution)
                 
-                print("Solved with regularization parameter = {0}".format(r))
+                print("Solved with continuation parameter = {}".format(r))
                 
             solved = True
             
             break
             
-        except fe.exceptions.ConvergenceError as exception:  
+        except fe.exceptions.ConvergenceError as exception:
             
             current_r = regularization_parameter.__float__()
             
             rs = regularization_sequence
         
-            print("Failed to solve with regularization paramter = {0} \
-                from the sequence {1}".format(current_r, rs))
+            print("Failed to solve with continuation parameter = {}"
+                  " from the sequence {}".format(current_r, rs))
                 
             index = rs.index(current_r)
             
@@ -118,12 +118,12 @@ def solve_with_bounded_regularization_sequence(
                 regularization_parameter = regularization_parameter.assign(r0)
                 
                 raise(exception)
-                
+            
+            solution = solution.assign(backup_solution)
+            
             r_to_insert = (current_r + rs[index - 1])/2.
             
             new_rs = rs[:index] + (r_to_insert,) + rs[index:]
-            
-            solution = solution.assign(backup_solution)
             
             regularization_sequence = new_rs
             

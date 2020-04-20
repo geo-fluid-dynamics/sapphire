@@ -17,14 +17,14 @@ def write_solution(sim,
     if solution is None:
     
         solution = sim.solution
-        
+    
     if time is None:
     
         time = sim.time
-        
+    
     if file is None:
     
-        time = sim.solution_file
+        file = sim.solution_file
         
     functions_to_write = solution.split()
     
@@ -33,15 +33,19 @@ def write_solution(sim,
         if hasattr(sim, "postprocessed_functions"):
         
             dependent_functions = sim.postprocessed_functions
-        
+    
     if dependent_functions is not None:
     
         functions_to_write += dependent_functions
-        
+    
+    
+    print("Writing solution to {}".format(file.filename))
+    
+    
     if time is None:
         
         file.write(functions_to_write)
-        
+    
     else:
     
         if type(time) is type(0.):
@@ -51,8 +55,8 @@ def write_solution(sim,
         elif type(time) is fe.Constant:
         
             timefloat = time.__float__()
-            
-        file.write(*functions_to_write, time = timefloat)
+
+    file.write(*functions_to_write, time = timefloat)
     
     
 def writeplots(

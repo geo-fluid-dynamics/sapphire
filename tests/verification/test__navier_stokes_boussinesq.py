@@ -22,6 +22,10 @@ def manufactured_solution(sim):
     
     T = sin(2.*pi*x)*sin(pi*y)
     
+    mean_pressure = fe.assemble(p*fe.dx)
+    
+    p -= mean_pressure
+    
     return p, u, T
     
     
@@ -36,29 +40,6 @@ def test__verify_spatial_accuracy_via_mms():
         sim_kwargs = {
             "grashof_number": Ra/Pr,
             "prandtl_number": Pr,
-            "element_degree": (1, 2, 2),
-            },
-        manufactured_solution = manufactured_solution,
-        meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32, 64)],
-        norms = ("L2", "H1", "H1"),
-        expected_orders = (2, 2, 2),
-        decimal_places = 1)
-
-    
-def test__verify_spatial_accuracy_with_pressure_penalty_via_mms():
-    
-    Ra = 10.
-    
-    Pr = 0.7
-    
-    gamma = 1.e-7
-    
-    sapphire.mms.verify_spatial_order_of_accuracy(
-        sim_module = sim_module,
-        sim_kwargs = {
-            "grashof_number": Ra/Pr, 
-            "prandtl_number": Pr, 
-            "pressure_penalty_constant": gamma,
             "element_degree": (1, 2, 2),
             },
         manufactured_solution = manufactured_solution,

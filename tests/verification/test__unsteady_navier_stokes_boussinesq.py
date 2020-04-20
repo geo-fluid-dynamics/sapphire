@@ -24,6 +24,10 @@ def space_verification_solution(sim):
     
     T = sin(2.*pi*x)*sin(pi*y)
     
+    mean_pressure = fe.assemble(p*fe.dx)
+    
+    p -= mean_pressure
+    
     return p, u, T
     
 
@@ -46,6 +50,10 @@ def time_verification_solution(sim):
     p = -0.5*sin(pi*x)*sin(pi*y)
     
     T = exp(t)*sin(2.*pi*x)*sin(pi*y)
+    
+    mean_pressure = fe.assemble(p*fe.dx)
+    
+    p -= mean_pressure
     
     return p, u, T
     
