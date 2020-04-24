@@ -15,7 +15,7 @@ based on
     }
 """
 import firedrake as fe
-import sapphire.simulations.enthalpy_porosity
+import sapphire.simulations.enthalpy_viscosity
 import typing
 
 
@@ -47,7 +47,7 @@ def dirichlet_boundary_conditions(sim):
         fe.DirichletBC(W.sub(2), sim.initial_temperature, 2)]
         
         
-class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
+class Simulation(sapphire.simulations.enthalpy_viscosity.Simulation):
     
     def __init__(self, *args, 
             mesh: typing.Union[fe.UnitSquareMesh, fe.UnitCubeMesh] = None,
