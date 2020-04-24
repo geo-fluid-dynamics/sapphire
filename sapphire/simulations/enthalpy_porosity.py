@@ -305,7 +305,7 @@ class Simulation(sapphire.simulation.Simulation):
         mean_pressure = fe.assemble(p*dx)
         
         p = p.assign(p - mean_pressure)
-            
+        
         return self.solution
         
     def solve_with_over_regularization(self):
