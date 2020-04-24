@@ -151,6 +151,6 @@ def test__verify__second_order_temporal_convergence__via_mms(
             norms = (None, "L2", "L2"),
             expected_orders = (None, 2, 2),
             decimal_places = 1,
-            timestep_sizes = (1/2, 1/4, 1/8, 1/16, 1/32),
+            timestep_sizes = (1/2, 1/4, 1/8, 1/16),
             endtime = endtime,
             outfile = outfile)
