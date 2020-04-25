@@ -19,14 +19,14 @@ def write_solution_to_vtk(
     if solution is None:
     
         solution = sim.solution
-        
+    
     if time is None:
     
         time = sim.time
-        
+    
     if file is None:
     
-        time = sim.solution_file
+        file = sim.solution_file
         
     functions_to_write = solution.split()
     
@@ -39,11 +39,15 @@ def write_solution_to_vtk(
     if dependent_functions is not None:
     
         functions_to_write += dependent_functions
-        
+    
+    
+    print("Writing solution to {}".format(file.filename))
+    
+    
     if time is None:
         
         file.write(functions_to_write)
-        
+    
     else:
     
         if type(time) is type(0.):

@@ -30,6 +30,10 @@ def manufactured_solution(sim):
     
     p = -0.5*(u[0]**2 + u[1]**2)
     
+    mean_pressure = fe.assemble(p*fe.dx)
+    
+    p -= mean_pressure
+    
     return u, p
     
     
@@ -54,7 +58,7 @@ def test__verify_spatial_convergence__second_order__via_mms():
     
     sim_kwargs["element_degree"] = (2, 1)
     
-    sim_kwargs["timestep_size"] = 1./4.
+    sim_kwargs["timestep_size"] = 1./16.
     
     sim_kwargs["time_stencil_size"] = 3
     
@@ -63,9 +67,9 @@ def test__verify_spatial_convergence__second_order__via_mms():
         sim_kwargs = sim_kwargs,
         manufactured_solution = manufactured_solution,
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
-        meshes = [fe.UnitSquareMesh(n, n) for n in (8, 16, 32)],
-        norms = ("H1", None),
-        expected_orders = (2, None),
+        meshes = [fe.UnitSquareMesh(n, n) for n in (5, 10, 20, 40)],
+        norms = ("H1", "L2"),
+        expected_orders = (2, 2),
         decimal_places = 1,
         endtime = 1.)
     
@@ -83,9 +87,9 @@ def test__verify_spatial_convergence__third_order__via_mms():
         sim_kwargs = sim_kwargs,
         manufactured_solution = manufactured_solution,
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
-        meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16)],
-        norms = ("H1", None),
-        expected_orders = (3, None),
+        meshes = [fe.UnitSquareMesh(n, n) for n in (2, 4, 8)],
+        norms = ("H1", "L2"),
+        expected_orders = (3, 3),
         decimal_places = 1,
         endtime = 1.)
     
@@ -94,7 +98,7 @@ def test__verify_temporal_convergence__second_order__via_mms():
     
     sim_kwargs["element_degree"] = (3, 2)
     
-    sim_kwargs["mesh"] = fe.UnitSquareMesh(64, 64)
+    sim_kwargs["mesh"] = fe.UnitSquareMesh(50, 50)
     
     sim_kwargs["time_stencil_size"] = 3
     
@@ -106,7 +110,7 @@ def test__verify_temporal_convergence__second_order__via_mms():
         norms = ("L2", None),
         expected_orders = (2, None),
         endtime = 1.,
-        timestep_sizes = (1./4., 1./8., 1./16., 1./32.),
+        timestep_sizes = (1./5., 1./10., 1./20.),
         decimal_places = 1)
         
  

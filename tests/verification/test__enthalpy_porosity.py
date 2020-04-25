@@ -1,8 +1,6 @@
 """Verify accuracy of the enthalpy-porosity solver
 
 for convection-coupled phase-change.
-
-The pressure accuracy is not verified.
 """
 import sys
 import pathlib
@@ -27,12 +25,13 @@ def space_verification_solution(sim):
     u = exp(0.5)*sin(2.*pi*x)*sin(pi*y)*ihat + \
         exp(0.5)*sin(pi*x)*sin(2.*pi*y)*jhat
     
-    # The pressure derivative is zero at x = 0, 1 and y = 0, 1
-    # so that Dirichlet BC's do not have to be applied
-    # and non-homogeneous Neumann BC's don't need to be handled.
     p = -sin(pi*x - pi/2.)*sin(2.*pi*y - pi/2.)
     
     T = 0.5*sin(2.*pi*x)*sin(pi*y)*(1. - exp(-0.5))
+    
+    mean_pressure = fe.assemble(p*fe.dx)
+    
+    p -= mean_pressure
     
     return p, u, T
     
@@ -48,12 +47,13 @@ def time_verification_solution(sim):
     u = exp(t/2)*sin(2.*pi*x)*sin(pi*y)*ihat + \
         exp(t/2)*sin(pi*x)*sin(2.*pi*y)*jhat
     
-    # The pressure derivative is zero at x = 0, 1 and y = 0, 1
-    # so that Dirichlet BC's do not have to be applied
-    # and non-homogeneous Neumann BC's don't need to be handled.
     p = -sin(pi*x - pi/2.)*sin(2.*pi*y - pi/2.)
     
     T = 0.5*sin(2.*pi*x)*sin(pi*y)*(1. - exp(-0.5*t**2))
+    
+    mean_pressure = fe.assemble(p*fe.dx)
+    
+    p -= mean_pressure
     
     return p, u, T
     
@@ -67,9 +67,6 @@ sim_kwargs = {
     "thermal_conductivity_solid_to_liquid_ratio": 3.8,
     "liquidus_smoothing_factor": 0.1,
     "solid_velocity_relaxation_factor": 1.e-12,
-    "pressure_penalty_factor": 1.e-4,
-    "quadrature_degree": None,
-    "element_degree": None,
     }
 
 
@@ -95,8 +92,8 @@ def test__verify__second_order_spatial_convergence__via_mms(
             sim_module = sim_module,
             sim_kwargs = sim_kwargs,
             manufactured_solution = space_verification_solution,
-            meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32, 64)],
-            norms = (None, "H1", "H1"),
+            meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16)],
+            norms = ("L2", "H1", "H1"),
             expected_orders = (None, 2, 2),
             decimal_places = 1,
             endtime = endtime,
@@ -124,7 +121,7 @@ def test__verify__third_order_spatial_convergence__via_mms(
             sim_kwargs = sim_kwargs,
             manufactured_solution = space_verification_solution,
             meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
-            norms = (None, "H1", "H1"),
+            norms = ("L2", "H1", "H1"),
             expected_orders = (None, 3, 3),
             decimal_places = 1,
             endtime = endtime,
@@ -136,9 +133,7 @@ def test__verify__second_order_temporal_convergence__via_mms(
     
     sim_kwargs["element_degree"] = (1, 2, 2)
     
-    meshsize = 32
-    
-    sim_kwargs["mesh"] = fe.UnitSquareMesh(meshsize, meshsize)
+    sim_kwargs["mesh"] = fe.UnitSquareMesh(32, 32)
     
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)

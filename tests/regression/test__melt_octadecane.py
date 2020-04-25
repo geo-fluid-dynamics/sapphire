@@ -8,12 +8,12 @@ tempdir = sapphire.test.datadir
 def test__melt_octadecane__regression(tempdir):
     
     sim = sapphire.simulations.examples.melt_octadecane.Simulation(
-        element_degree = (1, 1, 1),
+        element_degree = (1, 2, 1),
         mesh = fe.UnitSquareMesh(24, 24),
         quadrature_degree = 4,
         time_stencil_size = 3,
         timestep_size = 20.,
-        liquidus_smoothing_factor = 1./200.,
+        liquidus_smoothing_factor = 0.005,
         solid_velocity_relaxation_factor = 1.e-12,
         output_directory_path = tempdir)
     
@@ -21,5 +21,5 @@ def test__melt_octadecane__regression(tempdir):
     
     print("Liquid area = {}".format(sim.liquid_area))
     
-    assert(abs(sim.liquid_area - 0.41) < 0.01)
-  
+    assert(abs(sim.liquid_area - 0.47) < 0.01)
+    

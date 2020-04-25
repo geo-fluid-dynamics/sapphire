@@ -4,6 +4,9 @@ This can be used to simulate incompressible flow,
 e.g. the lid-driven cavity.
 
 Dirichlet BC's should not be placed on the pressure.
+The returned pressure solution will always have zero mean.
+
+Non-homogeneous Neumann BC's are not implemented for the velocity.
 """
 import firedrake as fe
 import sapphire.simulation
@@ -61,7 +64,10 @@ def strong_residual(sim, solution):
 
 
 def nullspace(sim):
-    """Inform solver that pressure is only defined up to a constant."""
+    """Inform solver that pressure solution is not unique.
+    
+    It is only defined up to adding an arbitrary constant.
+    """
     W = sim.function_space
     
     return fe.MixedVectorSpaceBasis(
@@ -90,3 +96,17 @@ class Simulation(sapphire.simulation.Simulation):
             nullspace = nullspace,
             **kwargs)
             
+    def solve(self) -> fe.Function:
+        
+        self.solution = super().solve()
+        
+        u, p = self.solution.split()
+        
+        dx = fe.dx(degree = self.quadrature_degree)
+        
+        mean_pressure = fe.assemble(p*dx)
+        
+        p = p.assign(p - mean_pressure)
+        
+        return self.solution
+        
