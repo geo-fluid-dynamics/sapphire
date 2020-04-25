@@ -16,11 +16,12 @@ Comparing to data published in
 import firedrake as fe 
 import sapphire.simulations.examples.lid_driven_cavity
 import sapphire.test
+import tests.validation.helpers
 
 
 tempdir = sapphire.test.datadir
 
-def test__lid_driven_cavity_benchmark(tempdir):
+def test__lid_driven_cavity(tempdir):
     
     sim = sapphire.simulations.examples.lid_driven_cavity.Simulation(
         reynolds_number = 100.,
@@ -32,7 +33,7 @@ def test__lid_driven_cavity_benchmark(tempdir):
     
     sim.write_outputs(headers = True)
     
-    sapphire.test.check_scalar_solution_component(
+    tests.validation.helpers.check_scalar_solution_component(
         solution = sim.solution,
         component = 0,
         subcomponent = 0,

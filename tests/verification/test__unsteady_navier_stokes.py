@@ -9,6 +9,7 @@ import firedrake as fe
 import sapphire.mms
 import sapphire.simulations.unsteady_navier_stokes as sim_module
 import sapphire.test
+import tests.validation.helpers
 
 
 tempdir = sapphire.test.datadir
@@ -114,7 +115,7 @@ def test__verify_temporal_convergence__second_order__via_mms():
         decimal_places = 1)
         
  
-def test__steady_state_lid_driven_cavity_benchmark(tempdir):
+def test__steady_state_lid_driven_cavity(tempdir):
     """ Verify against steady state lid-driven cavity benchmark.
     
     Comparing to data published in 
@@ -155,7 +156,7 @@ def test__steady_state_lid_driven_cavity_benchmark(tempdir):
     
     sim.solutions, _ = sim.run(endtime = endtime)
     
-    sapphire.test.check_scalar_solution_component(
+    tests.validation.helpers.check_scalar_solution_component(
         solution = sim.solution,
         component = 0,
         subcomponent = 0,

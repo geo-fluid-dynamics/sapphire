@@ -4,6 +4,7 @@ import sapphire.mms
 from sapphire.simulation import unit_vectors
 from sapphire.simulations import \
     unsteady_navier_stokes_boussinesq as sim_module
+import tests.validation.helpers
 
 
 def space_verification_solution(sim):
@@ -101,7 +102,7 @@ def test__verify_temporal_convergence__first_order__via_mms():
         decimal_places = 1)
         
         
-def test__steady_state_heat_driven_cavity_benchmark():
+def test__steady_state_heat_driven_cavity():
     """ Verify against steady state heat-driven cavity benchmark.
     
     Comparing to data published in @cite{wang2010comprehensive}.
@@ -143,7 +144,7 @@ def test__steady_state_heat_driven_cavity_benchmark():
     # Check coordinates (0.3499, 0.8499) instead of (0.35, 0.85)
     # because the Function evaluation fails at the exact coordinates.
     # See https://github.com/firedrakeproject/firedrake/issues/1340 
-    sapphire.test.check_scalar_solution_component(
+    tests.validation.helpers.check_scalar_solution_component(
         solution = sim.solution,
         component = 1,
         subcomponent = 0,
