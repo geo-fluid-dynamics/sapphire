@@ -12,7 +12,7 @@ def test__melt_octadecane__regression(tmpdir):
         timestep_size = 20.,
         liquidus_smoothing_factor = 0.005,
         solid_velocity_relaxation_factor = 1.e-12,
-        output_directory_path = tempdir)
+        output_directory_path = tmpdir)
     
     sim.run(endtime = 80.)
     
