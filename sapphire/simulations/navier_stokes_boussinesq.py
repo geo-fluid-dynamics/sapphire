@@ -11,87 +11,6 @@ Non-homogeneous Neumann BC's are not implemented for the velocity.
 import firedrake as fe
 import sapphire.simulation
 
-
-def linear_boussinesq_buoyancy(sim, temperature):
-    
-    T = temperature
-    
-    Gr = sim.grashof_number
-    
-    ghat = fe.Constant(-sim.unit_vectors()[1])
-    
-    return Gr*T*ghat
-    
-    
-inner, dot, grad, div, sym = \
-    fe.inner, fe.dot, fe.grad, fe.div, fe.sym
-    
-def weak_form_residual(
-        sim, solution, buoyancy = linear_boussinesq_buoyancy):
-    
-    Pr = sim.prandtl_number
-    
-    p, u, T = fe.split(solution)
-    
-    psi_p, psi_u, psi_T = fe.TestFunctions(solution.function_space())
-    
-    b = buoyancy(sim = sim, temperature = T)
-    
-    mass = psi_p*div(u)
-    
-    momentum = dot(psi_u, grad(u)*u + b) \
-        - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), sym(grad(u)))
-    
-    energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))
-    
-    dx = fe.dx(degree = sim.quadrature_degree)
-    
-    return (mass + momentum + energy)*dx
-    
-    
-def strong_residual(sim, solution, buoyancy = linear_boussinesq_buoyancy):
-    
-    Pr = sim.prandtl_number
-    
-    p, u, T = solution
-    
-    b = buoyancy(sim = sim, temperature = T)
-    
-    r_p = div(u)
-    
-    r_u = grad(u)*u + grad(p) - 2.*div(sym(grad(u))) + b
-    
-    r_T = dot(u, grad(T)) - 1./Pr*div(grad(T))
-    
-    return r_p, r_u, r_T
-    
-    
-def element(cell, degree):
-    
-    if type(degree) is type(1):
-    
-        degree = (degree,)*3
-        
-    pressure_element = fe.FiniteElement("P", cell, degree[0])
-    
-    velocity_element = fe.VectorElement("P", cell, degree[1])
-    
-    temperature_element = fe.FiniteElement("P", cell, degree[2])
-    
-    return fe.MixedElement(
-        pressure_element, velocity_element, temperature_element)
-
-
-def nullspace(sim):
-    """Inform solver that pressure solution is not unique.
-    
-    It is only defined up to adding an arbitrary constant.
-    """
-    W = sim.function_space
-    
-    return fe.MixedVectorSpaceBasis(
-        W, [fe.VectorSpaceBasis(constant=True), W.sub(1), W.sub(2)])
-
     
 class Simulation(sapphire.simulation.Simulation):
     
@@ -100,7 +19,14 @@ class Simulation(sapphire.simulation.Simulation):
             element_degree = (1, 2, 2),
             grashof_number = 1.,
             prandtl_number = 1.,
+            buoyancy = None,
             **kwargs):
+        
+        if buoyancy is None:
+        
+            buoyancy = linear_boussinesq_buoyancy
+            
+        self.buoyancy = buoyancy
         
         self.grashof_number = fe.Constant(grashof_number)
         
@@ -128,4 +54,84 @@ class Simulation(sapphire.simulation.Simulation):
         p = p.assign(p - mean_pressure)
         
         return self.solution
+
+    
+inner, dot, grad, div, sym = \
+    fe.inner, fe.dot, fe.grad, fe.div, fe.sym
+    
+def weak_form_residual(sim, solution):
+    
+    Pr = sim.prandtl_number
+    
+    p, u, T = fe.split(solution)
+    
+    psi_p, psi_u, psi_T = fe.TestFunctions(solution.function_space())
+    
+    b = sim.buoyancy(sim = sim, temperature = T)
+    
+    mass = psi_p*div(u)
+    
+    momentum = dot(psi_u, grad(u)*u + b) \
+        - div(psi_u)*p + 2.*inner(sym(grad(psi_u)), sym(grad(u)))
+    
+    energy = psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T))
+    
+    dx = fe.dx(degree = sim.quadrature_degree)
+    
+    return (mass + momentum + energy)*dx
+
+    
+def element(cell, degree):
+    
+    if type(degree) is type(1):
+    
+        degree = (degree,)*3
         
+    pressure_element = fe.FiniteElement("P", cell, degree[0])
+    
+    velocity_element = fe.VectorElement("P", cell, degree[1])
+    
+    temperature_element = fe.FiniteElement("P", cell, degree[2])
+    
+    return fe.MixedElement(
+        pressure_element, velocity_element, temperature_element)
+
+
+def nullspace(sim):
+    """Inform solver that pressure solution is not unique.
+    
+    It is only defined up to adding an arbitrary constant.
+    """
+    W = sim.function_space
+    
+    return fe.MixedVectorSpaceBasis(
+        W, [fe.VectorSpaceBasis(constant=True), W.sub(1), W.sub(2)])
+
+
+def linear_boussinesq_buoyancy(sim, temperature):
+    
+    T = temperature
+    
+    Gr = sim.grashof_number
+    
+    ghat = fe.Constant(-sim.unit_vectors()[1])
+    
+    return Gr*T*ghat
+    
+    
+def strong_residual(sim, solution):
+    
+    Pr = sim.prandtl_number
+    
+    p, u, T = solution
+    
+    b = sim.buoyancy(sim = sim, temperature = T)
+    
+    r_p = div(u)
+    
+    r_u = grad(u)*u + grad(p) - 2.*div(sym(grad(u))) + b
+    
+    r_T = dot(u, grad(T)) - 1./Pr*div(grad(T))
+    
+    return r_p, r_u, r_T
+    

@@ -3,45 +3,23 @@ import sapphire.simulations.navier_stokes_boussinesq
 import typing
 
 
-def initial_values(sim):
-
-    return sim.solution
-
-    
-def dirichlet_boundary_conditions(sim):
-    
-    W = sim.function_space
-    
-    return [
-        fe.DirichletBC(
-            W.sub(1), (0.,)*sim.mesh.geometric_dimension(), "on_boundary"),
-        fe.DirichletBC(W.sub(2), sim.hot_wall_temperature, 1),
-        fe.DirichletBC(W.sub(2), sim.cold_wall_temperature, 2)]
-        
-
-default_Ra = 1.e6
-
-default_Pr = 0.71
-
-default_Gr = default_Ra/default_Pr
-
 class Simulation(sapphire.simulations.navier_stokes_boussinesq.Simulation):
     
     def __init__(self, *args, 
             mesh: typing.Union[fe.UnitSquareMesh, fe.UnitCubeMesh] = None,
-            hot_wall_temperature = 0.5,
-            cold_wall_temperature = -0.5,
-            grashof_number = default_Gr,
-            prandtl_number = default_Pr,
+            hotwall_temperature = 0.5,
+            coldwall_temperature = -0.5,
+            grashof_number = 1.e6/0.71,
+            prandtl_number = 0.71,
             **kwargs):
         
         if mesh is None:
             
             mesh = fe.UnitSquareMesh(40, 40)
             
-        self.hot_wall_temperature = fe.Constant(hot_wall_temperature)
+        self.hotwall_temperature = fe.Constant(hotwall_temperature)
     
-        self.cold_wall_temperature = fe.Constant(cold_wall_temperature)
+        self.coldwall_temperature = fe.Constant(coldwall_temperature)
         
         super().__init__(
             *args,
@@ -51,4 +29,21 @@ class Simulation(sapphire.simulations.navier_stokes_boussinesq.Simulation):
             grashof_number = grashof_number,
             prandtl_number = prandtl_number,
             **kwargs)
-        
+
+
+def initial_values(sim):
+
+    return sim.solution
+
+
+hotwall_id, coldwall_id = 1, 2
+    
+def dirichlet_boundary_conditions(sim):
+    
+    W = sim.function_space
+    
+    return [
+        fe.DirichletBC(
+            W.sub(1), (0.,)*sim.mesh.geometric_dimension(), "on_boundary"),
+        fe.DirichletBC(W.sub(2), sim.hotwall_temperature, hotwall_id),
+        fe.DirichletBC(W.sub(2), sim.coldwall_temperature, coldwall_id)]
