@@ -57,20 +57,25 @@ def write_solution_to_vtk(
         file.write(*functions_to_write, time = timefloat)
         
         
-def write_checkpoint(sim):
+def write_checkpoint(states, dirpath, filename):
     """Write checkpoint for restarting and/or post-processing.
     
-    A solution is stored for each time in the stencil.
+    A solution is stored for each state in states.
+    
+    Restarting requires states filling the time discretization stencil.
+    
+    If a checkpoint already exists for a state's time, then no new
+    checkpoint is written for that state.
     """
     checkpointer = fe.DumbCheckpoint(
-        basename=str(sim.output_directory_path)+"/solutions",
+        basename=str(dirpath)+"/"+filename,
         mode=fe.FILE_UPDATE)
         
-    for state in sim.states:
+    stored_times, stored_indices = checkpointer.get_timesteps()
+    
+    for state in states:
         
         time = state["time"].__float__()
-        
-        stored_times, stored_indices = checkpointer.get_timesteps()
         
         if time in stored_times:
         
@@ -78,13 +83,40 @@ def write_checkpoint(sim):
             
         else:
             
+            solution = state["solution"]
+            
             checkpointer.set_timestep(t=time, idx=state["index"])
             
             print("Writing checkpoint to {}".format(checkpointer.h5file.filename))
             
-            checkpointer.store(state["solution"])
-            
-            
+            checkpointer.store(solution, name=solution.name())
+
+
+def read_checkpoint(states, dirpath, filename):
+    
+    checkpointer = fe.DumbCheckpoint(
+        basename=str(dirpath)+"/"+filename,
+        mode=fe.FILE_READ)
+        
+    stored_times, stored_indices = checkpointer.get_timesteps()
+    
+    for state in states:
+        
+        time = state["time"].__float__()
+        
+        assert(time in stored_times)
+        
+        solution = state["solution"]
+        
+        checkpointer.set_timestep(t=time, idx=state["index"])
+        
+        print("Reading checkpoint from {}".format(checkpointer.h5file.filename))
+        
+        checkpointer.load(solution, name=solution.name())
+        
+    return states
+
+
 def writeplots(
         fields: typing.List[typing.Union[fe.Function, fe.Mesh]],
         labels: typing.List[str],

@@ -59,7 +59,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             nullspace: typing.Union[ \
                 fe.VectorSpaceBasis, fe.MixedVectorSpaceBasis] = None,
             output_directory_path: str = "output/",
-            solution_name: str = None):
+            solution_name: str = "solution"):
         """
         
         Instantiating this class requires enough information to fully 
@@ -320,6 +320,13 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         """
         return None
         
+    def write_checkpoint(self):
+        
+        sapphire.output.write_checkpoint(
+            states=self.states,
+            dirpath=self.output_directory_path,
+            filename="checkpoints")
+    
     def write_outputs(self, 
             headers: bool,
             checkpoint: bool = True,
@@ -345,7 +352,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         if checkpoint:
         
-            sapphire.output.write_checkpoint(sim = self)
+            self.write_checkpoint()
             
         if vtk:
            
