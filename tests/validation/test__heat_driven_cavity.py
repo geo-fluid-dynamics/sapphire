@@ -16,18 +16,15 @@ Comparing to data published in
 """
 import firedrake as fe 
 import sapphire.simulations.examples.heat_driven_cavity
-import sapphire.test
 import tests.validation.helpers
 
 
-tempdir = sapphire.test.datadir
-
-def test__heat_driven_cavity(tempdir):
+def test__heat_driven_cavity(tmpdir):
 
     sim = sapphire.simulations.examples.heat_driven_cavity.Simulation(
         element_degree = (1, 2, 2),
         mesh = fe.UnitSquareMesh(40, 40),
-        output_directory_path = tempdir)
+        output_directory_path = tmpdir)
     
     sim.solution = sim.solve()
     

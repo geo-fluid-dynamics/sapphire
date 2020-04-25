@@ -8,11 +8,8 @@ This should be investigated further.
 import firedrake as fe 
 import sapphire.mms
 import sapphire.simulations.unsteady_navier_stokes as sim_module
-import sapphire.test
 import tests.validation.helpers
 
-
-tempdir = sapphire.test.datadir
 
 def manufactured_solution(sim):
     
@@ -115,7 +112,7 @@ def test__verify_temporal_convergence__second_order__via_mms():
         decimal_places = 1)
         
  
-def test__steady_state_lid_driven_cavity(tempdir):
+def test__steady_state_lid_driven_cavity(tmpdir):
     """ Verify against steady state lid-driven cavity benchmark.
     
     Comparing to data published in 
@@ -152,7 +149,7 @@ def test__steady_state_lid_driven_cavity(tempdir):
         mesh = fe.UnitSquareMesh(50, 50),
         element_degree = (2, 1),
         timestep_size = endtime,
-        output_directory_path = tempdir)
+        output_directory_path = tmpdir)
     
     sim.solutions, _ = sim.run(endtime = endtime)
     

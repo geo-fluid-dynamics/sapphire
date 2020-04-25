@@ -6,7 +6,6 @@ import matplotlib
 matplotlib.use('Agg')  # Only use back-end to prevent displaying image
 import matplotlib.pyplot as plt
 import firedrake as fe
-import sapphire.test
 
 
 def write_solution_to_vtk(

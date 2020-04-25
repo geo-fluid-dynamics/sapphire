@@ -1,11 +1,8 @@
 import firedrake as fe
 import sapphire.simulations.examples.melt_octadecane
-import sapphire.test
 
 
-tempdir = sapphire.test.datadir
-
-def test__melt_octadecane__regression(tempdir):
+def test__melt_octadecane__regression(tmpdir):
     
     sim = sapphire.simulations.examples.melt_octadecane.Simulation(
         element_degree = (1, 2, 1),

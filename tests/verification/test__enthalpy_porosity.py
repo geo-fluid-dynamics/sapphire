@@ -6,15 +6,10 @@ import sys
 import pathlib
 import firedrake as fe 
 import sapphire.mms
-import sapphire.test
 from sapphire.simulations import enthalpy_porosity as sim_module
 
 
-tempdir = sapphire.test.datadir
-
-
 pi, sin, exp, dot = fe.pi, fe.sin, fe.exp, fe.dot
-
 
 def space_verification_solution(sim):
     
@@ -72,8 +67,7 @@ sim_kwargs = {
 
 endtime = 1.
 
-def test__verify__second_order_spatial_convergence__via_mms(
-        tempdir):
+def test__verify__second_order_spatial_convergence__via_mms(tmpdir):
         
     sim_kwargs["element_degree"] = (1, 2, 2)
     
@@ -82,7 +76,7 @@ def test__verify__second_order_spatial_convergence__via_mms(
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
     
-    outdir_path = pathlib.Path(tempdir) / testdir
+    outdir_path = pathlib.Path(tmpdir) / testdir
     
     outdir_path.mkdir(parents = True, exist_ok = True) 
     
@@ -100,8 +94,7 @@ def test__verify__second_order_spatial_convergence__via_mms(
             outfile = outfile)
 
 
-def test__verify__third_order_spatial_convergence__via_mms(
-        tempdir):
+def test__verify__third_order_spatial_convergence__via_mms(tmpdir):
     
     sim_kwargs["element_degree"] = (2, 3, 3)
     
@@ -110,7 +103,7 @@ def test__verify__third_order_spatial_convergence__via_mms(
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
     
-    outdir_path = pathlib.Path(tempdir) / testdir
+    outdir_path = pathlib.Path(tmpdir) / testdir
     
     outdir_path.mkdir(parents = True, exist_ok = True) 
     
@@ -128,8 +121,7 @@ def test__verify__third_order_spatial_convergence__via_mms(
             outfile = outfile)
 
 
-def test__verify__second_order_temporal_convergence__via_mms(
-        tempdir):
+def test__verify__second_order_temporal_convergence__via_mms(tmpdir):
     
     sim_kwargs["element_degree"] = (1, 2, 2)
     
@@ -138,7 +130,7 @@ def test__verify__second_order_temporal_convergence__via_mms(
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)
     
-    outdir_path = pathlib.Path(tempdir) / testdir
+    outdir_path = pathlib.Path(tmpdir) / testdir
     
     outdir_path.mkdir(parents = True, exist_ok = True) 
     

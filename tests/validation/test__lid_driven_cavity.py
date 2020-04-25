@@ -15,19 +15,16 @@ Comparing to data published in
 """
 import firedrake as fe 
 import sapphire.simulations.examples.lid_driven_cavity
-import sapphire.test
 import tests.validation.helpers
 
 
-tempdir = sapphire.test.datadir
-
-def test__lid_driven_cavity(tempdir):
+def test__lid_driven_cavity(tmpdir):
     
     sim = sapphire.simulations.examples.lid_driven_cavity.Simulation(
         reynolds_number = 100.,
         mesh = fe.UnitSquareMesh(50, 50),
         element_degree = (2, 1),
-        output_directory_path = tempdir)
+        output_directory_path = tmpdir)
     
     sim.solution = sim.solve()
     
