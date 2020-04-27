@@ -49,7 +49,7 @@ def dirichlet_boundary_conditions(sim, manufactured_solution):
     
 sim_kwargs = {
     "reynolds_number": 3.,
-    "quadrature_degree": 4}
+    "quadrature_degree": None}
     
     
 def test__verify_spatial_convergence__second_order__via_mms():

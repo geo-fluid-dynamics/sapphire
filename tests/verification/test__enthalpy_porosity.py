@@ -83,58 +83,21 @@ sim_kwargs = {
 endtime = 1.
 
 def test__verify__second_order_spatial_convergence__via_mms(tmpdir):
-        
+    
     sim_kwargs["element_degrees"] = (1, 2, 2)
     
     sim_kwargs["timestep_size"] = endtime
     
-    testdir = "{}/{}/".format(
-        __name__.replace(".", "/"), sys._getframe().f_code.co_name)
-    
-    outdir_path = pathlib.Path(tmpdir) / testdir
-    
-    outdir_path.mkdir(parents = True, exist_ok = True) 
-    
-    with open(outdir_path / "convergence.csv", "w") as outfile:
-        
-        sapphire.mms.verify_spatial_order_of_accuracy(
-            sim_module = sim_module,
-            sim_kwargs = sim_kwargs,
-            manufactured_solution = space_verification_solution,
-            dirichlet_boundary_conditions = dirichlet_boundary_conditions,
-            meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16)],
-            norms = ("L2", "H1", "H1"),
-            expected_orders = (None, 2, 2),
-            decimal_places = 1,
-            endtime = endtime,
-            outfile = outfile)
-
-
-def test__verify__third_order_spatial_convergence__via_mms(tmpdir):
-    
-    sim_kwargs["element_degrees"] = (2, 3, 3)
-    
-    sim_kwargs["timestep_size"] = endtime
-    
-    testdir = "{}/{}/".format(
-        __name__.replace(".", "/"), sys._getframe().f_code.co_name)
-    
-    outdir_path = pathlib.Path(tmpdir) / testdir
-    
-    outdir_path.mkdir(parents = True, exist_ok = True) 
-    
-    with open(outdir_path / "convergence.csv", "w") as outfile:
-        
-        sapphire.mms.verify_spatial_order_of_accuracy(
-            sim_module = sim_module,
-            sim_kwargs = sim_kwargs,
-            manufactured_solution = space_verification_solution,
-            meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16)],
-            norms = ("L2", "H1", "H1"),
-            expected_orders = (None, 3, 3),
-            decimal_places = 1,
-            endtime = endtime,
-            outfile = outfile)
+    sapphire.mms.verify_spatial_order_of_accuracy(
+        sim_module = sim_module,
+        sim_kwargs = sim_kwargs,
+        manufactured_solution = space_verification_solution,
+        dirichlet_boundary_conditions = dirichlet_boundary_conditions,
+        meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16)],
+        norms = ("L2", "H1", "H1"),
+        expected_orders = (None, 2, 2),
+        decimal_places = 1,
+        endtime = endtime)
 
 
 def test__verify__second_order_temporal_convergence__via_mms(tmpdir):
@@ -145,22 +108,12 @@ def test__verify__second_order_temporal_convergence__via_mms(tmpdir):
     
     sim_kwargs["time_stencil_size"] = 3
     
-    testdir = "{}/{}/".format(
-        __name__.replace(".", "/"), sys._getframe().f_code.co_name)
-    
-    outdir_path = pathlib.Path(tmpdir) / testdir
-    
-    outdir_path.mkdir(parents = True, exist_ok = True) 
-    
-    with open(outdir_path / "convergence.csv", "w") as outfile:
-    
-        sapphire.mms.verify_temporal_order_of_accuracy(
-            sim_module = sim_module,
-            sim_kwargs = sim_kwargs,
-            manufactured_solution = time_verification_solution,
-            norms = (None, "L2", "L2"),
-            expected_orders = (None, 2, 2),
-            decimal_places = 1,
-            timestep_sizes = (1/2, 1/4, 1/8, 1/16, 1/32),
-            endtime = endtime,
-            outfile = outfile)
+    sapphire.mms.verify_temporal_order_of_accuracy(
+        sim_module = sim_module,
+        sim_kwargs = sim_kwargs,
+        manufactured_solution = time_verification_solution,
+        norms = (None, "L2", "L2"),
+        expected_orders = (None, 2, 2),
+        decimal_places = 1,
+        timestep_sizes = (1/2, 1/4, 1/8, 1/16, 1/32),
+        endtime = endtime)
