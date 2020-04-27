@@ -19,7 +19,11 @@ def bdf(solutions, timestep_size):
     """
     order = len(solutions) - 1
     
-    
+    if order < 1:
+        
+        raise ValueError("At least two solutions are needed"
+            " for the minimum time discretization stencil.")
+            
     # Table of BDF method coefficients
     if order == 1:
         
@@ -47,7 +51,7 @@ def bdf(solutions, timestep_size):
     
     else: 
     
-        raise("BDF is not zero-stable with order > 6.")
+        raise ValueError("BDF is not zero-stable with order > 6.")
         
     
     u_t = alphas[-1]*solutions[-1]

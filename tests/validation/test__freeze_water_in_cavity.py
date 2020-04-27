@@ -2,13 +2,13 @@ import firedrake as fe
 import sapphire.simulations.examples.freeze_water_in_cavity
 
 
-def test__freeze_water__regression(tmpdir):
+def test__freeze_water(tmpdir):
     
     endtime = 1.44
     
     sim = sapphire.simulations.examples.freeze_water_in_cavity.Simulation(
-        element_degree = (1, 2, 2),
-        mesh = fe.UnitSquareMesh(24, 24),
+        element_degrees = (1, 2, 2),
+        mesh_dimensions = (24, 24),
         quadrature_degree = 4,
         time_stencil_size = 3,
         timestep_size = endtime/4.,

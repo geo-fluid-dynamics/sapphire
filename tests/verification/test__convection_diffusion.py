@@ -8,7 +8,7 @@ sin, pi = fe.sin, fe.pi
 
 def manufactured_solution(sim):
     
-    x = fe.SpatialCoordinate(sim.mesh)
+    x = fe.SpatialCoordinate(sim.solution.function_space().mesh())
     
     return sin(2.*pi*x[0])*sin(pi*x[1])
     

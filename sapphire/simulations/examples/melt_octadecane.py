@@ -19,38 +19,10 @@ import sapphire.simulations.enthalpy_porosity
 import typing
 
 
-def initial_values(sim):
-    
-    w = fe.Function(sim.function_space)
-    
-    p, u, T = w.split()
-    
-    p.assign(0.)
-    
-    ihat, jhat = sim.unit_vectors()
-    
-    u.assign(0.*ihat + 0.*jhat)
-    
-    T.assign(sim.initial_temperature)
-    
-    return w
-    
-    
-def dirichlet_boundary_conditions(sim):
-
-    W = sim.function_space
-    
-    return [
-        fe.DirichletBC(
-            W.sub(1), (0.,)*sim.mesh.geometric_dimension(), "on_boundary"),
-        fe.DirichletBC(W.sub(2), sim.hotwall_temperature, 1),
-        fe.DirichletBC(W.sub(2), sim.initial_temperature, 2)]
-        
-        
 class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
     
     def __init__(self, *args, 
-            mesh: typing.Union[fe.UnitSquareMesh, fe.UnitCubeMesh] = None,
+            mesh_dimensions = (24, 24),
             hotwall_temperature = 1.,
             initial_temperature = -0.01, 
             stefan_number = 0.045,
@@ -59,9 +31,9 @@ class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
             liquidus_temperature = 0.,
             **kwargs):
         
-        if mesh is None:
-        
-            mesh = fe.UnitSquareMesh(24, 24)
+        if "solution" not in kwargs:
+            
+            kwargs["mesh"] = fe.UnitSquareMesh(*mesh_dimensions)
             
         self.hotwall_temperature = fe.Constant(hotwall_temperature)
         
@@ -75,8 +47,23 @@ class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
             stefan_number = stefan_number,
             grashof_number = grashof_number,
             prandtl_number = prandtl_number,
-            mesh = mesh,
-            initial_values = initial_values,
-            dirichlet_boundary_conditions = dirichlet_boundary_conditions,
             **kwargs)
+    
+    def initial_values(self):
         
+        _, _, T = self.solution.split()
+        
+        T.assign(self.initial_temperature)
+        
+        return self.solution
+        
+    def dirichlet_boundary_conditions(self):
+    
+        W = self.solution_space
+        
+        return [
+            fe.DirichletBC(
+                W.sub(1), (0.,)*self.mesh.geometric_dimension(), "on_boundary"),
+            fe.DirichletBC(W.sub(2), self.hotwall_temperature, 1),
+            fe.DirichletBC(W.sub(2), self.initial_temperature, 2)]
+            

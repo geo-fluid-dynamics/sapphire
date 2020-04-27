@@ -3,7 +3,6 @@ import matplotlib
 matplotlib.use('Agg')  # Only use back-end to prevent displaying image
 import matplotlib.pyplot
 import firedrake as fe 
-import sapphire.simulations.examples.heat_driven_cavity
 import sapphire.simulations.examples.heat_driven_cavity_with_water
 import tests.validation.helpers
 
@@ -12,8 +11,8 @@ def test__heat_driven_cavity_with_water(tmpdir):
     
     sim = sapphire.simulations.examples.\
         heat_driven_cavity_with_water.Simulation(
-            element_degree = (1, 2, 2),
-            mesh = fe.UnitSquareMesh(20, 20),
+            mesh_dimensions = (20, 20),
+            element_degrees = (1, 2, 2),
             output_directory_path = tmpdir)
     
     sim.solution = sim.solve_with_continuation_on_grashof_number()
@@ -34,9 +33,7 @@ def test__heat_driven_cavity_with_water(tmpdir):
     
     dot, grad = fe.dot, fe.grad
     
-    coldwall_id = sapphire.simulations.examples.heat_driven_cavity.coldwall_id
-    
-    ds = fe.ds(subdomain_id=coldwall_id)
+    ds = fe.ds(subdomain_id=sim.coldwall_id)
     
     nhat = fe.FacetNormal(sim.mesh)
     

@@ -20,8 +20,8 @@ def mms_source(
     V = sim.solution.function_space()
     
     _r = strong_residual(sim = sim, solution = manufactured_solution(sim))
-        
-    if type(sim.element) is fe.FiniteElement:
+    
+    if type(sim.solution.function_space().ufl_element()) is fe.FiniteElement:
     
         r = (_r,)
         
@@ -43,10 +43,10 @@ def mms_source(
     
     
 def mms_initial_values(sim, manufactured_solution):
-
-    initial_values = fe.Function(sim.function_space)
     
-    if type(sim.element) is fe.FiniteElement:
+    initial_values = fe.Function(sim.solution_space)
+    
+    if type(sim.solution_space.ufl_element()) is fe.FiniteElement:
     
         w_m = (manufactured_solution,)
         
@@ -55,7 +55,7 @@ def mms_initial_values(sim, manufactured_solution):
         w_m = manufactured_solution
         
     for iv, w_mi, W_i in zip(
-            initial_values.split(), w_m, sim.function_space):
+            initial_values.split(), w_m, sim.solution_space):
         
         iv.assign(fe.interpolate(w_mi, W_i))
     
@@ -63,10 +63,10 @@ def mms_initial_values(sim, manufactured_solution):
     
     
 def default_mms_dirichlet_boundary_conditions(sim, manufactured_solution):
-    """ By default, apply Dirichlet BC's to every component on every boundary. """
-    W = sim.function_space
+    """Apply Dirichlet BC's to every component on every boundary."""
+    W = sim.solution_space
     
-    if type(sim.element) is fe.FiniteElement:
+    if type(W.ufl_element()) is fe.FiniteElement:
     
         w = (manufactured_solution,)
     
@@ -87,44 +87,41 @@ def make_mms_verification_sim_class(
     if strong_residual is None:
         
         strong_residual = sim_module.strong_residual
-        
-    def initial_values(sim):
-        
-        return mms_initial_values(
-            sim = sim,
-            manufactured_solution = manufactured_solution(sim))
     
     if mms_dirichlet_boundary_conditions is None:
     
-        mms_dirichlet_boundary_conditions = default_mms_dirichlet_boundary_conditions
-        
-    def dirichlet_boundary_conditions(sim):
+        mms_dirichlet_boundary_conditions = \
+            default_mms_dirichlet_boundary_conditions
     
-        return mms_dirichlet_boundary_conditions(
-            sim = sim,
-            manufactured_solution = manufactured_solution(sim))
-        
     class MMSVerificationSimulation(sim_module.Simulation):
-            
-        def __init__(self, *args, **kwargs):
-            
-            super().__init__(*args, 
-                initial_values = initial_values,
-                dirichlet_boundary_conditions = dirichlet_boundary_conditions,
-                **kwargs)
-                
-            self.weak_form_residual -= mms_source(
+        
+        def weak_form_residual(self):
+        
+            return super().weak_form_residual() \
+                - mms_source(
                     sim = self,
                     strong_residual = strong_residual,
                     manufactured_solution = manufactured_solution)\
                 *fe.dx(degree = self.quadrature_degree)
-                
+        
+        def initial_values(self):
+        
+            return mms_initial_values(
+                sim = self,
+                manufactured_solution = manufactured_solution(self))
+        
+        def dirichlet_boundary_conditions(self):
+        
+            return mms_dirichlet_boundary_conditions(
+                sim = self,
+                manufactured_solution = manufactured_solution(self))
+        
         if not write_simulation_outputs:
         
             def write_outputs(self, *args, **kwargs):
             
                 pass
-            
+    
     return MMSVerificationSimulation
     
     
@@ -160,7 +157,7 @@ def verify_spatial_order_of_accuracy(
         
         sim = MMSVerificationSimulation(mesh = mesh, **sim_kwargs)
         
-        if len(sim.solutions) > 1:
+        if sim.time_discrete_terms() is not None:
             # If time-dependent
             sim.states = sim.run(endtime = endtime)
             
@@ -279,10 +276,6 @@ def verify_temporal_order_of_accuracy(
         
         sim.time = sim.time.assign(starttime)
         
-        for solution in sim.solutions:
-            
-            solution = solution.assign(sim.initial_values)
-            
         sim.states = sim.run(endtime = endtime)
         
         errors = []

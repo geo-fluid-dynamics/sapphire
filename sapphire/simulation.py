@@ -39,16 +39,12 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
     throughout the time-dependent simulation.
     """
     
-    def __init__(self, 
-            mesh: fe.Mesh, 
-            element: typing.Union[fe.FiniteElement, fe.MixedElement],
-            weak_form_residual: fe.Form,
-            dirichlet_boundary_conditions: typing.List[fe.DirichletBC],
-            initial_values: fe.Function,
-            quadrature_degree: int = None,
+    def __init__(self,
+            solution: fe.Function,
+            time: float = 0.,
             time_stencil_size: int = 2,
             timestep_size: float = 1.,
-            initial_time: float = 0.,
+            quadrature_degree: int = None,
             solver_parameters: dict = {
                 "snes_type": "newtonls",
                 "snes_monitor": None,
@@ -56,14 +52,10 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 "pc_type": "lu", 
                 "mat_type": "aij",
                 "pc_factor_mat_solver_type": "mumps"},
-            nullspace: typing.Union[ \
-                fe.VectorSpaceBasis, fe.MixedVectorSpaceBasis] = None,
-            output_directory_path: str = "output/",
-            solution_name: str = "solution"):
+            output_directory_path: str = "output/"):
         """
-        
         Instantiating this class requires enough information to fully 
-        specify the FE spatial discretization, weak form residual,
+        specify the FE spatial discretization and weak form residual.
         boundary conditions, and initial values. All of these required
         arguments are Firedrake objects used according to Firedrake
         conventions.
@@ -74,36 +66,17 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         `time_discrete_terms`.
         
         Args:
-            mesh (fe.Mesh): The mesh for spatial discretization.
-                The spatial degrees of freedom are determined by
-                this mesh and the chosen finite element.
-            element (fe.FiniteElement or fe.MixedElement):
-                The finite element for spatial discretization.
-                Firedrake provides a large suite of finite elements.
-            weak_form_residual (fe.Form): The weak form residual
-                containing the PDE's which govern the simulation.
-                The form is defined symbolically using the 
-                Unified Form Language (UFL) via Firedrake.
-            dirichlet_boundary_conditions (list of fe.DirichletBC):
-                The IBVP Dirichlet boundary conditions.
-            initial_values (fe.Function): The IBVP initial values
-                expressed as a Firedrake `Function`.
-                These are the initial values for the first time step.
-                For higher order time discretizations, the values are 
-                copied backward in time.
-                As a simulation proceeds forward in time, using `run`,
-                the latest solution(s) will be used as initial values. 
-            quadrature_degree (int): The quadrature degree used for
-                numerical integration.
-                Defaults to `None`, in which case Firedrake will 
-                automatically choose a suitable quadrature degree.
-            time_stencil_size (int): The number of solutions at 
+            solution: Solution for a single time step.
+                As a `fe.Function`, this also defines the 
+                mesh, element, and solution function space.
+            time: The initial time.
+            time_stencil_size: The number of solutions at 
                 discrete times used for approximating time derivatives.
                 This also determines the number of stored solutions.
                 Must be greater than zero.
                 Defaults to 2. Set to 1 for steady state problems.
                 Increase for higher-order time accuracy.
-            timestep_size (float): The size of discrete time steps.
+            timestep_size: The size of discrete time steps.
                 Defaults to 1.
                 Higher order time discretizations are assumed to use
                 a constant time step size.
@@ -111,72 +84,71 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 discretizations with variable time step sizes,
                 redefine `time_discrete_terms` and compute the
                 time step sizes from the solution times.
-            initial_time (float): The initial time.
-                Defaults to 0.
-            solver_parameters (dict): The solver parameters dictionary
+            quadrature_degree: The quadrature degree used for
+                numerical integration.
+                Defaults to `None`, in which case Firedrake will 
+                automatically choose a suitable quadrature degree.
+            solver_parameters: The solver parameters dictionary
                 which Firedrake uses to configure PETSc.
-            output_directory_path (str): String that will be converted
+            output_directory_path: String that will be converted
                 to a Path where output files will be written.
-                Defaults to "output/".)
-            solution_name (str): Overrides the default name that 
-                Firedrake otherwise gives the solution Function.
+                Defaults to "output/".
         """
-        self.mesh = mesh
+        assert(time_stencil_size > 0)
         
-        self.element = element
+        
+        self.solution = solution
+        
+        self.time = fe.Constant(time)
+        
+        
+        self.solution_space = self.solution.function_space()
+        
+        self.mesh = self.solution_space.mesh()
+        
+        self.element = self.solution_space.ufl_element()
+        
+        self.timestep_size = fe.Constant(timestep_size)
         
         self.quadrature_degree = quadrature_degree
         
         self.solver_parameters = solver_parameters
         
-        self.timestep_size = fe.Constant(timestep_size)
+        
+        initial_values = self.initial_values()
+        
+        if initial_values is not None:
+        
+            self.solution = self.solution.assign(initial_values)
         
         
-        # Solution components
-        self.function_space = fe.FunctionSpace(mesh, element)
+        # States for time dependent simulation and checkpointing
+        self.solutions = [self.solution,]
         
-        assert(time_stencil_size > 0)
+        self.times = [self.time,]
         
-        self.states = [
-            {"solution": fe.Function(self.function_space, name = solution_name),
-             "time": fe.Constant(initial_time - i*timestep_size),
-             "index": -i}
-            for i in range(time_stencil_size)]
+        self.state = {
+            "solution": self.solution,
+            "time": self.time,
+            "index": 0}
             
-        self.state = self.states[0]
+        self.states = [self.state,]
         
-        self.solutions = [state["solution"] for state in self.states]
+        for i in range(1, time_stencil_size):
         
-        self.solution = self.states[0]["solution"]
+            self.solutions.append(fe.Function(self.solution))
+            
+            self.times.append(fe.Constant(self.time - i*timestep_size))
         
-        self.times = [state["time"] for state in self.states]
+            self.states.append({
+                "solution": self.solutions[i],
+                "time": self.times[i],
+                "index": -i})
         
-        self.time = self.states[0]["time"]
         
+        # Continuation helpers
         self.backup_solution = fe.Function(self.solution)
         
-        self.initial_values = initial_values(sim = self)
-        
-        for solution in self.solutions:
-            # Assume that the initial solution is at a steady state.
-            solution = solution.assign(self.initial_values)
-            
-            
-        # Problem components
-        self.weak_form_residual = weak_form_residual(
-            sim = self,
-            solution = self.solution)
-                
-        self.dirichlet_boundary_conditions = \
-            dirichlet_boundary_conditions(sim = self)
-            
-        if nullspace is not None:
-        
-            self.nullspace = nullspace(sim = self)
-        
-        else:
-        
-            self.nullspace = None
         
         # Output controls
         self.output_directory_path = pathlib.Path(output_directory_path)
@@ -186,11 +158,6 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         self.vtk_solution_file = None
         
         self.plotvars = None
-        
-        self.postprocessing_function_space = \
-            fe.FunctionSpace(
-                self.mesh,
-                fe.FiniteElement("P", self.mesh.ufl_cell(), 1))
         
         self.snes_iteration_count = 0
         
@@ -207,7 +174,9 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         Args:
             endtime (float): Run until reaching this time.
-            plot (bool): Write plots if True. Defaults to False.
+            write_vtk_solutions (bool): Write checkpoints if True.
+            write_vtk_solutions (bool): Write solutions to VTK if True.
+            write_plots (bool): Write plots if True.
                 Writing the plots to disk can in some cases dominate
                 the processing time. Additionally, much more data
                 is generated, requiring more disk storage space.
@@ -266,14 +235,14 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         setup does not have any significant performance overhead.
         """
         problem = fe.NonlinearVariationalProblem(
-            F = self.weak_form_residual,
+            F = self.weak_form_residual(),
             u = self.solution,
-            bcs = self.dirichlet_boundary_conditions,
-            J = fe.derivative(self.weak_form_residual, self.solution))
+            bcs = self.dirichlet_boundary_conditions(),
+            J = fe.derivative(self.weak_form_residual(), self.solution))
             
         solver = fe.NonlinearVariationalSolver(
             problem = problem,
-            nullspace = self.nullspace,
+            nullspace = self.nullspace(),
             solver_parameters = self.solver_parameters)
             
         solver.solve()
@@ -281,6 +250,22 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         self.snes_iteration_count += solver.snes.getIterationNumber()
         
         return self.solution
+    
+    def weak_form_residual(self):
+        
+        pass
+    
+    def initial_values(self):
+    
+        return None
+    
+    def dirichlet_boundary_conditions(self):
+        
+        return None
+    
+    def nullspace(self):
+        
+        return None
     
     def push_back_states(self) -> typing.List[typing.Dict]:
         """Push back states, including solutions, times, and indices.
@@ -393,8 +378,8 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         return time_discrete_terms(
             solutions = self.solutions,
             timestep_size = self.timestep_size)
-            
-            
+
+    
 def unit_vectors(mesh) -> typing.Tuple[ufl.tensors.ListTensor]:
     """Returns the mesh's spatial unit vectors in each dimension.
     
@@ -446,10 +431,6 @@ def time_discrete_terms(
     if len(time_discrete_terms) == 1:
     
         time_discrete_terms = time_discrete_terms[0]
-        
-    else:
-    
-        time_discrete_terms = time_discrete_terms
         
     return time_discrete_terms
     

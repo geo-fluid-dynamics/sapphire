@@ -4,22 +4,51 @@ import sapphire.simulation
 
 
 dot, grad, div = fe.dot, fe.grad, fe.div
+
+class Simulation(sapphire.simulation.Simulation):
     
-def weak_form_residual(sim, solution):
+    def __init__(self, *args,
+            advection_velocity,
+            diffusion_coefficient = 1.,
+            element_degree = 1,
+            **kwargs):
+        
+        if "solution" not in kwargs:
+            
+            mesh = kwargs["mesh"]
+            
+            del kwargs["mesh"]
+            
+            element = fe.FiniteElement("P", mesh.ufl_cell(), element_degree)
+            
+            kwargs["solution"] = fe.Function(fe.FunctionSpace(mesh, element))
+            
+        self.diffusion_coefficient = fe.Constant(diffusion_coefficient)
+        
+        self.advection_velocity = advection_velocity(mesh)
     
-    u = solution
+        super().__init__(*args,
+            **kwargs)
     
-    v = fe.TestFunction(solution.function_space())
+    def weak_form_residual(self):
+        
+        u = self.solution
+        
+        v = fe.TestFunction(self.solution_space)
+        
+        a = self.advection_velocity
+        
+        d = self.diffusion_coefficient
+        
+        dx = fe.dx(degree = self.quadrature_degree)
+        
+        return (v*dot(a, grad(u)) + dot(grad(v), d*grad(u)))*dx
+        
+    def time_discrete_terms(self):
     
-    a = sim.advection_velocity
-    
-    d = sim.diffusion_coefficient
-    
-    dx = fe.dx(degree = sim.quadrature_degree)
-    
-    return (v*dot(a, grad(u)) + dot(grad(v), d*grad(u)))*dx
-    
-    
+        return None
+
+
 def strong_residual(sim, solution):
     
     x = fe.SpatialCoordinate(sim.mesh)
@@ -31,31 +60,4 @@ def strong_residual(sim, solution):
     d = sim.diffusion_coefficient
     
     return dot(a, grad(u)) - d*div(grad(u))
-
-
-def element(cell, degree):
-
-    return fe.FiniteElement("P", cell, degree)
     
-    
-class Simulation(sapphire.simulation.Simulation):
-    
-    def __init__(self, *args,
-            mesh,
-            advection_velocity,
-            diffusion_coefficient = 1.,
-            element_degree = 1,
-            **kwargs):
-        
-        self.diffusion_coefficient = fe.Constant(diffusion_coefficient)
-        
-        self.advection_velocity = advection_velocity(mesh)
-    
-        super().__init__(*args,
-            mesh = mesh,
-            element = element(
-                cell = mesh.ufl_cell(), degree = element_degree),
-            weak_form_residual = weak_form_residual,
-            time_stencil_size = 1,
-            **kwargs)
-        

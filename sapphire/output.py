@@ -60,7 +60,7 @@ def write_solution_to_vtk(
         file.write(*functions_to_write, time = timefloat)
         
         
-def write_checkpoint(states, dirpath, filename):
+def write_checkpoint(states, dirpath, filename, fieldname="solution"):
     """Write checkpoint for restarting and/or post-processing.
     
     A solution is stored for each state in states.
@@ -92,10 +92,10 @@ def write_checkpoint(states, dirpath, filename):
             
             print("Writing checkpoint to {}".format(checkpointer.h5file.filename))
             
-            checkpointer.store(solution, name=solution.name())
+            checkpointer.store(solution, name=fieldname)
 
 
-def read_checkpoint(states, dirpath, filename):
+def read_checkpoint(states, dirpath, filename, fieldname="solution"):
     
     checkpointer = fe.DumbCheckpoint(
         basename=str(dirpath)+"/"+filename,
@@ -115,7 +115,7 @@ def read_checkpoint(states, dirpath, filename):
         
         print("Reading checkpoint from {}".format(checkpointer.h5file.filename))
         
-        checkpointer.load(solution, name=solution.name())
+        checkpointer.load(solution, name=fieldname)
         
     return states
 

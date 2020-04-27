@@ -40,21 +40,21 @@ def dirichlet_boundary_conditions(sim, manufactured_solution):
     
     Do not apply Dirichlet BC's on the pressure.
     """
-    W = sim.function_space
+    W = sim.solution_space
     
-    u, p = manufactured_solution
+    u, _ = manufactured_solution
     
     return [fe.DirichletBC(W.sub(0), u, "on_boundary"),]
     
     
 sim_kwargs = {
     "reynolds_number": 3.,
-    "quadrature_degree": None}
+    "quadrature_degree": 4}
     
     
 def test__verify_spatial_convergence__second_order__via_mms():
     
-    sim_kwargs["element_degree"] = (2, 1)
+    sim_kwargs["element_degrees"] = (2, 1)
     
     sim_kwargs["timestep_size"] = 1./16.
     
@@ -74,7 +74,7 @@ def test__verify_spatial_convergence__second_order__via_mms():
     
 def test__verify_spatial_convergence__third_order__via_mms():
     
-    sim_kwargs["element_degree"] = (3, 2)
+    sim_kwargs["element_degrees"] = (3, 2)
     
     sim_kwargs["timestep_size"] = 1./32.
     
@@ -94,7 +94,7 @@ def test__verify_spatial_convergence__third_order__via_mms():
  
 def test__verify_temporal_convergence__second_order__via_mms():
     
-    sim_kwargs["element_degree"] = (3, 2)
+    sim_kwargs["element_degrees"] = (3, 2)
     
     sim_kwargs["mesh"] = fe.UnitSquareMesh(50, 50)
     
@@ -110,9 +110,20 @@ def test__verify_temporal_convergence__second_order__via_mms():
         endtime = 1.,
         timestep_sizes = (1./5., 1./10., 1./20.),
         decimal_places = 1)
+
+
+class LidDrivenCavitySimulation(sim_module.Simulation):
+    
+    def dirichlet_boundary_conditions(self):
         
- 
-def test__steady_state_lid_driven_cavity(tmpdir):
+        W = self.solution_space
+        
+        return [
+            fe.DirichletBC(W.sub(0), fe.Constant((0., 0.)), (1, 2, 3)),
+            fe.DirichletBC(W.sub(0), fe.Constant((1., 0.)), 4)]
+            
+
+def test__steady_state_lid_driven_cavity_benchmark():
     """ Verify against steady state lid-driven cavity benchmark.
     
     Comparing to data published in 
@@ -128,30 +139,15 @@ def test__steady_state_lid_driven_cavity(tmpdir):
             doi = {10.1016/0021-9991(82)90058-4}
         }
     """
-    def initial_values(sim):
-
-        return sim.solution
-        
-    def dirichlet_boundary_conditions(sim):
-        
-        W = sim.function_space
-        
-        return [
-            fe.DirichletBC(W.sub(0), fe.Constant((0., 0.)), (1, 2, 3)),
-            fe.DirichletBC(W.sub(0), fe.Constant((1., 0.)), 4)]
-    
     endtime = 1.e12
     
-    sim = sapphire.simulations.unsteady_navier_stokes.Simulation(
+    sim = LidDrivenCavitySimulation(
         reynolds_number = 100.,
-        initial_values = initial_values,
-        dirichlet_boundary_conditions = dirichlet_boundary_conditions,
         mesh = fe.UnitSquareMesh(50, 50),
-        element_degree = (2, 1),
-        timestep_size = endtime,
-        output_directory_path = tmpdir)
+        element_degrees = (2, 1),
+        timestep_size = endtime)
     
-    sim.solutions, _ = sim.run(endtime = endtime)
+    sim.states = sim.run(endtime = endtime)
     
     tests.validation.helpers.check_scalar_solution_component(
         solution = sim.solution,

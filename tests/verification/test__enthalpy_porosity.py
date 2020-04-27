@@ -35,7 +35,7 @@ def time_verification_solution(sim):
     
     t = sim.time
     
-    x, y = fe.SpatialCoordinate(sim.mesh)
+    x, y = fe.SpatialCoordinate(sim.solution.function_space().mesh())
     
     ihat, jhat = sim.unit_vectors()
     
@@ -52,6 +52,20 @@ def time_verification_solution(sim):
     
     return p, u, T
     
+    
+def dirichlet_boundary_conditions(sim, manufactured_solution):
+    """Apply velocity and temperature Dirichlet BC's on every boundary.
+    
+    Do not apply Dirichlet BC's on the pressure.
+    """
+    W = sim.solution_space
+    
+    _, u, T = manufactured_solution
+    
+    return [
+        fe.DirichletBC(W.sub(1), u, "on_boundary"),
+        fe.DirichletBC(W.sub(2), T, "on_boundary")]
+    
 
 sim_kwargs = {
     "grashof_number": 3.6e5,
@@ -62,6 +76,7 @@ sim_kwargs = {
     "thermal_conductivity_solid_to_liquid_ratio": 3.8,
     "liquidus_smoothing_factor": 0.1,
     "solid_velocity_relaxation_factor": 1.e-12,
+    "quadrature_degree": 4,
     }
 
 
@@ -69,7 +84,35 @@ endtime = 1.
 
 def test__verify__second_order_spatial_convergence__via_mms(tmpdir):
         
-    sim_kwargs["element_degree"] = (1, 2, 2)
+    sim_kwargs["element_degrees"] = (1, 2, 2)
+    
+    sim_kwargs["timestep_size"] = endtime
+    
+    testdir = "{}/{}/".format(
+        __name__.replace(".", "/"), sys._getframe().f_code.co_name)
+    
+    outdir_path = pathlib.Path(tmpdir) / testdir
+    
+    outdir_path.mkdir(parents = True, exist_ok = True) 
+    
+    with open(outdir_path / "convergence.csv", "w") as outfile:
+        
+        sapphire.mms.verify_spatial_order_of_accuracy(
+            sim_module = sim_module,
+            sim_kwargs = sim_kwargs,
+            manufactured_solution = space_verification_solution,
+            dirichlet_boundary_conditions = dirichlet_boundary_conditions,
+            meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16)],
+            norms = ("L2", "H1", "H1"),
+            expected_orders = (None, 2, 2),
+            decimal_places = 1,
+            endtime = endtime,
+            outfile = outfile)
+
+
+def test__verify__third_order_spatial_convergence__via_mms(tmpdir):
+    
+    sim_kwargs["element_degrees"] = (2, 3, 3)
     
     sim_kwargs["timestep_size"] = endtime
     
@@ -88,33 +131,6 @@ def test__verify__second_order_spatial_convergence__via_mms(tmpdir):
             manufactured_solution = space_verification_solution,
             meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16)],
             norms = ("L2", "H1", "H1"),
-            expected_orders = (None, 2, 2),
-            decimal_places = 1,
-            endtime = endtime,
-            outfile = outfile)
-
-
-def test__verify__third_order_spatial_convergence__via_mms(tmpdir):
-    
-    sim_kwargs["element_degree"] = (2, 3, 3)
-    
-    sim_kwargs["timestep_size"] = endtime
-    
-    testdir = "{}/{}/".format(
-        __name__.replace(".", "/"), sys._getframe().f_code.co_name)
-    
-    outdir_path = pathlib.Path(tmpdir) / testdir
-    
-    outdir_path.mkdir(parents = True, exist_ok = True) 
-    
-    with open(outdir_path / "convergence.csv", "w") as outfile:
-        
-        sapphire.mms.verify_spatial_order_of_accuracy(
-            sim_module = sim_module,
-            sim_kwargs = sim_kwargs,
-            manufactured_solution = space_verification_solution,
-            meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32)],
-            norms = ("L2", "H1", "H1"),
             expected_orders = (None, 3, 3),
             decimal_places = 1,
             endtime = endtime,
@@ -123,9 +139,11 @@ def test__verify__third_order_spatial_convergence__via_mms(tmpdir):
 
 def test__verify__second_order_temporal_convergence__via_mms(tmpdir):
     
-    sim_kwargs["element_degree"] = (1, 2, 2)
+    sim_kwargs["element_degrees"] = (2, 3, 3)
     
-    sim_kwargs["mesh"] = fe.UnitSquareMesh(32, 32)
+    sim_kwargs["mesh"] = fe.UnitSquareMesh(16, 16)
+    
+    sim_kwargs["time_stencil_size"] = 3
     
     testdir = "{}/{}/".format(
         __name__.replace(".", "/"), sys._getframe().f_code.co_name)

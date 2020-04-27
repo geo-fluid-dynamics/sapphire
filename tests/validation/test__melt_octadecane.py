@@ -2,11 +2,11 @@ import firedrake as fe
 import sapphire.simulations.examples.melt_octadecane
 
 
-def test__melt_octadecane__regression(tmpdir):
+def test__melt_octadecane(tmpdir):
     
     sim = sapphire.simulations.examples.melt_octadecane.Simulation(
-        element_degree = (1, 2, 1),
-        mesh = fe.UnitSquareMesh(24, 24),
+        element_degrees = (1, 2, 1),
+        mesh_dimensions = (24, 24),
         quadrature_degree = 4,
         time_stencil_size = 3,
         timestep_size = 20.,

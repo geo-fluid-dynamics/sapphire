@@ -20,10 +20,10 @@ import tests.validation.helpers
 
 
 def test__heat_driven_cavity(tmpdir):
-
+    
     sim = sapphire.simulations.examples.heat_driven_cavity.Simulation(
-        element_degree = (1, 2, 2),
-        mesh = fe.UnitSquareMesh(40, 40),
+        element_degrees = (1, 2, 2),
+        mesh_dimensions = (40, 40),
         output_directory_path = tmpdir)
     
     sim.solution = sim.solve()
