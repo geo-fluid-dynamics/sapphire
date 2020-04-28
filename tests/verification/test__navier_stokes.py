@@ -26,7 +26,7 @@ def manufactured_solution(sim):
     
 def dirichlet_boundary_conditions(sim, manufactured_solution):
     """Apply velocity Dirichlet BC's on every boundary."""
-    W = sim.function_space
+    W = sim.solution_space
     
     u, p = manufactured_solution
     
@@ -37,7 +37,7 @@ sim_kwargs = {"reynolds_number": 3.}
     
 def test__verify_spatial_convergence__second_order__via_mms():
     
-    sim_kwargs["element_degree"] = (2, 1)
+    sim_kwargs["element_degrees"] = (2, 1)
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
@@ -52,7 +52,7 @@ def test__verify_spatial_convergence__second_order__via_mms():
 
 def test__verify_spatial_convergence__third_order__via_mms():
     
-    sim_kwargs["element_degree"] = (3, 2)
+    sim_kwargs["element_degrees"] = (3, 2)
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,

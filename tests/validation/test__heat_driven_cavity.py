@@ -16,13 +16,15 @@ Comparing to data published in
 """
 import firedrake as fe 
 import sapphire.simulations.examples.heat_driven_cavity
-import sapphire.test
+import tests.validation.helpers
 
 
-def test__validate_heat_driven_cavity_benchmark():
-
+def test__heat_driven_cavity(tmpdir):
+    
     sim = sapphire.simulations.examples.heat_driven_cavity.Simulation(
-        element_degree = (1, 2, 2), mesh = fe.UnitSquareMesh(40, 40))
+        element_degrees = (1, 2, 2),
+        mesh_dimensions = (40, 40),
+        output_directory_path = tmpdir)
     
     sim.solution = sim.solve()
     
@@ -35,7 +37,7 @@ def test__validate_heat_driven_cavity_benchmark():
     # Check coordinates (0.3499, 0.8499) instead of (0.35, 0.85)
     # because the Function evaluation fails at the exact coordinates.
     # See https://github.com/firedrakeproject/firedrake/issues/1340 
-    sapphire.test.check_scalar_solution_component(
+    tests.validation.helpers.check_scalar_solution_component(
         solution = sim.solution,
         component = 1,
         subcomponent = 0,

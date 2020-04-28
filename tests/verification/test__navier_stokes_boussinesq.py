@@ -29,20 +29,30 @@ def manufactured_solution(sim):
     return p, u, T
     
     
-def test__verify_spatial_accuracy_via_mms():
+def dirichlet_boundary_conditions(sim, manufactured_solution):
+    """Apply velocity and temperature Dirichlet BC's on every boundary.
     
-    Ra = 10.
+    Do not apply Dirichlet BC's on the pressure.
+    """
+    W = sim.solution_space
     
-    Pr = 0.7
+    _, u, T = manufactured_solution
+    
+    return [
+        fe.DirichletBC(W.sub(1), u, "on_boundary"),
+        fe.DirichletBC(W.sub(2), T, "on_boundary")]
+
+
+def test__verify_second_order_spatial_accuracy_via_mms():
     
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
         sim_kwargs = {
-            "grashof_number": Ra/Pr,
-            "prandtl_number": Pr,
-            "element_degree": (1, 2, 2),
-            },
+            "grashof_number": 10./0.7,
+            "prandtl_number": 0.7,
+            "element_degrees": (1, 2, 2)},
         manufactured_solution = manufactured_solution,
+        dirichlet_boundary_conditions = dirichlet_boundary_conditions,
         meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32, 64)],
         norms = ("L2", "H1", "H1"),
         expected_orders = (2, 2, 2),

@@ -6,7 +6,7 @@ from sapphire.simulations import enthalpy as sim_module
 
 def manufactured_solution(sim):
     
-    x = fe.SpatialCoordinate(sim.mesh)[0]
+    x = fe.SpatialCoordinate(sim.solution.function_space().mesh())[0]
     
     t = sim.time
     
