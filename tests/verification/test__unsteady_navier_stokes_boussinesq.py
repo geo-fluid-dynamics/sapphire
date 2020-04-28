@@ -97,9 +97,9 @@ def test__verify_second_order_spatial_convergence_via_mms():
         endtime = 1.)
     
  
-def test__verify_temporal_convergence__first_order__via_mms():
+def test__verify_first_order_temporal_convergence_via_mms():
     
-    sim_kwargs["mesh"] = fe.UnitSquareMesh(48, 48)
+    sim_kwargs["mesh"] = fe.UnitSquareMesh(30, 30)
     
     sim_kwargs["element_degrees"] = (2, 3, 3)
     
