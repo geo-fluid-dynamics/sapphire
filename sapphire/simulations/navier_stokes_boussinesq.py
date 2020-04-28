@@ -85,6 +85,8 @@ class Simulation(sapphire.simulation.Simulation):
         
         self.solution = super().solve()
         
+        print("Subtracting mean pressure")
+        
         p, _, _ = self.solution.split()
         
         dx = fe.dx(degree = self.quadrature_degree)
@@ -92,6 +94,8 @@ class Simulation(sapphire.simulation.Simulation):
         mean_pressure = fe.assemble(p*dx)
         
         p = p.assign(p - mean_pressure)
+        
+        print("Done subtracting mean pressure")
         
         return self.solution
     
