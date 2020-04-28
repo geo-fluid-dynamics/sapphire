@@ -112,6 +112,7 @@ def test__verify__second_order_temporal_convergence__via_mms(tmpdir):
         sim_module = sim_module,
         sim_kwargs = sim_kwargs,
         manufactured_solution = time_verification_solution,
+        dirichlet_boundary_conditions = dirichlet_boundary_conditions,
         norms = (None, "L2", "L2"),
         expected_orders = (None, 2, 2),
         decimal_places = 1,
