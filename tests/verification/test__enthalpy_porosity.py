@@ -9,7 +9,7 @@ import sapphire.mms
 from sapphire.simulations import enthalpy_porosity as sim_module
 
 
-pi, sin, exp, dot = fe.pi, fe.sin, fe.exp, fe.dot
+pi, sin, exp = fe.pi, fe.sin, fe.exp
 
 def space_verification_solution(sim):
     
@@ -35,7 +35,7 @@ def time_verification_solution(sim):
     
     t = sim.time
     
-    x, y = fe.SpatialCoordinate(sim.solution.function_space().mesh())
+    x, y = fe.SpatialCoordinate(sim.mesh)
     
     ihat, jhat = sim.unit_vectors()
     
@@ -82,7 +82,7 @@ sim_kwargs = {
 
 endtime = 1.
 
-def test__verify__second_order_spatial_convergence__via_mms(tmpdir):
+def test__verify_second_order_spatial_convergence_via_mms(tmpdir):
     
     sim_kwargs["element_degrees"] = (1, 2, 2)
     
@@ -100,7 +100,7 @@ def test__verify__second_order_spatial_convergence__via_mms(tmpdir):
         endtime = endtime)
 
 
-def test__verify__second_order_temporal_convergence__via_mms(tmpdir):
+def test__verify_second_order_temporal_convergence_via_mms(tmpdir):
     
     sim_kwargs["element_degrees"] = (2, 3, 3)
     
