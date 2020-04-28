@@ -77,7 +77,7 @@ sim_kwargs = {
     "prandtl_number": 0.71,
     "quadrature_degree": 4}
     
-def test__verify_spatial_convergence__second_order__via_mms():
+def test__verify_second_order_spatial_convergence_via_mms():
     
     sim_kwargs["element_degrees"] = (1, 2, 2)
     
