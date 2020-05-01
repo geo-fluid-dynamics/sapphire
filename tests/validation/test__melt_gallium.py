@@ -8,14 +8,14 @@ def test__melt_gallium__regression(tmpdir):
         mesh_dimensions = (20, 40),
         quadrature_degree = 4,
         time_stencil_size = 3,
-        timestep_size = 0.05,
-        liquidus_smoothing_factor = 0.1,
+        timestep_size = 0.025,
+        liquidus_smoothing_factor = 0.05,
         solid_velocity_relaxation_factor = 1.e-10,
         output_directory_path = tmpdir)
     
-    sim.run(endtime = 0.3)
+    sim.run(endtime = 0.15)
     
     print("Liquid area = {}".format(sim.liquid_area))
     
-    assert(round(sim.liquid_area, 2) == 0.42)
+    assert(round(sim.liquid_area, 2) == 0.43)
     
