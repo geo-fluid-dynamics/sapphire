@@ -24,10 +24,11 @@ class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
     def __init__(self, *args, 
             mesh_dimensions = (24, 24),
             hotwall_temperature = 1.,
-            initial_temperature = -0.01, 
-            stefan_number = 0.045,
+            initial_temperature = -0.01,
+            reynolds_number = 1.,
             rayleigh_number = 3.27e5,
             prandtl_number = 56.2,
+            stefan_number = 0.045,
             liquidus_temperature = 0.,
             **kwargs):
         
@@ -39,14 +40,13 @@ class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
         
         self.initial_temperature = fe.Constant(initial_temperature)
         
-        grashof_number = rayleigh_number/prandtl_number
-        
         super().__init__(
             *args,
             liquidus_temperature = liquidus_temperature,
-            stefan_number = stefan_number,
-            grashof_number = grashof_number,
+            reynolds_number = reynolds_number,
+            rayleigh_number = rayleigh_number,
             prandtl_number = prandtl_number,
+            stefan_number = stefan_number,
             **kwargs)
     
     def initial_values(self):

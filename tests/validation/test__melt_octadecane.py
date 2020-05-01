@@ -1,4 +1,3 @@
-import firedrake as fe
 import sapphire.simulations.examples.melt_octadecane
 
 
@@ -18,5 +17,5 @@ def test__melt_octadecane(tmpdir):
     
     print("Liquid area = {}".format(sim.liquid_area))
     
-    assert(abs(sim.liquid_area - 0.47) < 0.01)
+    assert(round(sim.liquid_area, 2) == 0.47)
     

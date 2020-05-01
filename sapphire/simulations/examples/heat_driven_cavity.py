@@ -9,7 +9,8 @@ class Simulation(sapphire.simulations.navier_stokes_boussinesq.Simulation):
             mesh_dimensions = (20, 20),
             hotwall_temperature = 0.5,
             coldwall_temperature = -0.5,
-            grashof_number = 1.e6/0.71,
+            reynolds_number = 1.,
+            rayleigh_number = 1.e6,
             prandtl_number = 0.71,
             **kwargs):
         
@@ -27,7 +28,8 @@ class Simulation(sapphire.simulations.navier_stokes_boussinesq.Simulation):
         
         super().__init__(
             *args,
-            grashof_number = grashof_number,
+            reynolds_number = reynolds_number,
+            rayleigh_number = rayleigh_number,
             prandtl_number = prandtl_number,
             **kwargs)
     

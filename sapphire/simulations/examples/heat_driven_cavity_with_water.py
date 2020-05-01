@@ -6,7 +6,8 @@ class Simulation(sapphire.simulations.examples.heat_driven_cavity.Simulation):
     
     def __init__(self, *args,
             reference_temperature_range__degC = 10.,
-            grashof_number = 2.518084e6/6.99,
+            reynolds_number = 1.,
+            rayleigh_number = 2.518084e6,
             prandtl_number = 6.99,
             hotwall_temperature = 1.,
             coldwall_temperature = 0.,
@@ -24,7 +25,8 @@ class Simulation(sapphire.simulations.examples.heat_driven_cavity.Simulation):
             reference_temperature_range__degC)
             
         super().__init__(*args,
-            grashof_number = grashof_number,
+            reynolds_number = reynolds_number,
+            rayleigh_number = rayleigh_number,
             prandtl_number = prandtl_number,
             solver_parameters = solver_parameters,
             hotwall_temperature = hotwall_temperature,
@@ -38,9 +40,9 @@ class Simulation(sapphire.simulations.examples.heat_driven_cavity.Simulation):
                 solve = super().solve,
                 solution = self.solution,
                 backup_solution = fe.Function(self.solution),
-                regularization_parameter = self.grashof_number,
+                regularization_parameter = self.rayleigh_number,
                 initial_regularization_sequence = (
-                    0., self.grashof_number.__float__()))
+                    0., self.rayleigh_number.__float__()))
         
         return self.solution
     
@@ -72,11 +74,15 @@ class Simulation(sapphire.simulations.examples.heat_driven_cavity.Simulation):
         
         beta = fe.Constant(6.91e-5)  # [K^-1]
         
-        Gr = self.grashof_number
+        Ra = self.rayleigh_number
+        
+        Pr = self.prandtl_number
+        
+        Re = self.reynolds_number
         
         ghat = fe.Constant(-self.unit_vectors()[1])
         
         rho_0 = rho(T = 0.)
         
-        return Gr/(beta*M)*(rho_0 - rho(T))/rho_0*ghat
+        return Ra/(Pr*Re**2*beta*M)*(rho_0 - rho(T))/rho_0*ghat
         
