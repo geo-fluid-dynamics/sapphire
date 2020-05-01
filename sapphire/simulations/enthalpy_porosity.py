@@ -290,17 +290,22 @@ diff = fe.diff
 
 def strong_residual(sim, solution):
     
-    Pr = sim.prandtl_number
+    r_p, r_u, r_T = sapphire.simulations.unsteady_navier_stokes_boussinesq.\
+        strong_residual(sim = sim, solution = solution)
     
-    Ste = sim.stefan_number
+    _, u, T = solution
     
     t = sim.time
     
-    p, u, T = solution
-    
-    b = sim.buoyancy(temperature = T)
     
     d = sim.solid_velocity_relaxation(temperature = T)
+    
+    r_u += d*u
+    
+    
+    Pr = sim.prandtl_number
+    
+    Ste = sim.stefan_number
     
     phil = sim.liquid_volume_fraction(temperature = T)
     
@@ -314,12 +319,7 @@ def strong_residual(sim, solution):
     
     k = phase_dependent_material_property(k_sl)(phil)
     
-    r_p = div(u)
-    
-    r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(sym(grad(u))) + b + d*u
-    
     r_T = diff(C*T, t) + 1./Ste*diff(phil, t) + dot(u, grad(C*T)) \
         - 1./Pr*div(k*grad(T))
     
     return r_p, r_u, r_T
-    

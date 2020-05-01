@@ -28,11 +28,9 @@ def test__heat_driven_cavity(tmpdir):
     
     sim.solution = sim.solve()
     
-    Gr = sim.grashof_number.__float__()
+    Ra = sim.rayleigh_number.__float__()
     
     Pr = sim.prandtl_number.__float__()
-    
-    Ra = Gr*Pr
     
     # Check coordinates (0.3499, 0.8499) instead of (0.35, 0.85)
     # because the Function evaluation fails at the exact coordinates.

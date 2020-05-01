@@ -12,6 +12,14 @@ import firedrake as fe
 import sapphire.simulation
 
 
+def element(cell, degrees):
+
+    return fe.MixedElement(
+        fe.FiniteElement("P", cell, degrees[0]),
+        fe.VectorElement("P", cell, degrees[1]),
+        fe.FiniteElement("P", cell, degrees[2]))
+
+
 inner, dot, grad, div, sym = \
     fe.inner, fe.dot, fe.grad, fe.div, fe.sym
 
@@ -19,7 +27,8 @@ class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args,
             element_degrees = (1, 2, 2),
-            grashof_number = 1.,
+            reynolds_number = 1.,
+            rayleigh_number = 1.,
             prandtl_number = 1.,
             **kwargs):
         
@@ -29,14 +38,13 @@ class Simulation(sapphire.simulation.Simulation):
             
             del kwargs["mesh"]
             
-            element = fe.MixedElement(
-                fe.FiniteElement("P", mesh.ufl_cell(), element_degrees[0]),
-                fe.VectorElement("P", mesh.ufl_cell(), element_degrees[1]),
-                fe.FiniteElement("P", mesh.ufl_cell(), element_degrees[2]))
+            kwargs["solution"] = fe.Function(fe.FunctionSpace(
+                mesh,
+                element(mesh.ufl_cell(), element_degrees)))
             
-            kwargs["solution"] = fe.Function(fe.FunctionSpace(mesh, element))
-            
-        self.grashof_number = fe.Constant(grashof_number)
+        self.reynolds_number = fe.Constant(reynolds_number)
+        
+        self.rayleigh_number = fe.Constant(rayleigh_number)
         
         self.prandtl_number = fe.Constant(prandtl_number)
         
@@ -60,10 +68,12 @@ class Simulation(sapphire.simulation.Simulation):
         
         b = self.buoyancy(temperature = T)
         
+        Re = self.reynolds_number
+        
         dx = fe.dx(degree = self.quadrature_degree)
         
         return (dot(psi_u, grad(u)*u + b) - div(psi_u)*p + \
-            2.*inner(sym(grad(psi_u)), sym(grad(u))))*dx
+            2./Re*inner(sym(grad(psi_u)), sym(grad(u))))*dx
         
     def energy(self):
     
@@ -113,11 +123,15 @@ class Simulation(sapphire.simulation.Simulation):
         """Linear Boussinesq buoyancy"""
         T = temperature
         
-        Gr = self.grashof_number
+        Re = self.reynolds_number
+        
+        Ra = self.rayleigh_number
+        
+        Pr = self.prandtl_number
         
         ghat = fe.Constant(-self.unit_vectors()[1])
         
-        return Gr*T*ghat
+        return Ra/(Pr*Re**2)*T*ghat
         
     def time_discrete_terms(self):
     
@@ -125,6 +139,8 @@ class Simulation(sapphire.simulation.Simulation):
 
 
 def strong_residual(sim, solution):
+    
+    Re = sim.reynolds_number
     
     Pr = sim.prandtl_number
     
@@ -134,7 +150,7 @@ def strong_residual(sim, solution):
     
     r_p = div(u)
     
-    r_u = grad(u)*u + grad(p) - 2.*div(sym(grad(u))) + b
+    r_u = grad(u)*u + grad(p) - 2./Re*div(sym(grad(u))) + b
     
     r_T = dot(u, grad(T)) - 1./Pr*div(grad(T))
     

@@ -28,7 +28,8 @@ class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
             hotwall_temperature = 1.,
             coldwall_temperature_before_freezing = 0.,
             coldwall_temperature_during_freezing = -1.,
-            grashof_number = 2.518084e6/6.99,
+            reynolds_number = 1.,
+            rayleigh_number = 2.518084e6, 
             prandtl_number = 6.99,
             stefan_number = 0.125,
             liquidus_temperature = 0.,
@@ -46,7 +47,8 @@ class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
                     reference_temperature_range__degC,
                 hotwall_temperature = hotwall_temperature,
                 coldwall_temperature = coldwall_temperature_before_freezing,
-                grashof_number = grashof_number,
+                reynolds_number = reynolds_number,
+                rayleigh_number = rayleigh_number,
                 prandtl_number = prandtl_number,
                 output_directory_path = output_directory_path)
         
@@ -68,7 +70,8 @@ class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
         super().__init__(
             *args,
             solution = iv_sim.solution,
-            grashof_number = grashof_number,
+            reynolds_number = reynolds_number,
+            rayleigh_number = rayleigh_number,
             prandtl_number = prandtl_number,
             stefan_number = stefan_number,
             liquidus_temperature = liquidus_temperature,

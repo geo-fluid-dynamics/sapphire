@@ -48,19 +48,16 @@ diff = fe.diff
 
 def strong_residual(sim, solution):
     
-    Pr = sim.prandtl_number
+    r_p, r_u, r_T = sapphire.simulations.navier_stokes_boussinesq.\
+        strong_residual(sim = sim, solution = solution)
     
-    p, u, T = solution
+    _, u, T = solution
     
     t = sim.time
     
-    b = sim.buoyancy(temperature = T)
+    r_u += diff(u, t)
     
-    r_p = div(u)
-    
-    r_u = diff(u, t) + grad(u)*u + grad(p) - 2.*div(sym(grad(u))) + b
-    
-    r_T = diff(T, t) + dot(u, grad(T)) - 1./Pr*div(grad(T))
+    r_T += diff(T, t)
     
     return r_p, r_u, r_T
     

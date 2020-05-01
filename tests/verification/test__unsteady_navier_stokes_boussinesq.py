@@ -73,7 +73,8 @@ def dirichlet_boundary_conditions(sim, manufactured_solution):
 
 
 sim_kwargs = {
-    "grashof_number": 2.,
+    "reynolds_number": 1.,
+    "rayleigh_number": 1.e3,
     "prandtl_number": 0.71,
     "quadrature_degree": 4}
     
@@ -132,17 +133,17 @@ def test__steady_state_heat_driven_cavity_benchmark():
     
     Comparing to data published in @cite{wang2010comprehensive}.
     """
-    Ra = 1.e6
-
-    Pr = 0.71
-    
     endtime = 1.e12
     
+    Ra = 1.e6
+    
+    Pr = 0.71
+    
     sim = HeatDrivenCavitySimulation(
+        rayleigh_number = Ra,
         prandtl_number = Pr,
-        grashof_number = Ra/Pr,
-        mesh = fe.UnitSquareMesh(40, 40),
         element_degrees = (1, 2, 2),
+        mesh = fe.UnitSquareMesh(40, 40),
         timestep_size = endtime)
     
     sim.states = sim.run(endtime = endtime)
