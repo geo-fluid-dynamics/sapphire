@@ -40,8 +40,6 @@ class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
         
         self.initial_temperature = fe.Constant(initial_temperature)
         
-        grashof_number = rayleigh_number/prandtl_number
-        
         super().__init__(
             *args,
             liquidus_temperature = liquidus_temperature,
