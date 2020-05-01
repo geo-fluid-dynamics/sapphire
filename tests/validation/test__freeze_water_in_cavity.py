@@ -20,4 +20,5 @@ def test__freeze_water(tmpdir):
     
     print("Liquid area = {}".format(sim.liquid_area))
     
-    assert(abs(sim.liquid_area - 0.69) < 0.01)
+    assert(round(sim.liquid_area, 2) == 0.69)
+    
