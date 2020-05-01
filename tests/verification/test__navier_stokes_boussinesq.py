@@ -48,7 +48,7 @@ def test__verify_second_order_spatial_accuracy_via_mms():
     sapphire.mms.verify_spatial_order_of_accuracy(
         sim_module = sim_module,
         sim_kwargs = {
-            "reynolds_number": 1.,
+            "reynolds_number": 20.,
             "rayleigh_number": 10.,
             "prandtl_number": 0.7,
             "element_degrees": (1, 2, 2)},

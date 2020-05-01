@@ -73,7 +73,7 @@ def dirichlet_boundary_conditions(sim, manufactured_solution):
 
 
 sim_kwargs = {
-    "reynolds_number": 1.,
+    "reynolds_number": 20.,
     "rayleigh_number": 1.e3,
     "prandtl_number": 0.71,
     "quadrature_degree": 4}
