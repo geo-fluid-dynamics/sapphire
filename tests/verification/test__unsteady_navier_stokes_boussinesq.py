@@ -91,7 +91,7 @@ def test__verify_second_order_spatial_convergence_via_mms():
         sim_kwargs = sim_kwargs,
         manufactured_solution = space_verification_solution,
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
-        meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32, 64, 128)],
+        meshes = [fe.UnitSquareMesh(n, n) for n in (8, 16, 32)],
         norms = ("L2", "H1", "H1"),
         expected_orders = (2, 2, 2),
         decimal_places = 1,

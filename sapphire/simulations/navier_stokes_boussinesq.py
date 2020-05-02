@@ -77,6 +77,8 @@ class Simulation(sapphire.simulation.Simulation):
         
     def energy(self):
     
+        Re = self.reynolds_number
+        
         Pr = self.prandtl_number
         
         _, u, T = fe.split(self.solution)
@@ -85,7 +87,7 @@ class Simulation(sapphire.simulation.Simulation):
         
         dx = fe.dx(degree = self.quadrature_degree)
         
-        return (psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./Pr*grad(T)))*dx
+        return (psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./(Re*Pr)*grad(T)))*dx
     
     def weak_form_residual(self):
         
@@ -152,7 +154,7 @@ def strong_residual(sim, solution):
     
     r_u = grad(u)*u + grad(p) - 2./Re*div(sym(grad(u))) + b
     
-    r_T = dot(u, grad(T)) - 1./Pr*div(grad(T))
+    r_T = dot(u, grad(T)) - 1./(Re*Pr)*div(grad(T))
     
     return r_p, r_u, r_T
     
