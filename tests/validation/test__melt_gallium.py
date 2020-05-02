@@ -13,9 +13,9 @@ def test__melt_gallium__regression(tmpdir):
         solid_velocity_relaxation_factor = 1.e-10,
         output_directory_path = tmpdir)
     
-    sim.run(endtime = 0.15)
+    sim.run(endtime = 0.3)
     
     print("Liquid area = {}".format(sim.liquid_area))
     
-    assert(round(sim.liquid_area, 2) == 0.43)
+    assert(round(sim.liquid_area, 2) == 0.17)
     

@@ -114,6 +114,8 @@ class Simulation(
     
     def energy(self):
         
+        Re = self.reynolds_number
+        
         Pr = self.prandtl_number
         
         Ste = self.stefan_number
@@ -139,7 +141,7 @@ class Simulation(
         dx = fe.dx(degree = self.quadrature_degree)
         
         return (psi_T*(CT_t + 1./Ste*phil_t + dot(u, grad(C*T))) \
-            + 1./Pr*dot(grad(psi_T), k*grad(T)))*dx
+            + 1./(Re*Pr)*dot(grad(psi_T), k*grad(T)))*dx
         
     def extra_time_discrete_terms(self):
         
@@ -303,6 +305,8 @@ def strong_residual(sim, solution):
     r_u += d*u
     
     
+    Re = sim.reynolds_number
+    
     Pr = sim.prandtl_number
     
     Ste = sim.stefan_number
@@ -320,6 +324,6 @@ def strong_residual(sim, solution):
     k = phase_dependent_material_property(k_sl)(phil)
     
     r_T = diff(C*T, t) + 1./Ste*diff(phil, t) + dot(u, grad(C*T)) \
-        - 1./Pr*div(k*grad(T))
+        - 1./(Re*Pr)*div(k*grad(T))
     
     return r_p, r_u, r_T
