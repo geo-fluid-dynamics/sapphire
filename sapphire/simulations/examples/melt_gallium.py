@@ -17,6 +17,17 @@ Their momentum equation therefore has $Pr$ in front of the momentum diffusion te
 and their buoyancy equation for Gallium is $b(T) = Pr Ra T$.
 We chose before $t_r = \nu_l / x^2_r$ which sets $Re = 1$.
 The choice of $t_r = \rho_l c_l x_r^2 / k_l$ in \cite{belhamadia2019adaptive} sets $Re = 1/Pr$.
+
+\cite{belhamadia2019adaptive} uses the temperature scaling $\tilde{T} = (T - T_r) / \Delta T$.
+They chose reference temperature $T_r = 301.3 K$
+and set nondimensional melting temperature $T_f = 0.1525$.
+So their reference temperature was not chosen as the melting temperature.
+They set the initial temperature to $T_c = 0$ and hot wall to $T_h = 1$.
+This means that they chose $T_r = T_c$ and therefore $T_c = 301.3 K$.
+The dimensional melting temperature is $0.1525*(9.7 K) + 301.3 K$ => $T_f = 302.8 K$.
+
+We use the temperature scaling $\tilde{T} = (T - T_f)/ \Delta T$.
+Therefore, $\tilde{T}_f = 0.$ and $\tilde{T}_c = -0.1546$.
 """
 import firedrake as fe
 import sapphire.simulations.navier_stokes_boussinesq
@@ -25,11 +36,13 @@ import sapphire.simulations.examples.melt_octadecane
 
 reference_length = 6.35  # cm
 
-reference_temperature = 301.3  # K
+coldwall_temperature = 301.3  # K
 
 reference_temperature_range = 9.7  # K
 
 reference_time = 292.90  # s
+
+
 
 class Simulation(sapphire.simulations.examples.melt_octadecane.Simulation):
 
@@ -37,9 +50,9 @@ class Simulation(sapphire.simulations.examples.melt_octadecane.Simulation):
             rayleigh_number = 7.e5,
             prandtl_number = 0.0216,
             stefan_number = 0.046,
-            liquidus_temperature = 0.1525,
+            liquidus_temperature = 0.,
             hotwall_temperature = 1.,
-            initial_temperature = 0.,
+            initial_temperature = -0.1546,
             cutoff_length = 0.5,
             element_degrees = (1, 2, 2),
             mesh_dimensions = (20, 40),

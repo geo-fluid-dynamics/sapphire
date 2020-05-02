@@ -8,7 +8,7 @@ def test__melt_gallium__regression(tmpdir):
         mesh_dimensions = (20, 40),
         quadrature_degree = 4,
         time_stencil_size = 3,
-        timestep_size = 0.025,
+        timestep_size = 0.0125,
         liquidus_smoothing_factor = 0.05,
         solid_velocity_relaxation_factor = 1.e-10,
         output_directory_path = tmpdir)
