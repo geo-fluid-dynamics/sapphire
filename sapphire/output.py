@@ -1,5 +1,6 @@
 """Helper functions for simulation output"""
 import typing
+import datetime
 import csv
 from collections import OrderedDict
 import matplotlib
@@ -193,9 +194,11 @@ def report(sim, write_header = True):
         
             ordered_dict[key] = ordered_dict[key].__float__()
             
+    ordered_dict["datetime"] = str(datetime.datetime.now())
+    
     with sim.output_directory_path.joinpath(
-                "report").with_suffix(".csv").open("a+") as csv_file:
-                
+            "report").with_suffix(".csv").open("a+") as csv_file:
+        
         writer = csv.DictWriter(csv_file, fieldnames = ordered_dict.keys())
         
         if write_header:
