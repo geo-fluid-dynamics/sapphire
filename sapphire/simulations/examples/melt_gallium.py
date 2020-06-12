@@ -1,4 +1,5 @@
 """ Gallium melting benchmark 
+
 Physical parameters are based on 
     @article{belhamadia2019adaptive,
         author = {Belhamadia, Youssef and Fortin, André and Briffard, Thomas},
@@ -10,15 +11,8 @@ Physical parameters are based on
         journal = {Numerical Heat Transfer, Part A: Applications},
         doi = {10.1080/10407782.2019.1627837},
     }
-    
-The scaling (and therefore also the Boussinesq buoyancy term) is different in \cite{belhamadia2019adaptive}.
-They chose the reference time $t_r = \rho_l c_l x_r^2 / k_l$.
-Their momentum equation therefore has $Pr$ in front of the momentum diffusion term
-and their buoyancy equation for Gallium is $b(T) = Pr Ra T$.
-We chose before $t_r = \nu_l / x^2_r$ which sets $Re = 1$.
-The choice of $t_r = \rho_l c_l x_r^2 / k_l$ in \cite{belhamadia2019adaptive} sets $Re = 1/Pr$.
 
-\cite{belhamadia2019adaptive} uses the temperature scaling $\tilde{T} = (T - T_r) / \Delta T$.
+Belhamadia uses the temperature scaling $\tilde{T} = (T - T_r) / \Delta T$.
 They chose reference temperature $T_r = 301.3 K$
 and set nondimensional melting temperature $T_f = 0.1525$.
 So their reference temperature was not chosen as the melting temperature.
