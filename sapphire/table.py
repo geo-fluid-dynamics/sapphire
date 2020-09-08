@@ -48,7 +48,7 @@ class Table:
             
             for val in values[:-1]:
             
-                string += str(val) + delimiter + " "
+                string += str(val) + delimiter
                 
             string += str(values[-1]) + "\n"
             
