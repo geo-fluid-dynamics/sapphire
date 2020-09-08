@@ -69,7 +69,7 @@ sim_kwargs = {
     "quadrature_degree": 4}
     
     
-def test__verify_second_order_spatial_convergence_via_mms():
+def test__verify_second_order_spatial_convergence_via_mms(tmpdir):
     
     sim_kwargs["element_degrees"] = (2, 1)
     
@@ -77,17 +77,20 @@ def test__verify_second_order_spatial_convergence_via_mms():
     
     sim_kwargs["time_stencil_size"] = 3
     
-    sapphire.mms.verify_spatial_order_of_accuracy(
-        sim_module = sim_module,
-        sim_kwargs = sim_kwargs,
-        manufactured_solution = space_verification_solution,
-        dirichlet_boundary_conditions = dirichlet_boundary_conditions,
-        meshes = [fe.UnitSquareMesh(n, n) for n in (5, 10, 20, 40)],
-        norms = ("H1", "L2"),
-        expected_orders = (2, 2),
-        decimal_places = 1,
-        endtime = 1.)
+    with open(tmpdir + "/convergence_table.csv", "w") as outfile:
     
+        sapphire.mms.verify_spatial_order_of_accuracy(
+            sim_module = sim_module,
+            sim_kwargs = sim_kwargs,
+            manufactured_solution = space_verification_solution,
+            dirichlet_boundary_conditions = dirichlet_boundary_conditions,
+            meshes = [fe.UnitSquareMesh(n, n) for n in (5, 10, 20, 40)],
+            norms = ("H1", "L2"),
+            expected_orders = (2, 2),
+            decimal_places = 1,
+            endtime = 1.,
+            outfile = outfile)
+        
     
 def test__verify_first_order_temporal_convergence_via_mms():
     
@@ -97,16 +100,19 @@ def test__verify_first_order_temporal_convergence_via_mms():
     
     sim_kwargs["time_stencil_size"] = 2
     
-    sapphire.mms.verify_temporal_order_of_accuracy(
-        sim_module = sim_module,
-        sim_kwargs = sim_kwargs,
-        manufactured_solution = time_verification_solution,
-        dirichlet_boundary_conditions = dirichlet_boundary_conditions,
-        norms = ("L2", None),
-        expected_orders = (1, None),
-        endtime = 1.,
-        timestep_sizes = (0.2, 0.1, 0.05),
-        decimal_places = 1)
+    with open(tmpdir + "/convergence_table.csv", "w") as outfile:
+        
+        sapphire.mms.verify_temporal_order_of_accuracy(
+            sim_module = sim_module,
+            sim_kwargs = sim_kwargs,
+            manufactured_solution = time_verification_solution,
+            dirichlet_boundary_conditions = dirichlet_boundary_conditions,
+            norms = ("L2", None),
+            expected_orders = (1, None),
+            endtime = 1.,
+            timestep_sizes = (0.2, 0.1, 0.05),
+            decimal_places = 1,
+            outfile = outfile)
 
 
 class LidDrivenCavitySimulation(sim_module.Simulation):
