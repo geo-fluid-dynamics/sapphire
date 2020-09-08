@@ -40,7 +40,7 @@ class Table:
     
         return self.as_csv()
     
-    def as_csv(self):
+    def as_csv(self, delimiter=";"):
     
         def format_row(values):
         
@@ -48,7 +48,7 @@ class Table:
             
             for val in values[:-1]:
             
-                string += str(val) + ", "
+                string += str(val) + delimiter + " "
                 
             string += str(values[-1]) + "\n"
             
