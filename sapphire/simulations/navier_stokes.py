@@ -70,9 +70,11 @@ class Simulation(sapphire.simulation.Simulation):
         
         print("Subtracting mean pressure")
         
-        p = self.post_processing_solution_fields["p"]
+        p = self.solution_fields["p"]
         
         mean_pressure = fe.assemble(p*self.dx)
+        
+        p = self.solution_subfunctions["p"]
         
         p = p.assign(p - mean_pressure)
         

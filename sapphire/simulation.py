@@ -166,7 +166,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             
             self.solution_fields = {}
             
-            self.post_processing_solution_fields = {}
+            self.solution_subfunctions = {}
             
             self.test_functions = {}
             
@@ -183,7 +183,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 
                 self.solution_fields[name] = field
                 
-                self.post_processing_solution_fields[name] = field_pp
+                self.solution_subfunctions[name] = field_pp
                 
                 self.test_functions[name] = testfun
                 
