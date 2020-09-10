@@ -19,7 +19,7 @@ def mms_source(
     
     V = sim.solution.function_space()
     
-    _r = strong_residual(sim = sim, solution = manufactured_solution(sim))
+    _r = strong_residual(sim, solution = manufactured_solution(sim))
     
     if type(sim.solution.function_space().ufl_element()) is fe.FiniteElement:
     
@@ -78,22 +78,22 @@ def default_mms_dirichlet_boundary_conditions(sim, manufactured_solution):
     
     
 def make_mms_verification_sim_class(
-        sim_module,
+        Simulation,
         manufactured_solution,
-        strong_residual = None,
+        strong_residual,
         mms_dirichlet_boundary_conditions = None,
         write_simulation_outputs = False):
     
     if strong_residual is None:
         
-        strong_residual = sim_module.strong_residual
+        strong_residual = Simulation.strong_residual
     
     if mms_dirichlet_boundary_conditions is None:
     
         mms_dirichlet_boundary_conditions = \
             default_mms_dirichlet_boundary_conditions
     
-    class MMSVerificationSimulation(sim_module.Simulation):
+    class MMSVerificationSimulation(Simulation):
         
         def weak_form_residual(self):
         
@@ -126,12 +126,13 @@ def make_mms_verification_sim_class(
     
     
 def verify_spatial_order_of_accuracy(
-        sim_module,
+        Simulation,
         manufactured_solution,
         meshes,
         norms,
         expected_orders,
         decimal_places,
+        time_dependent = True,
         sim_kwargs = {},
         endtime = 0.,
         strong_residual = None,
@@ -141,7 +142,7 @@ def verify_spatial_order_of_accuracy(
         write_simulation_outputs = False):
     
     MMSVerificationSimulation = make_mms_verification_sim_class(
-        sim_module = sim_module,
+        Simulation = Simulation,
         manufactured_solution = manufactured_solution,
         write_simulation_outputs = write_simulation_outputs,
         strong_residual = strong_residual,
@@ -157,8 +158,8 @@ def verify_spatial_order_of_accuracy(
         
         sim = MMSVerificationSimulation(mesh = mesh, **sim_kwargs)
         
-        if sim.time_discrete_terms() is not None:
-            # If time-dependent
+        if time_dependent:
+            
             sim.states = sim.run(endtime = endtime)
             
         else:
@@ -241,7 +242,7 @@ def verify_spatial_order_of_accuracy(
                     
                     
 def verify_temporal_order_of_accuracy(
-        sim_module,
+        Simulation,
         manufactured_solution,
         timestep_sizes,
         endtime,
@@ -256,7 +257,7 @@ def verify_temporal_order_of_accuracy(
         write_simulation_outputs = False):
     
     MMSVerificationSimulation = make_mms_verification_sim_class(
-        sim_module = sim_module,
+        Simulation = Simulation,
         manufactured_solution = manufactured_solution,
         write_simulation_outputs = write_simulation_outputs,
         strong_residual = strong_residual,

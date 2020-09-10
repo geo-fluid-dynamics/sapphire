@@ -58,6 +58,7 @@ def test__verify_spatial_convergence__third_order__via_mms():
         sim_module = sim_module,
         sim_kwargs = sim_kwargs,
         manufactured_solution = manufactured_solution,
+        time_dependent = False,
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
         meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32, 64)],
         norms = ("H1", "L2"),

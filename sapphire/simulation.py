@@ -52,7 +52,8 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 "pc_type": "lu", 
                 "mat_type": "aij",
                 "pc_factor_mat_solver_type": "mumps"},
-            output_directory_path: str = "output/"):
+            output_directory_path: str = "output/",
+            fieldnames: typing.Iterable[str] = None):
         """
         Instantiating this class requires enough information to fully 
         specify the FE spatial discretization and weak form residual.
@@ -80,10 +81,6 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 Defaults to 1.
                 Higher order time discretizations are assumed to use
                 a constant time step size.
-                Supporting accurate second-order or higher time
-                discretizations with variable time step sizes,
-                redefine `time_discrete_terms` and compute the
-                time step sizes from the solution times.
             quadrature_degree: The quadrature degree used for
                 numerical integration.
                 Defaults to `None`, in which case Firedrake will 
@@ -93,6 +90,14 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             output_directory_path: String that will be converted
                 to a Path where output files will be written.
                 Defaults to "output/".
+            fieldnames: A list of names for the components of `solution`.
+                Defaults to `None`.
+                These names can be used when indexing solutions that are split
+                either by `firedrake.split` or `firedrake.Function.split`.
+                If not `None`, then the `dict` `self.solution_fields` will be created.
+                The `dict` will have two items for each field,
+                containing the results of either splitting method.
+                The results of `firedrake.split` will be suffixed with "_ufl".
         """
         assert(time_stencil_size > 0)
         
@@ -105,6 +110,8 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         self.solution_space = self.solution.function_space()
         
         self.mesh = self.solution_space.mesh()
+        
+        self.unit_vectors = self._unit_vectors()
         
         self.element = self.solution_space.ufl_element()
         
@@ -152,6 +159,40 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         self.backup_solution = fe.Function(self.solution)
         
         
+        # Mixed solution indexing helpers
+        if fieldnames:
+            
+            self.fieldnames = fieldnames
+            
+            self.solution_fields = {}
+            
+            self.post_processing_solution_fields = {}
+            
+            self.test_functions = {}
+            
+            self.time_discrete_terms = {}
+            
+            self.solution_subspaces = {}
+            
+            for name, field, field_pp, testfun, timeterm in zip(
+                    fieldnames,
+                    fe.split(self.solution),
+                    self.solution.split(),
+                    fe.TestFunctions(self.solution_space),
+                    self._time_discrete_terms()):
+                
+                self.solution_fields[name] = field
+                
+                self.post_processing_solution_fields[name] = field_pp
+                
+                self.test_functions[name] = testfun
+                
+                self.time_discrete_terms[name] = timeterm
+                
+                self.solution_subspaces[name] = self.solution_space.sub(
+                    fieldnames.index(name))
+                
+                
         # Output controls
         self.output_directory_path = pathlib.Path(output_directory_path)
         
@@ -369,20 +410,20 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 # program for generating 3D plots from the solution files.
                 raise NotImplementedError()
                 
-    def unit_vectors(self) -> typing.Tuple[ufl.tensors.ListTensor]:
+    def _unit_vectors(self) -> typing.Tuple[ufl.tensors.ListTensor]:
         """Returns the spatial unit vectors in each dimension."""
-        return unit_vectors(mesh = self.mesh)
+        return _unit_vectors(mesh = self.mesh)
         
-    def time_discrete_terms(self) -> typing.Union[
+    def _time_discrete_terms(self) -> typing.Union[
             ufl.core.operator.Operator,
             typing.List[ufl.core.operator.Operator]]:
         """Returns time derivative for each solution component."""
-        return time_discrete_terms(
+        return _time_discrete_terms(
             solutions = self.solutions,
             timestep_size = self.timestep_size)
 
     
-def unit_vectors(mesh) -> typing.Tuple[ufl.tensors.ListTensor]:
+def _unit_vectors(mesh) -> typing.Tuple[ufl.tensors.ListTensor]:
     """Returns the mesh's spatial unit vectors in each dimension.
     
     Args:
@@ -393,7 +434,7 @@ def unit_vectors(mesh) -> typing.Tuple[ufl.tensors.ListTensor]:
     return tuple([fe.unit_vector(i, dim) for i in range(dim)])
     
     
-def time_discrete_terms(
+def _time_discrete_terms(
         solutions: typing.List[fe.Function],
         timestep_size: fe.Constant) \
         -> typing.Union[
