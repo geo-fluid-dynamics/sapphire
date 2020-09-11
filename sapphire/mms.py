@@ -130,8 +130,8 @@ def verify_spatial_order_of_accuracy(
         manufactured_solution,
         meshes,
         norms,
-        expected_orders,
-        decimal_places,
+        expected_orders = None,
+        decimal_places = 2,
         time_dependent = True,
         sim_kwargs = {},
         endtime = 0.,
@@ -223,23 +223,25 @@ def verify_spatial_order_of_accuracy(
         print("Writing convergence table to {}".format(outfile.name))
         
         outfile.write(str(table))
-        
-    for order, expected_order in zip(orders, expected_orders):
-        
-        if expected_order is None:
+    
+    if expected_orders:
+    
+        for order, expected_order in zip(orders, expected_orders):
             
-            continue
+            if expected_order is None:
+                
+                continue
+                
+            order = round(order, decimal_places)
             
-        order = round(order, decimal_places)
-        
-        expected_order = round(float(expected_order), decimal_places)
-        
-        if not (order == expected_order):
-        
-            raise ValueError("\n" +
-                "\tObserved order {} differs from\n".format(order) + 
-                "\texpected order {}".format(expected_order))
-                    
+            expected_order = round(float(expected_order), decimal_places)
+            
+            if not (order == expected_order):
+            
+                raise ValueError("\n" +
+                    "\tObserved order {} differs from\n".format(order) + 
+                    "\texpected order {}".format(expected_order))
+                        
                     
 def verify_temporal_order_of_accuracy(
         Simulation,
@@ -247,8 +249,8 @@ def verify_temporal_order_of_accuracy(
         timestep_sizes,
         endtime,
         norms,
-        expected_orders,
-        decimal_places,
+        expected_orders = None,
+        decimal_places = 2,
         sim_kwargs = {},
         starttime = 0.,
         strong_residual = None,
@@ -333,19 +335,21 @@ def verify_temporal_order_of_accuracy(
         
         outfile.write(str(table))
         
-    for order, expected_order in zip(orders, expected_orders):
+    if expected_orders:
         
-        if expected_order is None:
-        
-            continue
-        
-        order = round(order, decimal_places)
-        
-        expected_order = round(float(expected_order), decimal_places)
-        
-        if not (order == expected_order):
-        
-            raise ValueError("\n" +
-                "\tObserved order {} differs from\n".format(order) + 
-                "\texpected order {}".format(expected_order))
-                
+        for order, expected_order in zip(orders, expected_orders):
+            
+            if expected_order is None:
+            
+                continue
+            
+            order = round(order, decimal_places)
+            
+            expected_order = round(float(expected_order), decimal_places)
+            
+            if not (order == expected_order):
+            
+                raise ValueError("\n" +
+                    "\tObserved order {} differs from\n".format(order) + 
+                    "\texpected order {}".format(expected_order))
+                    
