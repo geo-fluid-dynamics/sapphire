@@ -119,7 +119,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         self.quadrature_degree = quadrature_degree
         
-        self.dx = fe.dx(degree = quadrature_degree)
+        self.dx = fe.dx(degree = self.quadrature_degree)
         
         self.solver_parameters = solver_parameters
         
