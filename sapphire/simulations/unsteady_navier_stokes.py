@@ -17,10 +17,6 @@ inner, dot, grad, div, sym = \
     
 class Simulation(sapphire.simulations.navier_stokes.Simulation):
     
-    def __init__(self, *args, **kwargs):
-        
-        super().__init__(*args, fieldnames=("p", "u"), **kwargs)
-    
     def momentum(self):
         
         u_t = self.time_discrete_terms["u"]

@@ -39,7 +39,7 @@ class Simulation(sapphire.simulation.Simulation):
         
         self.reynolds_number = fe.Constant(reynolds_number)
         
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, fieldnames=("p", "u"), **kwargs)
     
     def mass(self):
         
@@ -91,17 +91,4 @@ class Simulation(sapphire.simulation.Simulation):
             self.solution_space,
             (fe.VectorSpaceBasis(constant=True),
              self.solution_subspaces["u"]))
-    
-    
-def strong_residual(sim, solution):
-    
-    p, u = solution
-    
-    Re = sim.reynolds_number
-    
-    r_p = div(u)
-    
-    r_u = grad(u)*u + grad(p) - 2./Re*div(sym(grad(u)))
-    
-    return r_p, r_u
-    
+        
