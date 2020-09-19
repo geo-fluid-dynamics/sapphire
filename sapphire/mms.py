@@ -259,3 +259,6 @@ def verify_order_of_accuracy(
                 raise ValueError("\n" +
                     "\tObserved order {} differs from\n".format(order) + 
                     "\texpected order {}".format(expected_order))
+
+    return table
+    
