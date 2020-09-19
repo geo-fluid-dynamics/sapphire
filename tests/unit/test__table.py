@@ -1,9 +1,9 @@
-import sapphire.table
+import sapphire.output
 
 
 def test__table():
 
-    table = sapphire.table.Table(("foo", "bar"))
+    table = sapphire.output.Table(("foo", "bar"))
 
     print(str(table))
     

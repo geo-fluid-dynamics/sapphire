@@ -7,7 +7,7 @@ approximate solutions to a strong form residual,
 which must also be defined using UFL.
 """
 import firedrake as fe
-import sapphire.table
+import sapphire.output
 import math
 import pathlib
 
@@ -148,7 +148,7 @@ def verify_spatial_order_of_accuracy(
         strong_residual = strong_residual,
         mms_dirichlet_boundary_conditions = dirichlet_boundary_conditions)
     
-    table = sapphire.table.Table(("h", "cellcount", "dofcount", "errors", "spatial_orders"))
+    table = sapphire.output.Table(("h", "cellcount", "dofcount", "errors", "spatial_orders"))
     
     print("")
     
@@ -265,7 +265,7 @@ def verify_temporal_order_of_accuracy(
         strong_residual = strong_residual,
         mms_dirichlet_boundary_conditions = dirichlet_boundary_conditions)
     
-    table = sapphire.table.Table(("Delta_t", "errors", "temporal_orders"))
+    table = sapphire.output.Table(("Delta_t", "errors", "temporal_orders"))
     
     print("")
     
