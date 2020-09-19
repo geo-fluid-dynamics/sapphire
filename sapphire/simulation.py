@@ -25,7 +25,7 @@ import sapphire.time_discretization
 import sapphire.output
 
 
-class Simulation(sapphire.output.ObjectWithOrderedDict):
+class Simulation:
     """A PDE-based simulation using the Firedrake framework.
 
     The PDE's are discretized in space using finite elements 
@@ -33,10 +33,6 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
     
     Implementing a simulation requires at least instantiating this 
     class and calling the instance's `run` method.
-    
-    This class is derived from `sapphire.output.ObjectWithOrderedDict`
-    so that all attributes can be consistently written to a CSV file
-    throughout the time-dependent simulation.
     """
     
     def __init__(self,
