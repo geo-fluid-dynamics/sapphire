@@ -10,6 +10,7 @@ import firedrake as fe
 import sapphire.output
 import math
 import pathlib
+import pandas
 
 
 def mms_source(
@@ -141,6 +142,7 @@ def verify_spatial_order_of_accuracy(
         outfile = None,
         write_simulation_outputs = False):
     
+    
     MMSVerificationSimulation = make_mms_verification_sim_class(
         Simulation = Simulation,
         manufactured_solution = manufactured_solution,
@@ -148,16 +150,40 @@ def verify_spatial_order_of_accuracy(
         strong_residual = strong_residual,
         mms_dirichlet_boundary_conditions = dirichlet_boundary_conditions)
     
-    table = sapphire.output.Table(("h", "cellcount", "dofcount", "errors", "spatial_orders"))
     
-    print("")
+    fieldcount = len(norms)
     
-    for mesh in meshes:
+    columns = ["h",]
+    
+    for i in range(fieldcount):
+    
+        columns += ["error{}".format(i), "order{}".format(i)]
         
-        h = mesh.cell_sizes((0.,)*mesh.geometric_dimension())
+    table = pandas.DataFrame(
+        index = range(len(meshes)),
+        columns = columns)
+    
+    for im, mesh in enumerate(meshes):
+        
+        table["h"][im] = mesh.cell_sizes((0.,)*mesh.geometric_dimension())
+    
+    print()
+    
+    print(table)
+    
+    
+    for im, mesh in enumerate(meshes):
         
         sim = MMSVerificationSimulation(mesh = mesh, **sim_kwargs)
         
+        wh = sim.solution
+        
+        assert(len(wh.split()) == fieldcount)
+        
+        if expected_orders:
+    
+            assert(len(expected_orders) == fieldcount)
+            
         if time_dependent:
             
             sim.states = sim.run(endtime = endtime)
@@ -165,73 +191,56 @@ def verify_spatial_order_of_accuracy(
         else:
         
             sim.solution = sim.solve()
-            
-        errors = []
         
         w = manufactured_solution(sim)
         
-        wh = sim.solution
-        
-        if type(w) is not type((0,)):
+        if type(w) is not tuple:
         
             w = (w,)
-            
-        for w_i, wh_i, norm in zip(w, wh.split(), norms):
+        
+        for iw, w_i, wh_i, norm in zip(
+                range(fieldcount), w, wh.split(), norms):
             
             if norm is not None:
             
-                errors.append(fe.errornorm(w_i, wh_i, norm_type = norm))
-                
-            else:
-                
-                errors.append(None)
-                
-        cellcount = mesh.topology.num_cells()
-            
-        dofcount = len(wh.vector().array())
-            
-        table.append({"h": h, "cellcount": cellcount, "dofcount": dofcount, "errors": errors})
-            
-        if len(table) > 1:
+                table["error{}".format(iw)][im] = fe.errornorm(
+                    w_i, wh_i, norm_type = norm)
         
-            h, e = table.data["h"], table.data["errors"]
-
+        if im > 0:
+        
+            h = table["h"]
+            
+            r = h[im - 1]/h[im]
+            
             log = math.log
             
-            orders = []
+            for iw in range(fieldcount):
             
-            for i in range(len(sim.solution.split())):
-            
-                if e[0][i] is None:
+                e = table["error{}".format(iw)]
                 
-                    orders.append(None)
+                table["order{}".format(iw)][im] = \
+                    log(e[im - 1]/e[im])/log(r)
                     
-                else:
-                
-                    r = h[-2]/h[-1]
-            
-                    orders.append(log(e[-2][i]/e[-1][i])/log(r))
-                    
-            table.data["spatial_orders"][-1] = orders
-                
-        print(str(table))
+        print()
         
-    print("Last observed spatial orders of accuracy are {}".format(orders))
-    
+        print(table)
+        
     if outfile:
         
         print("Writing convergence table to {}".format(outfile.name))
         
-        outfile.write(str(table))
+        outfile.write(table.to_csv())
     
     if expected_orders:
-    
-        for order, expected_order in zip(orders, expected_orders):
+        
+        for iorder, expected_order in enumerate(expected_orders):
             
             if expected_order is None:
                 
                 continue
-                
+            
+            order = table.iloc[-1]["order{}".format(iorder)]
+            
             order = round(order, decimal_places)
             
             expected_order = round(float(expected_order), decimal_places)

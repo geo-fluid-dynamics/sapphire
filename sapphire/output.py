@@ -155,35 +155,6 @@ def writeplots(
         plt.close()
         
         
-class ObjectWithOrderedDict(object):
-    """ Base class for maintaining an ordered dict of all attributes.
-    See https://stackoverflow.com/questions/37591180/get-instance-variables-in-order-in-python
-    """
-    def __new__(Class, *args, **kwargs):
-    
-        instance = object.__new__(Class)
-        
-        instance.__odict__ = collections.OrderedDict()
-        
-        return instance
-        
-    def __setattr__(self, key, value):
-    
-        if not key == "__odict__":
-        
-            self.__odict__[key] = value
-            
-        object.__setattr__(self, key, value)
-        
-    def keys(self):
-    
-        return self.__odict__.keys()
-        
-    def iteritems(self):
-    
-        return self.__odict__.iteritems()
-        
-        
 def report(sim, write_header = True):
     
     ordered_dict = sim.__odict__.copy()
@@ -207,73 +178,3 @@ def report(sim, write_header = True):
             
         writer.writerow(ordered_dict)
         
-        
-"""This is a minimal implementation of a Table class 
-
-    Dear Future developers:
-    
-        Using pandas.DataFrame insteady would be fine; 
-        but adding pandas as a dependency only for 
-        this did some seem like a good idea.
-"""
-class Table:
-    
-    def __init__(self, column_names):
-        
-        self.column_names = column_names
-        
-        self.data = collections.OrderedDict(
-            [(key, []) for key in column_names])
-        
-    def append(self, dict):
-        
-        for key in self.data.keys():
-        
-            if key in dict.keys():
-            
-                self.data[key].append(dict[key])
-                
-            else:
-            
-                self.data[key].append(None)
-    
-    def row(self, i):
-    
-        return tuple([val[i] for key, val in self.data.items()])
-    
-    def __len__(self):
-    
-        return len(self.data[self.column_names[0]])
-    
-    def __str__(self):
-    
-        return self.as_csv()
-    
-    def as_csv(self, delimiter=";"):
-    
-        def format_row(values):
-        
-            string = ""
-            
-            for val in values[:-1]:
-            
-                string += str(val) + delimiter
-                
-            string += str(values[-1]) + "\n"
-            
-            return string
-        
-        string = ""
-        
-        string += format_row(self.column_names)
-        
-        for i in range(len(self)):
-        
-            string += format_row(self.row(i))
-            
-        return string
-        
-    def max(self, key):
-    
-        return max(list(filter(None.__ne__, self.data[key])))
-   
