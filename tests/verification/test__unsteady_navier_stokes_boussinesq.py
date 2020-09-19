@@ -1,10 +1,28 @@
 """Verify accuracy of the unsteady Navier-Stokes-Boussinesq solver."""
 import firedrake as fe 
 import sapphire.mms
-from sapphire.simulations import \
-    unsteady_navier_stokes_boussinesq as sim_module
+import tests.verification.test__navier_stokes_boussinesq
+from sapphire.simulations.unsteady_navier_stokes_boussinesq import Simulation
 import tests.validation.helpers
 
+
+diff = fe.diff
+
+def strong_residual(sim, solution):
+    
+    r_p, r_u, r_T = tests.verification.test__navier_stokes_boussinesq.\
+        strong_residual(sim = sim, solution = solution)
+    
+    _, u, T = solution
+    
+    t = sim.time
+    
+    r_u += diff(u, t)
+    
+    r_T += diff(T, t)
+    
+    return r_p, r_u, r_T
+    
 
 sin, pi = fe.sin, fe.pi
 
@@ -16,7 +34,7 @@ def space_verification_solution(sim):
     
     u1 = sin(pi*x)*sin(2.*pi*y)
     
-    ihat, jhat = sim.unit_vectors()
+    ihat, jhat = sim.unit_vectors
     
     u = (u0*ihat + u1*jhat)
     
@@ -43,7 +61,7 @@ def time_verification_solution(sim):
     
     u1 = sin(pi*x)*sin(2.*pi*y)
     
-    ihat, jhat = sim.unit_vectors()
+    ihat, jhat = sim.unit_vectors
     
     u = exp(t)*(u0*ihat + u1*jhat)
     
@@ -58,18 +76,29 @@ def time_verification_solution(sim):
     return p, u, T
     
     
+class UnitSquareSimulation(Simulation):
+    
+    def __init__(self, *args,
+            meshcell_size,
+            **kwargs):
+        
+        n = int(round(1/meshcell_size))
+        
+        kwargs["mesh"] = fe.UnitSquareMesh(n, n)
+        
+        super().__init__(*args, **kwargs)
+    
+    
 def dirichlet_boundary_conditions(sim, manufactured_solution):
     """Apply velocity and temperature Dirichlet BC's on every boundary.
     
     Do not apply Dirichlet BC's on the pressure.
     """
-    W = sim.solution_space
-    
     _, u, T = manufactured_solution
     
     return [
-        fe.DirichletBC(W.sub(1), u, "on_boundary"),
-        fe.DirichletBC(W.sub(2), T, "on_boundary")]
+        fe.DirichletBC(sim.solution_subspaces["u"], u, "on_boundary"),
+        fe.DirichletBC(sim.solution_subspaces["T"], T, "on_boundary")]
 
 
 sim_kwargs = {
@@ -80,18 +109,22 @@ sim_kwargs = {
     
 def test__verify_second_order_spatial_convergence_via_mms():
     
-    sim_kwargs["element_degrees"] = (1, 2, 2)
+    sim_kwargs["taylor_hood_pressure_degree"] = 1
+    
+    sim_kwargs["temperature_degree"] = 2
     
     sim_kwargs["timestep_size"] = 1.
     
     sim_kwargs["time_stencil_size"] = 2
     
-    sapphire.mms.verify_spatial_order_of_accuracy(
-        sim_module = sim_module,
+    sapphire.mms.verify_order_of_accuracy(
+        discretization_parameter_name = "meshcell_size",
+        discretization_parameter_values = [1/n for n in (8, 16, 32)],
+        Simulation = UnitSquareSimulation,
         sim_kwargs = sim_kwargs,
+        strong_residual = strong_residual,
         manufactured_solution = space_verification_solution,
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
-        meshes = [fe.UnitSquareMesh(n, n) for n in (8, 16, 32)],
         norms = ("L2", "H1", "H1"),
         expected_orders = (2, 2, 2),
         decimal_places = 1,
@@ -100,32 +133,34 @@ def test__verify_second_order_spatial_convergence_via_mms():
  
 def test__verify_first_order_temporal_convergence_via_mms():
     
-    sim_kwargs["mesh"] = fe.UnitSquareMesh(32, 32)
+    sim_kwargs["meshcell_size"] = 1/32
     
-    sim_kwargs["element_degrees"] = (2, 3, 3)
+    sim_kwargs["taylor_hood_pressure_degree"] = 2
     
-    sapphire.mms.verify_temporal_order_of_accuracy(
-        sim_module = sim_module,
+    sim_kwargs["temperature_degree"] = 3
+    
+    sapphire.mms.verify_order_of_accuracy(
+        discretization_parameter_name = "timestep_size",
+        discretization_parameter_values = (1/2, 1/4, 1/8, 1/16),
+        Simulation = UnitSquareSimulation,
         sim_kwargs = sim_kwargs,
+        strong_residual = strong_residual,
         manufactured_solution = time_verification_solution,
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
         endtime = 1.,
-        timestep_sizes = (1./2., 1./4., 1./8., 1./16.),
         norms = (None, "L2", "L2"),
         expected_orders = (None, 1, 1),
         decimal_places = 1)
 
 
-class HeatDrivenCavitySimulation(sim_module.Simulation):
+class HeatDrivenCavitySimulation(UnitSquareSimulation):
     
     def dirichlet_boundary_conditions(self):
         
-        W = self.solution_space
-        
         return [
-            fe.DirichletBC(W.sub(1), (0., 0.), "on_boundary"),
-            fe.DirichletBC(W.sub(2), 0.5, 1),
-            fe.DirichletBC(W.sub(2), -0.5, 2)]
+            fe.DirichletBC(sim.solution_subspaces["u"], (0., 0.), "on_boundary"),
+            fe.DirichletBC(sim.solution_subspaces["T"], 0.5, 1),
+            fe.DirichletBC(sim.solution_subspaces["T"], -0.5, 2)]
 
 
 def test__steady_state_heat_driven_cavity_benchmark():
@@ -142,8 +177,9 @@ def test__steady_state_heat_driven_cavity_benchmark():
     sim = HeatDrivenCavitySimulation(
         rayleigh_number = Ra,
         prandtl_number = Pr,
-        element_degrees = (1, 2, 2),
-        mesh = fe.UnitSquareMesh(40, 40),
+        taylor_hood_pressure_degree = 1,
+        temperature_degree = 2,
+        meshcell_size = 1/40,
         timestep_size = endtime)
     
     sim.states = sim.run(endtime = endtime)

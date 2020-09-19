@@ -12,21 +12,14 @@ import firedrake as fe
 import sapphire.simulation
 
 
-def element(cell, degrees):
-
-    return fe.MixedElement(
-        fe.FiniteElement("P", cell, degrees[0]),
-        fe.VectorElement("P", cell, degrees[1]),
-        fe.FiniteElement("P", cell, degrees[2]))
-
-
 inner, dot, grad, div, sym = \
     fe.inner, fe.dot, fe.grad, fe.div, fe.sym
 
 class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args,
-            element_degrees = (1, 2, 2),
+            taylor_hood_pressure_degree = 1,
+            temperature_degree = 2,
             reynolds_number = 1.,
             rayleigh_number = 1.,
             prandtl_number = 1.,
@@ -38,9 +31,17 @@ class Simulation(sapphire.simulation.Simulation):
             
             del kwargs["mesh"]
             
+            cell = mesh.ufl_cell()
+            
+            dp = taylor_hood_pressure_degree
+            
+            element = fe.MixedElement(
+                fe.FiniteElement("P", cell, dp),
+                fe.VectorElement("P", cell, dp + 1),
+                fe.FiniteElement("P", cell, temperature_degree))
+            
             kwargs["solution"] = fe.Function(fe.FunctionSpace(
-                mesh,
-                element(mesh.ufl_cell(), element_degrees)))
+                mesh, element))
             
         self.reynolds_number = fe.Constant(reynolds_number)
         
@@ -48,13 +49,13 @@ class Simulation(sapphire.simulation.Simulation):
         
         self.prandtl_number = fe.Constant(prandtl_number)
         
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, fieldnames=("p", "u", "T"), **kwargs)
     
     def mass(self):
 
-        _, u, _ = fe.split(self.solution)
+        u = self.solution_fields["u"]
         
-        psi_p, _, _ = fe.TestFunctions(self.solution_space)
+        psi_p = self.test_functions["p"]
         
         dx = fe.dx(degree = self.quadrature_degree)
         
@@ -64,7 +65,7 @@ class Simulation(sapphire.simulation.Simulation):
         
         p, u, T = fe.split(self.solution)
         
-        _, psi_u, _ = fe.TestFunctions(self.solution_space)
+        psi_u = self.test_functions["u"]
         
         b = self.buoyancy(temperature = T)
         
@@ -81,9 +82,11 @@ class Simulation(sapphire.simulation.Simulation):
         
         Pr = self.prandtl_number
         
-        _, u, T = fe.split(self.solution)
+        u = self.solution_fields["u"]
         
-        _, _, psi_T = fe.TestFunctions(self.solution_space)
+        T = self.solution_fields["T"]
+        
+        psi_T = self.test_functions["T"]
         
         dx = fe.dx(degree = self.quadrature_degree)
         
@@ -99,11 +102,11 @@ class Simulation(sapphire.simulation.Simulation):
         
         print("Subtracting mean pressure")
         
-        p, _, _ = self.solution.split()
+        p = self.solution_fields["p"]
         
-        dx = fe.dx(degree = self.quadrature_degree)
+        mean_pressure = fe.assemble(p*self.dx)
         
-        mean_pressure = fe.assemble(p*dx)
+        p = self.solution_subfunctions["p"]
         
         p = p.assign(p - mean_pressure)
         
@@ -119,7 +122,10 @@ class Simulation(sapphire.simulation.Simulation):
         W = self.solution_space
         
         return fe.MixedVectorSpaceBasis(
-            W, [fe.VectorSpaceBasis(constant=True), W.sub(1), W.sub(2)])
+            W, 
+            [fe.VectorSpaceBasis(constant=True), 
+             self.solution_subspaces["u"],
+             self.solution_subspaces["T"]])
         
     def buoyancy(self, temperature):
         """Linear Boussinesq buoyancy"""
@@ -131,30 +137,7 @@ class Simulation(sapphire.simulation.Simulation):
         
         Pr = self.prandtl_number
         
-        ghat = fe.Constant(-self.unit_vectors()[1])
+        ghat = fe.Constant(-self.unit_vectors[1])
         
         return Ra/(Pr*Re**2)*T*ghat
         
-    def time_discrete_terms(self):
-    
-        return None
-
-
-def strong_residual(sim, solution):
-    
-    Re = sim.reynolds_number
-    
-    Pr = sim.prandtl_number
-    
-    p, u, T = solution
-    
-    b = sim.buoyancy(temperature = T)
-    
-    r_p = div(u)
-    
-    r_u = grad(u)*u + grad(p) - 2./Re*div(sym(grad(u))) + b
-    
-    r_T = dot(u, grad(T)) - 1./(Re*Pr)*div(grad(T))
-    
-    return r_p, r_u, r_T
-    

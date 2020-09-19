@@ -126,10 +126,11 @@ def make_mms_verification_sim_class(
     return MMSVerificationSimulation
     
     
-def verify_spatial_order_of_accuracy(
+def verify_order_of_accuracy(
+        discretization_parameter_name,
+        discretization_parameter_values,
         Simulation,
         manufactured_solution,
-        meshes,
         norms,
         expected_orders = None,
         decimal_places = 2,
@@ -143,6 +144,18 @@ def verify_spatial_order_of_accuracy(
         write_simulation_outputs = False):
     
     
+    fieldcount = len(norms)
+    
+    if expected_orders:
+        
+        assert(len(expected_orders) == len(norms))
+        
+        
+    pname = discretization_parameter_name
+    
+    pvalues = discretization_parameter_values
+    
+    
     MMSVerificationSimulation = make_mms_verification_sim_class(
         Simulation = Simulation,
         manufactured_solution = manufactured_solution,
@@ -151,45 +164,41 @@ def verify_spatial_order_of_accuracy(
         mms_dirichlet_boundary_conditions = dirichlet_boundary_conditions)
     
     
-    fieldcount = len(norms)
-    
-    columns = ["h",]
+    columns = [pname,]
     
     for i in range(fieldcount):
     
         columns += ["error{}".format(i), "order{}".format(i)]
         
     table = pandas.DataFrame(
-        index = range(len(meshes)),
+        index = range(len(pvalues)),
         columns = columns)
     
-    for im, mesh in enumerate(meshes):
+    for iv, pval in enumerate(pvalues):
         
-        table["h"][im] = mesh.cell_sizes((0.,)*mesh.geometric_dimension())
+        table[pname][iv] = pval
     
     print()
     
-    print(table)
+    print(str(table).replace("NaN", "   "))
     
     
-    for im, mesh in enumerate(meshes):
+    for iv, pval in enumerate(pvalues):
         
-        sim = MMSVerificationSimulation(mesh = mesh, **sim_kwargs)
+        sim_kwargs[pname] = pval
+        
+        sim = MMSVerificationSimulation(**sim_kwargs)
         
         wh = sim.solution
         
         assert(len(wh.split()) == fieldcount)
-        
-        if expected_orders:
-    
-            assert(len(expected_orders) == fieldcount)
             
         if time_dependent:
             
             sim.states = sim.run(endtime = endtime)
             
         else:
-        
+            
             sim.solution = sim.solve()
         
         w = manufactured_solution(sim)
@@ -203,14 +212,14 @@ def verify_spatial_order_of_accuracy(
             
             if norm is not None:
             
-                table["error{}".format(iw)][im] = fe.errornorm(
+                table["error{}".format(iw)][iv] = fe.errornorm(
                     w_i, wh_i, norm_type = norm)
         
-        if im > 0:
-        
-            h = table["h"]
+        if iv > 0:
             
-            r = h[im - 1]/h[im]
+            h = table[pname]
+            
+            r = h[iv - 1]/h[iv]
             
             log = math.log
             
@@ -218,12 +227,12 @@ def verify_spatial_order_of_accuracy(
             
                 e = table["error{}".format(iw)]
                 
-                table["order{}".format(iw)][im] = \
-                    log(e[im - 1]/e[im])/log(r)
+                table["order{}".format(iw)][iv] = \
+                    log(e[iv - 1]/e[iv])/log(r)
                     
         print()
         
-        print(table)
+        print(str(table).replace("NaN", "   "))
         
     if outfile:
         
@@ -250,115 +259,3 @@ def verify_spatial_order_of_accuracy(
                 raise ValueError("\n" +
                     "\tObserved order {} differs from\n".format(order) + 
                     "\texpected order {}".format(expected_order))
-                        
-                    
-def verify_temporal_order_of_accuracy(
-        Simulation,
-        manufactured_solution,
-        timestep_sizes,
-        endtime,
-        norms,
-        expected_orders = None,
-        decimal_places = 2,
-        sim_kwargs = {},
-        starttime = 0.,
-        strong_residual = None,
-        dirichlet_boundary_conditions = None,
-        outfile = None,
-        write_simulation_outputs = False):
-    
-    MMSVerificationSimulation = make_mms_verification_sim_class(
-        Simulation = Simulation,
-        manufactured_solution = manufactured_solution,
-        write_simulation_outputs = write_simulation_outputs,
-        strong_residual = strong_residual,
-        mms_dirichlet_boundary_conditions = dirichlet_boundary_conditions)
-    
-    table = sapphire.output.Table(("Delta_t", "errors", "temporal_orders"))
-    
-    print("")
-    
-    for timestep_size in timestep_sizes:
-        
-        sim = MMSVerificationSimulation(**sim_kwargs)
-    
-        assert(len(sim.solutions) > 1)
-        
-        sim.timestep_size = sim.timestep_size.assign(timestep_size)
-        
-        sim.time = sim.time.assign(starttime)
-        
-        sim.states = sim.run(endtime = endtime)
-        
-        errors = []
-        
-        w = manufactured_solution(sim)
-        
-        wh = sim.solution
-        
-        if type(w) is not type((0,)):
-        
-            w = (w,)
-            
-        for w_i, wh_i, norm in zip(w, wh.split(), norms):
-            
-            if norm is not None:
-            
-                errors.append(fe.errornorm(w_i, wh_i, norm_type = norm))
-                
-            else:
-                
-                errors.append(None)
-                
-        table.append({"Delta_t": timestep_size, "errors": errors})
-        
-        if len(table) > 1:
-        
-            Delta_t, e = table.data["Delta_t"], table.data["errors"]
-
-            log = math.log
-            
-            orders = []
-            
-            for i in range(len(sim.solution.split())):
-            
-                if e[0][i] is None:
-                
-                    orders.append(None)
-                    
-                else:
-            
-                    r = Delta_t[-2]/Delta_t[-1]
-            
-                    orders.append(log(e[-2][i]/e[-1][i])/log(r))
-                    
-            table.data["temporal_orders"][-1] = orders
-        
-        print(str(table))
-        
-    print("Last observed temporal orders of accuracy are {}".format(orders))
-    
-    if outfile:
-        
-        print("Writing convergence table to {}".format(outfile.name))
-        
-        outfile.write(str(table))
-        
-    if expected_orders:
-        
-        for order, expected_order in zip(orders, expected_orders):
-            
-            if expected_order is None:
-            
-                continue
-            
-            order = round(order, decimal_places)
-            
-            expected_order = round(float(expected_order), decimal_places)
-            
-            if not (order == expected_order):
-            
-                raise ValueError("\n" +
-                    "\tObserved order {} differs from\n".format(order) + 
-                    "\texpected order {}".format(expected_order))
-                    

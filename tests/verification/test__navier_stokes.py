@@ -39,6 +39,19 @@ def manufactured_solution(sim):
     return p, u
     
     
+class UnitSquareSimulation(Simulation):
+    
+    def __init__(self, *args,
+            meshcell_size,
+            **kwargs):
+        
+        n = int(round(1/meshcell_size))
+        
+        kwargs["mesh"] = fe.UnitSquareMesh(n, n)
+        
+        super().__init__(*args, **kwargs)
+        
+        
 def dirichlet_boundary_conditions(sim, manufactured_solution):
     """Apply velocity Dirichlet BC's on every boundary."""
     
@@ -49,20 +62,25 @@ def dirichlet_boundary_conditions(sim, manufactured_solution):
         u,
         "on_boundary"),]
     
-
+    
 sim_kwargs = {"reynolds_number": 3.}
     
 def test__verify_spatial_convergence__second_order__via_mms():
     
     sim_kwargs["taylor_hood_pressure_element_degree"] = 1
     
-    sapphire.mms.verify_spatial_order_of_accuracy(
-        Simulation = Simulation,
+    def table_column_value_from_parameter_value(mesh):
+        
+        return mesh.cell_sizes((0.,)*mesh.geometric_dimension())
+        
+    sapphire.mms.verify_order_of_accuracy(
+        discretization_parameter_name = "meshcell_size",
+        discretization_parameter_values = [1/n for n in (4, 8, 16, 32, 64)],
+        Simulation = UnitSquareSimulation,
         sim_kwargs = sim_kwargs,
         strong_residual = strong_residual,
         manufactured_solution = manufactured_solution,
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
-        meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32, 64)],
         norms = ("L2", "H1"),
         expected_orders = (2, 2),
         decimal_places = 1)
@@ -72,14 +90,15 @@ def test__verify_spatial_convergence__third_order__via_mms():
     
     sim_kwargs["taylor_hood_pressure_element_degree"] = 2
     
-    sapphire.mms.verify_spatial_order_of_accuracy(
-        Simulation = Simulation,
+    sapphire.mms.verify_order_of_accuracy(
+        discretization_parameter_name = "meshcell_size",
+        discretization_parameter_values = [1/n for n in (4, 8, 16, 32, 64)],
+        Simulation = UnitSquareSimulation,
         sim_kwargs = sim_kwargs,
         strong_residual = strong_residual,
         manufactured_solution = manufactured_solution,
         time_dependent = False,
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
-        meshes = [fe.UnitSquareMesh(n, n) for n in (4, 8, 16, 32, 64)],
         norms = ("L2", "H1"),
         expected_orders = (3, 3),
         decimal_places = 1)
