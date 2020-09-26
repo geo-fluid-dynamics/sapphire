@@ -157,24 +157,24 @@ def writeplots(
         
 def report(sim, write_header = True):
     
-    ordered_dict = sim.__odict__.copy()
+    dict = sim.__dict__.copy()
     
-    for key in ordered_dict.keys():
+    for key in dict.keys():
         
-        if type(ordered_dict[key]) is type(fe.Constant(0.)):
+        if type(dict[key]) is type(fe.Constant(0.)):
         
-            ordered_dict[key] = ordered_dict[key].__float__()
+            dict[key] = dict[key].__float__()
             
-    ordered_dict["datetime"] = str(datetime.datetime.now())
+    dict["datetime"] = str(datetime.datetime.now())
     
     with sim.output_directory_path.joinpath(
             "report").with_suffix(".csv").open("a+") as csv_file:
         
-        writer = csv.DictWriter(csv_file, fieldnames = ordered_dict.keys())
+        writer = csv.DictWriter(csv_file, fieldnames = dict.keys())
         
         if write_header:
             
             writer.writeheader()
             
-        writer.writerow(ordered_dict)
+        writer.writerow(dict)
         
