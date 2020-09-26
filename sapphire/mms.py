@@ -232,7 +232,7 @@ def verify_order_of_accuracy(
                     
         print()
         
-        print(str(table).replace("NaN", "   "))
+        print(str(table).replace(" NaN", "None"))
         
     if outfile:
         
