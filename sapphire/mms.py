@@ -125,7 +125,29 @@ def make_mms_verification_sim_class(
     
     return MMSVerificationSimulation
     
+
+def format_for_latex(table, norms):
     
+    formatted_table = table.copy()
+    
+    for i, norm in enumerate(norms):
+        
+        for label, format in zip(
+                ('error', 'order'),
+                ('{:.3e}', '{:.3f}')):
+            
+            column = label + str(i)
+            
+            if norm is not None:
+            
+                formatted_table[column] = pandas.Series(
+                    [format.format(val) 
+                     for val in table[column]],
+                    index = table.index)
+    
+    return formatted_table.to_latex(index=False).replace("nan", "   ")
+    
+
 def verify_order_of_accuracy(
         discretization_parameter_name,
         discretization_parameter_values,
@@ -166,10 +188,12 @@ def verify_order_of_accuracy(
     
     columns = [pname,]
     
-    for i in range(fieldcount):
+    for i, norm in enumerate(norms):
     
-        columns += ["error{}".format(i), "order{}".format(i)]
+        if norm is not None:
         
+            columns += ["error{}".format(i), "order{}".format(i)]
+    
     table = pandas.DataFrame(
         index = range(len(pvalues)),
         columns = columns)
@@ -180,7 +204,7 @@ def verify_order_of_accuracy(
     
     print()
     
-    print(str(table).replace("NaN", "   "))
+    print(str(table).replace(" NaN", "None"))
     
     
     for iv, pval in enumerate(pvalues):
@@ -224,12 +248,14 @@ def verify_order_of_accuracy(
             log = math.log
             
             for iw in range(fieldcount):
-            
-                e = table["error{}".format(iw)]
                 
-                table["order{}".format(iw)][iv] = \
-                    log(e[iv - 1]/e[iv])/log(r)
+                if norms[iw] is not None:
                     
+                    e = table["error{}".format(iw)]
+                    
+                    table["order{}".format(iw)][iv] = \
+                        log(e[iv - 1]/e[iv])/log(r)
+        
         print()
         
         print(str(table).replace(" NaN", "None"))
@@ -244,21 +270,25 @@ def verify_order_of_accuracy(
         
         for iorder, expected_order in enumerate(expected_orders):
             
-            if expected_order is None:
+            if expected_order is not None:
+            
+                order = table.iloc[-1]["order{}".format(iorder)]
                 
-                continue
-            
-            order = table.iloc[-1]["order{}".format(iorder)]
-            
-            order = round(order, decimal_places)
-            
-            expected_order = round(float(expected_order), decimal_places)
-            
-            if not (order == expected_order):
-            
-                raise ValueError("\n" +
-                    "\tObserved order {} differs from\n".format(order) + 
-                    "\texpected order {}".format(expected_order))
+                order = round(order, decimal_places)
+                
+                expected_order = round(float(expected_order), decimal_places)
+                
+                if not (order == expected_order):
+                
+                    raise ValueError("\n" +
+                        "\tObserved order {} differs from\n".format(order) + 
+                        "\texpected order {}".format(expected_order))
 
+    print()
+    
+    print("Formatted for LaTeX:")
+    
+    print(format_for_latex(table, norms=norms))
+    
     return table
     
