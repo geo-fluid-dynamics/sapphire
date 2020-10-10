@@ -10,6 +10,7 @@ import firedrake as fe
 import sapphire.output
 import math
 import pathlib
+import numpy
 import pandas
 
 
@@ -154,7 +155,8 @@ def verify_order_of_accuracy(
         Simulation,
         manufactured_solution,
         norms,
-        expected_orders = None,
+        points_in_rate_estimator = 2,
+        expected_orders = None,  # a.k.a. convergence rates
         decimal_places = 2,
         time_dependent = True,
         sim_kwargs = {},
@@ -165,6 +167,22 @@ def verify_order_of_accuracy(
         outfile = None,
         write_simulation_outputs = False):
     
+    n = points_in_rate_estimator
+    
+    pname = discretization_parameter_name
+    
+    pvalues = discretization_parameter_values
+    
+    
+    if n > 3:
+    
+        raise NotImplementedError("Max `points_in_rate_estimator` is 3.")
+    
+    if len(pvalues) < n:
+    
+        raise ValueError("There must be a discretization parameter value "
+                         "for each point in the rate estimation.")
+    
     
     fieldcount = len(norms)
     
@@ -172,11 +190,31 @@ def verify_order_of_accuracy(
         
         assert(len(expected_orders) == len(norms))
         
+    
+    for pvalue in pvalues:
+    
+        if not pvalue > 0:
         
-    pname = discretization_parameter_name
+            raise("`discretization_parameter_values` must be positive.")
+            
     
-    pvalues = discretization_parameter_values
+    r = pvalues[0]/pvalues[1]  # Refinement rate
     
+    if r < 0:
+    
+        raise("`discretization_parameter_values` must be "
+              "a descending sequence.")
+    
+    if n > 2:
+        
+        for iv in range(1, len(pvalues)):
+            
+            if not numpy.isclose(pvalues[iv - 1]/pvalues[iv], r):
+
+                raise("`discretization_parameter_values` must be "
+                      "a geometric sequence when using more than two "
+                      "points in the rate estimator.")
+        
     
     MMSVerificationSimulation = make_mms_verification_sim_class(
         Simulation = Simulation,
@@ -239,11 +277,9 @@ def verify_order_of_accuracy(
                 table["error{}".format(iw)][iv] = fe.errornorm(
                     w_i, wh_i, norm_type = norm)
         
-        if iv > 0:
+        if iv >= (n - 1):
             
             h = table[pname]
-            
-            r = h[iv - 1]/h[iv]
             
             log = math.log
             
@@ -253,9 +289,17 @@ def verify_order_of_accuracy(
                     
                     e = table["error{}".format(iw)]
                     
-                    table["order{}".format(iw)][iv] = \
-                        log(e[iv - 1]/e[iv])/log(r)
-        
+                    if n == 2:
+                        
+                        order = log(e[iv - 1]/e[iv])/log(r)
+                        
+                    elif n == 3:
+                    
+                        order = log((e[iv - 2] - e[iv - 1]) /
+                            (e[iv - 1] - e[iv]))/log(r)
+                        
+                    table["order{}".format(iw)][iv] = order
+            
         print()
         
         print(str(table).replace(" NaN", "None"))

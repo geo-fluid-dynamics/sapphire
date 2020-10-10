@@ -30,7 +30,7 @@ def manufactured_solution(sim):
     u = sin(2.*pi*x)*sin(pi*y)*ihat + \
         sin(pi*x)*sin(2.*pi*y)*jhat
     
-    p = -0.5*(u[0]**2 + u[1]**2)
+    p = -sin(pi*x - pi/2.)*sin(2.*pi*y - pi/2.)
     
     mean_pressure = fe.assemble(p*fe.dx)
     
@@ -82,6 +82,7 @@ def test__verify_spatial_convergence__second_order__via_mms():
         manufactured_solution = manufactured_solution,
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
         norms = ("L2", "H1"),
+        points_in_rate_estimator = 3,
         expected_orders = (2, 2),
         decimal_places = 1)
         
@@ -92,7 +93,7 @@ def test__verify_spatial_convergence__third_order__via_mms():
     
     sapphire.mms.verify_order_of_accuracy(
         discretization_parameter_name = "meshcell_size",
-        discretization_parameter_values = [1/n for n in (4, 8, 16, 32, 64)],
+        discretization_parameter_values = [1/n for n in (4, 8, 16)],
         Simulation = UnitSquareSimulation,
         sim_kwargs = sim_kwargs,
         strong_residual = strong_residual,
@@ -100,6 +101,7 @@ def test__verify_spatial_convergence__third_order__via_mms():
         time_dependent = False,
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
         norms = ("L2", "H1"),
+        points_in_rate_estimator = 3,
         expected_orders = (3, 3),
         decimal_places = 1)
         
