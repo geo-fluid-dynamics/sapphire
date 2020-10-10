@@ -292,7 +292,7 @@ class Simulation:
     
     def weak_form_residual(self):
         
-        pass
+        raise("This method must be redefined by the derived class.")
     
     def initial_values(self):
     
