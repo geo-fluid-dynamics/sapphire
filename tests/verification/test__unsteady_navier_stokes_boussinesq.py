@@ -158,9 +158,9 @@ class HeatDrivenCavitySimulation(UnitSquareSimulation):
     def dirichlet_boundary_conditions(self):
         
         return [
-            fe.DirichletBC(sim.solution_subspaces["u"], (0., 0.), "on_boundary"),
-            fe.DirichletBC(sim.solution_subspaces["T"], 0.5, 1),
-            fe.DirichletBC(sim.solution_subspaces["T"], -0.5, 2)]
+            fe.DirichletBC(self.solution_subspaces["u"], (0., 0.), "on_boundary"),
+            fe.DirichletBC(self.solution_subspaces["T"], 0.5, 1),
+            fe.DirichletBC(self.solution_subspaces["T"], -0.5, 2)]
 
 
 def test__steady_state_heat_driven_cavity_benchmark():
