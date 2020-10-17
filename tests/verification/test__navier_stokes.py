@@ -67,7 +67,7 @@ sim_kwargs = {"reynolds_number": 3.}
     
 def test__verify_spatial_convergence__second_order__via_mms():
     
-    sim_kwargs["taylor_hood_pressure_element_degree"] = 1
+    sim_kwargs["taylor_hood_pressure_degree"] = 1
     
     def table_column_value_from_parameter_value(mesh):
         
@@ -89,7 +89,7 @@ def test__verify_spatial_convergence__second_order__via_mms():
 
 def test__verify_spatial_convergence__third_order__via_mms():
     
-    sim_kwargs["taylor_hood_pressure_element_degree"] = 2
+    sim_kwargs["taylor_hood_pressure_degree"] = 2
     
     sapphire.mms.verify_order_of_accuracy(
         discretization_parameter_name = "meshcell_size",

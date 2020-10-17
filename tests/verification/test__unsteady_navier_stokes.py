@@ -98,7 +98,7 @@ sim_kwargs = {
 
 def test__verify_second_order_spatial_convergence_via_mms(tmpdir):
     
-    sim_kwargs["taylor_hood_pressure_element_degree"] = 1
+    sim_kwargs["taylor_hood_pressure_degree"] = 1
     
     sim_kwargs["timestep_size"] = 1./16.
     
@@ -123,7 +123,7 @@ def test__verify_second_order_spatial_convergence_via_mms(tmpdir):
     
 def test__verify_first_order_temporal_convergence_via_mms(tmpdir):
     
-    sim_kwargs["taylor_hood_pressure_element_degree"] = 2
+    sim_kwargs["taylor_hood_pressure_degree"] = 2
     
     sim_kwargs["meshcell_size"] = 1/24
     
@@ -183,7 +183,7 @@ def test__steady_state_lid_driven_cavity_benchmark():
     sim = LidDrivenCavitySimulation(
         reynolds_number = 100.,
         meshcell_size = 1/50,
-        taylor_hood_pressure_element_degree = 1,
+        taylor_hood_pressure_degree = 1,
         timestep_size = endtime)
     
     sim.states = sim.run(endtime = endtime)

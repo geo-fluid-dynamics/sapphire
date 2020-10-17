@@ -38,7 +38,7 @@ def test__heat_driven_cavity(tmpdir):
     # See https://github.com/firedrakeproject/firedrake/issues/1340 
     tests.validation.helpers.check_scalar_solution_component(
         solution = sim.solution,
-        component = 1,
+        component = sim.fieldnames.index('u'),
         subcomponent = 0,
         coordinates = [(0.5, y) 
             for y in (0., 0.15, 0.34999, 0.5, 0.65, 0.84999)],

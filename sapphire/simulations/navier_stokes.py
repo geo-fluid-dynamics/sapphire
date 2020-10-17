@@ -20,7 +20,7 @@ class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args,
             reynolds_number,
-            taylor_hood_pressure_element_degree = 1,
+            taylor_hood_pressure_degree = 1,
             **kwargs):
         
         if "solution" not in kwargs:
@@ -29,7 +29,7 @@ class Simulation(sapphire.simulation.Simulation):
             
             del kwargs["mesh"]
             
-            d = taylor_hood_pressure_element_degree
+            d = taylor_hood_pressure_degree
             
             element = fe.MixedElement(
                 fe.FiniteElement("P", mesh.ufl_cell(), d),
