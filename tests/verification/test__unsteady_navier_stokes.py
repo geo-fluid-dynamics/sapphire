@@ -69,7 +69,7 @@ def time_verification_solution(sim):
     return p, u
 
 
-class UnitSquareSimulation(Simulation):
+class UnitSquareUniformMeshSimulation(Simulation):
     
     def __init__(self, *args,
             meshcell_size,
@@ -109,7 +109,7 @@ def test__verify_second_order_spatial_convergence_via_mms(tmpdir):
         sapphire.mms.verify_order_of_accuracy(
             discretization_parameter_name = "meshcell_size",
             discretization_parameter_values = [1/n for n in (5, 10, 20, 40)],
-            Simulation = UnitSquareSimulation,
+            Simulation = UnitSquareUniformMeshSimulation,
             sim_kwargs = sim_kwargs,
             strong_residual = strong_residual,
             manufactured_solution = space_verification_solution,
@@ -134,7 +134,7 @@ def test__verify_first_order_temporal_convergence_via_mms(tmpdir):
         sapphire.mms.verify_order_of_accuracy(
             discretization_parameter_name = "timestep_size",
             discretization_parameter_values = (0.2, 0.1, 0.05),
-            Simulation = UnitSquareSimulation,
+            Simulation = UnitSquareUniformMeshSimulation,
             sim_kwargs = sim_kwargs,
             strong_residual = strong_residual,
             manufactured_solution = time_verification_solution,
@@ -146,7 +146,7 @@ def test__verify_first_order_temporal_convergence_via_mms(tmpdir):
             outfile = outfile)
 
 
-class LidDrivenCavitySimulation(UnitSquareSimulation):
+class LidDrivenCavitySimulation(UnitSquareUniformMeshSimulation):
     
     def dirichlet_boundary_conditions(self):
         
@@ -171,7 +171,8 @@ def test__steady_state_lid_driven_cavity_benchmark():
             year = {1982},
             month = {12},
             pages = {387-411},
-            title = {High-Re solutions for incompressible flow using the Navier-Stokes equations and a multigrid method1},
+            title = {High-Re solutions for incompressible flow using
+                the Navier-Stokes equations and a multigrid method1},
             volume = {48},
             journal = {Journal of Computational Physics},
             doi = {10.1016/0021-9991(82)90058-4}

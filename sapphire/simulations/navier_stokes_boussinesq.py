@@ -12,6 +12,13 @@ import firedrake as fe
 import sapphire.simulation
 
 
+def element(cell, taylor_hood_pressure_degree, temperature_degree):
+    
+    return fe.MixedElement(
+        fe.FiniteElement("P", cell, taylor_hood_pressure_degree),
+        fe.VectorElement("P", cell, taylor_hood_pressure_degree + 1),
+        fe.FiniteElement("P", cell, temperature_degree))
+
 inner, dot, grad, div, sym = \
     fe.inner, fe.dot, fe.grad, fe.div, fe.sym
 
@@ -31,17 +38,12 @@ class Simulation(sapphire.simulation.Simulation):
             
             del kwargs["mesh"]
             
-            cell = mesh.ufl_cell()
-            
-            dp = taylor_hood_pressure_degree
-            
-            element = fe.MixedElement(
-                fe.FiniteElement("P", cell, dp),
-                fe.VectorElement("P", cell, dp + 1),
-                fe.FiniteElement("P", cell, temperature_degree))
-            
             kwargs["solution"] = fe.Function(fe.FunctionSpace(
-                mesh, element))
+                mesh,
+                element(
+                    mesh.ufl_cell(),
+                    taylor_hood_pressure_degree,
+                    temperature_degree)))
             
         self.reynolds_number = fe.Constant(reynolds_number)
         

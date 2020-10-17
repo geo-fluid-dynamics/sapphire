@@ -12,7 +12,8 @@ def test__heat_driven_cavity_with_water(tmpdir):
     sim = sapphire.simulations.examples.\
         heat_driven_cavity_with_water.Simulation(
             mesh_dimensions = (20, 20),
-            element_degrees = (1, 2, 2),
+            taylor_hood_pressure_degree = 1,
+            temperature_degree = 2,
             output_directory_path = tmpdir)
     
     sim.solution = sim.solve_with_continuation_on_grashof_number()

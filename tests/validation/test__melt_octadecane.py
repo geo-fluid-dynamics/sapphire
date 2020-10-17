@@ -4,7 +4,8 @@ import sapphire.simulations.examples.melt_octadecane
 def test__melt_octadecane(tmpdir):
     
     sim = sapphire.simulations.examples.melt_octadecane.Simulation(
-        element_degrees = (1, 2, 1),
+        taylor_hood_pressure_degree = 1,
+        temperature_degree = 1,
         mesh_dimensions = (24, 24),
         quadrature_degree = 4,
         time_stencil_size = 3,

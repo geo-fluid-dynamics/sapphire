@@ -30,9 +30,9 @@ def space_verification_solution(sim):
     
     x, y = fe.SpatialCoordinate(sim.mesh)
     
-    u0 = sin(2.*pi*x)*sin(pi*y)
+    u0 = sin(2*pi*x)*sin(pi*y)
     
-    u1 = sin(pi*x)*sin(2.*pi*y)
+    u1 = sin(pi*x)*sin(2*pi*y)
     
     ihat, jhat = sim.unit_vectors
     
@@ -40,7 +40,7 @@ def space_verification_solution(sim):
     
     p = -0.5*sin(pi*x)*sin(pi*y)
     
-    T = sin(2.*pi*x)*sin(pi*y)
+    T = sin(2*pi*x)*sin(pi*y)
     
     mean_pressure = fe.assemble(p*fe.dx)
     
@@ -57,9 +57,9 @@ def time_verification_solution(sim):
     
     t = sim.time
     
-    u0 = sin(2.*pi*x)*sin(pi*y)
+    u0 = sin(2*pi*x)*sin(pi*y)
     
-    u1 = sin(pi*x)*sin(2.*pi*y)
+    u1 = sin(pi*x)*sin(2*pi*y)
     
     ihat, jhat = sim.unit_vectors
     
@@ -67,7 +67,7 @@ def time_verification_solution(sim):
     
     p = -0.5*sin(pi*x)*sin(pi*y)
     
-    T = exp(t)*sin(2.*pi*x)*sin(pi*y)
+    T = exp(t)*sin(2*pi*x)*sin(pi*y)
     
     mean_pressure = fe.assemble(p*fe.dx)
     
@@ -76,7 +76,7 @@ def time_verification_solution(sim):
     return p, u, T
     
     
-class UnitSquareSimulation(Simulation):
+class UnitSquareUniformMeshSimulation(Simulation):
     
     def __init__(self, *args,
             meshcell_size,
@@ -102,7 +102,7 @@ def dirichlet_boundary_conditions(sim, manufactured_solution):
 
 
 sim_kwargs = {
-    "reynolds_number": 20.,
+    "reynolds_number": 20,
     "rayleigh_number": 1.e3,
     "prandtl_number": 0.71,
     "quadrature_degree": 4}
@@ -113,14 +113,14 @@ def test__verify_second_order_spatial_convergence_via_mms():
     
     sim_kwargs["temperature_degree"] = 2
     
-    sim_kwargs["timestep_size"] = 1.
+    sim_kwargs["timestep_size"] = 1
     
     sim_kwargs["time_stencil_size"] = 2
     
     sapphire.mms.verify_order_of_accuracy(
         discretization_parameter_name = "meshcell_size",
         discretization_parameter_values = [1/n for n in (8, 16, 32)],
-        Simulation = UnitSquareSimulation,
+        Simulation = UnitSquareUniformMeshSimulation,
         sim_kwargs = sim_kwargs,
         strong_residual = strong_residual,
         manufactured_solution = space_verification_solution,
@@ -128,7 +128,7 @@ def test__verify_second_order_spatial_convergence_via_mms():
         norms = ("L2", "H1", "H1"),
         expected_orders = (2, 2, 2),
         decimal_places = 1,
-        endtime = 1.)
+        endtime = 1)
     
  
 def test__verify_first_order_temporal_convergence_via_mms():
@@ -142,23 +142,23 @@ def test__verify_first_order_temporal_convergence_via_mms():
     sapphire.mms.verify_order_of_accuracy(
         discretization_parameter_name = "timestep_size",
         discretization_parameter_values = (1/2, 1/4, 1/8, 1/16),
-        Simulation = UnitSquareSimulation,
+        Simulation = UnitSquareUniformMeshSimulation,
         sim_kwargs = sim_kwargs,
         strong_residual = strong_residual,
         manufactured_solution = time_verification_solution,
         dirichlet_boundary_conditions = dirichlet_boundary_conditions,
-        endtime = 1.,
+        endtime = 1,
         norms = (None, "L2", "L2"),
         expected_orders = (None, 1, 1),
         decimal_places = 1)
 
 
-class HeatDrivenCavitySimulation(UnitSquareSimulation):
+class HeatDrivenCavitySimulation(UnitSquareUniformMeshSimulation):
     
     def dirichlet_boundary_conditions(self):
         
         return [
-            fe.DirichletBC(self.solution_subspaces["u"], (0., 0.), "on_boundary"),
+            fe.DirichletBC(self.solution_subspaces["u"], (0, 0), "on_boundary"),
             fe.DirichletBC(self.solution_subspaces["T"], 0.5, 1),
             fe.DirichletBC(self.solution_subspaces["T"], -0.5, 2)]
 
@@ -192,9 +192,9 @@ def test__steady_state_heat_driven_cavity_benchmark():
         component = 1,
         subcomponent = 0,
         coordinates = [(0.5, y) 
-            for y in (0., 0.15, 0.34999, 0.5, 0.65, 0.84999)],
+            for y in (0, 0.15, 0.34999, 0.5, 0.65, 0.84999)],
         expected_values = [val*Ra**0.5/Pr
-            for val in (0.0000, -0.0649, -0.0194, 0.0000, 
+            for val in (0, -0.0649, -0.0194, 0, 
                         0.0194, 0.0649)],
         absolute_tolerances = [val*Ra**0.5/Pr 
             for val in (1.e-12, 0.001, 0.001, 1.e-12, 0.001, 0.001)])

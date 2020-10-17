@@ -80,7 +80,7 @@ class Simulation(sapphire.simulations.examples.heat_driven_cavity.Simulation):
         
         Re = self.reynolds_number
         
-        ghat = fe.Constant(-self.unit_vectors()[1])
+        ghat = fe.Constant(-self.unit_vectors[1])
         
         rho_0 = rho(T = 0.)
         

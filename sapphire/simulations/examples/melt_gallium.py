@@ -48,23 +48,18 @@ class Simulation(sapphire.simulations.examples.melt_octadecane.Simulation):
             hotwall_temperature = 1.,
             initial_temperature = -0.1546,
             cutoff_length = 0.5,
-            element_degrees = (1, 2, 2),
+            taylor_hood_pressure_degree = 1,
+            temperature_degree = 2,
             mesh_dimensions = (20, 40),
             **kwargs):
             
         if "solution" not in kwargs:
             
-            mesh = fe.RectangleMesh(
+            kwargs["mesh"] = fe.RectangleMesh(
                 nx = mesh_dimensions[0],
                 ny = mesh_dimensions[1],
                 Lx = cutoff_length,
                 Ly = 1.)
-                
-            element = sapphire.simulations.navier_stokes_boussinesq.element(
-                cell = mesh.ufl_cell(),
-                degrees = element_degrees)
-                
-            kwargs["solution"] = fe.Function(fe.FunctionSpace(mesh, element))
         
         super().__init__(
             *args,

@@ -10,7 +10,8 @@ import sapphire.output
 def test__plot_from_checkpoint(tmpdir):
     """Plot solution loaded from a checkpoint."""
     sim = sapphire.simulations.examples.heat_driven_cavity.Simulation(
-        element_degrees=(1, 2, 2),
+        taylor_hood_pressure_degree = 1,
+        temperature_degree = 2,
         mesh_dimensions=(40, 40),
         output_directory_path=tmpdir)
     

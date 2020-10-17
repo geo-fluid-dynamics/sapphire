@@ -98,6 +98,17 @@ class Simulation:
         assert(time_stencil_size > 0)
         
         
+        self.fieldcount = len(solution.split())
+        
+        if fieldnames is None:
+        
+            fieldnames = ["w_{}" for i in range(self.fieldcount)]
+        
+        assert(len(fieldnames) == self.fieldcount)
+        
+        self.fieldnames = fieldnames
+        
+        
         self.solution = solution
         
         self.time = fe.Constant(time)
@@ -107,7 +118,7 @@ class Simulation:
         
         self.mesh = self.solution_space.mesh()
         
-        self.unit_vectors = self._unit_vectors()
+        self.unit_vectors = unit_vectors(self.mesh) 
         
         self.element = self.solution_space.ufl_element()
         
@@ -156,37 +167,35 @@ class Simulation:
         
         
         # Mixed solution indexing helpers
-        if fieldnames:
+        self.solution_fields = {}
+        
+        self.solution_subfunctions = {}
+        
+        self.test_functions = {}
+        
+        self.time_discrete_terms = {}
+        
+        self.solution_subspaces = {}
+        
+        for name, field, field_pp, testfun, timeterm in zip(
+                fieldnames,
+                fe.split(self.solution),
+                self.solution.split(),
+                fe.TestFunctions(self.solution_space),
+                time_discrete_terms(
+                    solutions = self.solutions,
+                    timestep_size = self.timestep_size)):
             
-            self.fieldnames = fieldnames
+            self.solution_fields[name] = field
             
-            self.solution_fields = {}
+            self.solution_subfunctions[name] = field_pp
             
-            self.solution_subfunctions = {}
+            self.test_functions[name] = testfun
             
-            self.test_functions = {}
+            self.time_discrete_terms[name] = timeterm
             
-            self.time_discrete_terms = {}
-            
-            self.solution_subspaces = {}
-            
-            for name, field, field_pp, testfun, timeterm in zip(
-                    fieldnames,
-                    fe.split(self.solution),
-                    self.solution.split(),
-                    fe.TestFunctions(self.solution_space),
-                    self._time_discrete_terms()):
-                
-                self.solution_fields[name] = field
-                
-                self.solution_subfunctions[name] = field_pp
-                
-                self.test_functions[name] = testfun
-                
-                self.time_discrete_terms[name] = timeterm
-                
-                self.solution_subspaces[name] = self.solution_space.sub(
-                    fieldnames.index(name))
+            self.solution_subspaces[name] = self.solution_space.sub(
+                fieldnames.index(name))
                 
                 
         # Output controls
@@ -405,21 +414,9 @@ class Simulation:
                 # difficult dependency. It may be best to run a separate 
                 # program for generating 3D plots from the solution files.
                 raise NotImplementedError()
-                
-    def _unit_vectors(self) -> typing.Tuple[ufl.tensors.ListTensor]:
-        """Returns the spatial unit vectors in each dimension."""
-        return _unit_vectors(mesh = self.mesh)
-        
-    def _time_discrete_terms(self) -> typing.Union[
-            ufl.core.operator.Operator,
-            typing.List[ufl.core.operator.Operator]]:
-        """Returns time derivative for each solution component."""
-        return _time_discrete_terms(
-            solutions = self.solutions,
-            timestep_size = self.timestep_size)
 
     
-def _unit_vectors(mesh) -> typing.Tuple[ufl.tensors.ListTensor]:
+def unit_vectors(mesh) -> typing.Tuple[ufl.tensors.ListTensor]:
     """Returns the mesh's spatial unit vectors in each dimension.
     
     Args:
@@ -430,7 +427,7 @@ def _unit_vectors(mesh) -> typing.Tuple[ufl.tensors.ListTensor]:
     return tuple([fe.unit_vector(i, dim) for i in range(dim)])
     
     
-def _time_discrete_terms(
+def time_discrete_terms(
         solutions: typing.List[fe.Function],
         timestep_size: fe.Constant) \
         -> typing.Union[
@@ -465,11 +462,7 @@ def _time_discrete_terms(
         sapphire.time_discretization.bdf(
             [fe.split(solutions[n])[i] for n in range(len(solutions))],
             timestep_size = timestep_size)
-        for i in range(len(fe.split(solutions[0])))]
-        
-    if len(time_discrete_terms) == 1:
-    
-        time_discrete_terms = time_discrete_terms[0]
+        for i in range(len(solutions[0].split()))]
         
     return time_discrete_terms
     
