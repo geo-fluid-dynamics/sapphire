@@ -6,7 +6,7 @@ branches:
         - master
 
 before_install:
-- docker pull zimmerman/firedrake
+- docker pull zimmerman/firedrake:2020.09.07
 - docker run -dti -v `pwd`:/home/firedrake/sapphire -w /home/firedrake --name fd zimmerman/firedrake
 - docker exec fd ls
 - docker exec fd pip3 install pytest
