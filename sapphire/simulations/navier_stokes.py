@@ -20,7 +20,7 @@ class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args,
             reynolds_number,
-            element_degrees = (2, 1),
+            taylor_hood_pressure_degree = 1,
             **kwargs):
         
         if "solution" not in kwargs:
@@ -29,38 +29,36 @@ class Simulation(sapphire.simulation.Simulation):
             
             del kwargs["mesh"]
             
+            d = taylor_hood_pressure_degree
+            
             element = fe.MixedElement(
-                fe.VectorElement("P", mesh.ufl_cell(), element_degrees[0]),
-                fe.FiniteElement("P", mesh.ufl_cell(), element_degrees[1]))
+                fe.FiniteElement("P", mesh.ufl_cell(), d),
+                fe.VectorElement("P", mesh.ufl_cell(), d + 1))
                 
             kwargs["solution"] = fe.Function(fe.FunctionSpace(mesh, element))
         
         self.reynolds_number = fe.Constant(reynolds_number)
         
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, fieldnames=("p", "u"), **kwargs)
     
     def mass(self):
         
-        u, _ = fe.split(self.solution)
+        u = self.solution_fields["u"]
         
-        _, psi_p = fe.TestFunctions(self.solution_space)
+        psi_p = self.test_functions["p"]
         
-        dx = fe.dx(degree = self.quadrature_degree)
-        
-        return psi_p*div(u)*dx
+        return psi_p*div(u)*self.dx
     
     def momentum(self):
         
-        u, p = fe.split(self.solution)
+        p, u = self.solution_fields["p"], self.solution_fields["u"]
         
         Re = self.reynolds_number
         
-        psi_u, _ = fe.TestFunctions(self.solution_space)
-        
-        dx = fe.dx(degree = self.quadrature_degree)
+        psi_u = self.test_functions["u"]
         
         return (dot(psi_u, grad(u)*u) - div(psi_u)*p + \
-            2./Re*inner(sym(grad(psi_u)), sym(grad(u))))*dx
+            2./Re*inner(sym(grad(psi_u)), sym(grad(u))))*self.dx
     
     def weak_form_residual(self):
         
@@ -72,11 +70,11 @@ class Simulation(sapphire.simulation.Simulation):
         
         print("Subtracting mean pressure")
         
-        u, p = self.solution.split()
+        p = self.solution_fields["p"]
         
-        dx = fe.dx(degree = self.quadrature_degree)
+        mean_pressure = fe.assemble(p*self.dx)
         
-        mean_pressure = fe.assemble(p*dx)
+        p = self.solution_subfunctions["p"]
         
         p = p.assign(p - mean_pressure)
         
@@ -89,25 +87,8 @@ class Simulation(sapphire.simulation.Simulation):
         
         It is only defined up to adding an arbitrary constant.
         """
-        W = self.solution_space
-        
         return fe.MixedVectorSpaceBasis(
-            W, [W.sub(0), fe.VectorSpaceBasis(constant=True)])            
-    
-    def time_discrete_terms(self):
-    
-        return None
-
-
-def strong_residual(sim, solution):
-    
-    u, p = solution
-    
-    Re = sim.reynolds_number
-    
-    r_u = grad(u)*u + grad(p) - 2./Re*div(sym(grad(u)))
-    
-    r_p = div(u)
-    
-    return r_u, r_p
-    
+            self.solution_space,
+            (fe.VectorSpaceBasis(constant=True),
+             self.solution_subspaces["u"]))
+        

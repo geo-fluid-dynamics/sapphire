@@ -4,7 +4,8 @@ import sapphire.simulations.examples.melt_gallium
 def test__melt_gallium__regression(tmpdir):
     
     sim = sapphire.simulations.examples.melt_gallium.Simulation(
-        element_degrees = (1, 2, 2),
+        taylor_hood_pressure_degree = 1,
+        temperature_degree = 2,
         mesh_dimensions = (20, 40),
         quadrature_degree = 4,
         time_stencil_size = 3,

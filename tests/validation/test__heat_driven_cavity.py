@@ -22,7 +22,8 @@ import tests.validation.helpers
 def test__heat_driven_cavity(tmpdir):
     
     sim = sapphire.simulations.examples.heat_driven_cavity.Simulation(
-        element_degrees = (1, 2, 2),
+        taylor_hood_pressure_degree = 1,
+        temperature_degree = 2,
         mesh_dimensions = (40, 40),
         output_directory_path = tmpdir)
     
@@ -37,7 +38,7 @@ def test__heat_driven_cavity(tmpdir):
     # See https://github.com/firedrakeproject/firedrake/issues/1340 
     tests.validation.helpers.check_scalar_solution_component(
         solution = sim.solution,
-        component = 1,
+        component = sim.fieldnames.index('u'),
         subcomponent = 0,
         coordinates = [(0.5, y) 
             for y in (0., 0.15, 0.34999, 0.5, 0.65, 0.84999)],

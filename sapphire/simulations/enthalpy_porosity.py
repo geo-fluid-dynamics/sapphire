@@ -14,33 +14,31 @@ import sapphire.simulations.unsteady_navier_stokes_boussinesq
 import sapphire.continuation
 
 
-dot, inner, grad, div, sym = fe.dot, fe.inner, fe.grad, fe.div, fe.sym
-
 def phase_dependent_material_property(solid_to_liquid_ratio):
     
     a_sl = solid_to_liquid_ratio
     
     def a(phil):
     
-        return a_sl + (1. - a_sl)*phil
+        return a_sl + (1 - a_sl)*phil
     
     return a  
 
 
 default_solver_parameters =  {
-    "snes_monitor": None,
-    "snes_type": "newtonls",
-    "snes_linesearch_type": "l2",
-    "snes_linesearch_maxstep": 1.,
-    "snes_linesearch_damping": 1.,
-    "snes_atol": 1.e-9,
-    "snes_stol": 1.e-9,
-    "snes_rtol": 0.,
-    "snes_max_it": 24,
-    "ksp_type": "preonly", 
-    "pc_type": "lu", 
-    "pc_factor_mat_solver_type": "mumps",
-    "mat_type": "aij"}
+    'snes_monitor': None,
+    'snes_type': 'newtonls',
+    'snes_linesearch_type': 'l2',
+    'snes_linesearch_maxstep': 1,
+    'snes_linesearch_damping': 1,
+    'snes_atol': 1.e-9,
+    'snes_stol': 1.e-9,
+    'snes_rtol': 0.,
+    'snes_max_it': 24,
+    'ksp_type': 'preonly', 
+    'pc_type': 'lu', 
+    'pc_factor_mat_solver_type': 'mumps',
+    'mat_type': 'aij'}
 
 class Simulation(
         sapphire.simulations.unsteady_navier_stokes_boussinesq.Simulation):
@@ -48,11 +46,11 @@ class Simulation(
     def __init__(
             self, 
             *args,
-            stefan_number = 1.,
-            liquidus_temperature = 0.,
-            density_solid_to_liquid_ratio = 1.,
-            heat_capacity_solid_to_liquid_ratio = 1.,
-            thermal_conductivity_solid_to_liquid_ratio = 1.,
+            stefan_number = 1,
+            liquidus_temperature = 0,
+            density_solid_to_liquid_ratio = 1,
+            heat_capacity_solid_to_liquid_ratio = 1,
+            thermal_conductivity_solid_to_liquid_ratio = 1,
             solid_velocity_relaxation_factor = 1.e-12,
             liquidus_smoothing_factor = 0.01,
             solver_parameters = default_solver_parameters,
@@ -82,11 +80,53 @@ class Simulation(
         super().__init__(*args,
             solver_parameters = solver_parameters,
             **kwargs)
+        
+        # Organize extra time discrete terms
+        temperature_solutions = []
+        
+        for solution in self.solutions:
+        
+            temperature_solutions.append(
+                fe.split(solution)[self.fieldnames.index('T')])
+        
+        C = self.volumetric_heat_capacity
+        
+        self.time_discrete_terms['CT'] = sapphire.time_discretization.bdf(
+            [C(T)*T for T in temperature_solutions],
+            timestep_size = self.timestep_size)
+        
+        phi_l = self.liquid_volume_fraction
+        
+        self.time_discrete_terms['phi_l'] = sapphire.time_discretization.bdf(
+            [phi_l(T) for T in temperature_solutions],
+            timestep_size = self.timestep_size)
     
     def liquid_volume_fraction(self, temperature):
         
         return sapphire.simulations.enthalpy.Simulation.\
             liquid_volume_fraction(self, temperature = temperature)
+    
+    def volumetric_heat_capacity(self, temperature):
+        
+        rho_sl = self.density_solid_to_liquid_ratio
+        
+        c_sl = self.heat_capacity_solid_to_liquid_ratio
+        
+        phi_l = self.liquid_volume_fraction
+        
+        T = temperature
+        
+        return phase_dependent_material_property(rho_sl*c_sl)(phi_l(T))
+        
+    def thermal_conductivity(self, temperature):
+        
+        k_sl = self.thermal_conductivity_solid_to_liquid_ratio
+        
+        phi_l = self.liquid_volume_fraction
+        
+        T = temperature
+        
+        return phase_dependent_material_property(k_sl)(phi_l(T))
     
     def solid_velocity_relaxation(self, temperature):
         
@@ -94,21 +134,27 @@ class Simulation(
         
         phil = self.liquid_volume_fraction(temperature = T)
         
-        phis = 1. - phil
+        phis = 1 - phil
         
         tau = self.solid_velocity_relaxation_factor
         
-        return 1./tau*phis
+        return 1/tau*phis
         
     def momentum(self):
         
-        _, u, T = fe.split(self.solution)
+        u = self.solution_fields['u']
+        
+        T = self.solution_fields['T']
+        
+        u_t = self.time_discrete_terms['u']
         
         d = self.solid_velocity_relaxation(temperature = T)
         
-        _, psi_u, _ = fe.TestFunctions(self.solution_space)
+        psi_u = self.test_functions['u']
         
         dx = fe.dx(degree = self.quadrature_degree)
+        
+        dot = fe.dot
         
         return super().momentum() + dot(psi_u, d*u)*dx
     
@@ -120,56 +166,32 @@ class Simulation(
         
         Ste = self.stefan_number
         
-        _, u, T = fe.split(self.solution)
+        u = self.solution_fields['u']
         
-        phil = self.liquid_volume_fraction(temperature = T)
+        T = self.solution_fields['T']
+        
+        phi_l = self.liquid_volume_fraction(temperature = T)
         
         rho_sl = self.density_solid_to_liquid_ratio
         
         c_sl = self.heat_capacity_solid_to_liquid_ratio
         
-        C = phase_dependent_material_property(rho_sl*c_sl)(phil)
+        C = phase_dependent_material_property(rho_sl*c_sl)(phi_l)
         
         k_sl = self.thermal_conductivity_solid_to_liquid_ratio
         
-        k = phase_dependent_material_property(k_sl)(phil)
+        k = phase_dependent_material_property(k_sl)(phi_l)
         
-        CT_t, phil_t = self.extra_time_discrete_terms()
+        CT_t = self.time_discrete_terms['CT']
         
-        _, _, psi_T = fe.TestFunctions(self.solution_space)
+        phi_lt = self.time_discrete_terms['phi_l']
         
-        dx = fe.dx(degree = self.quadrature_degree)
+        psi_T = self.test_functions['T']
         
-        return (psi_T*(CT_t + 1./Ste*phil_t + dot(u, grad(C*T))) \
-            + 1./(Re*Pr)*dot(grad(psi_T), k*grad(T)))*dx
+        dot, grad = fe.dot, fe.grad
         
-    def extra_time_discrete_terms(self):
-        
-        temperature_solutions = []
-        
-        for solution in self.solutions:
-        
-            temperature_solutions.append(fe.split(solution)[2])
-        
-        def phil(T):
-        
-            return self.liquid_volume_fraction(temperature = T)
-            
-        rho_sl = self.density_solid_to_liquid_ratio
-        
-        c_sl = self.heat_capacity_solid_to_liquid_ratio
-        
-        C = phase_dependent_material_property(rho_sl*c_sl)
-        
-        CT_t = sapphire.time_discretization.bdf(
-            [C(phil(T))*T for T in temperature_solutions],
-            timestep_size = self.timestep_size)
-        
-        phil_t = sapphire.time_discretization.bdf(
-            [phil(T) for T in temperature_solutions],
-            timestep_size = self.timestep_size)
-        
-        return CT_t, phil_t
+        return (psi_T*(CT_t + 1/Ste*phi_lt + dot(u, grad(C*T))) \
+            + 1/(Re*Pr)*dot(grad(psi_T), k*grad(T)))*self.dx
         
     def solve_with_over_regularization(self):
         
@@ -260,10 +282,10 @@ class Simulation(
             T.function_space())
         
         return {
-            "fields": (p, u, T, phil),
-            "labels": ("p", "\\mathbf{u}", "T", "\\phi_l"),
-            "names": ("p", "u", "T", "phil"),
-            "plotfuns": (fe.tripcolor, fe.quiver, fe.tripcolor, fe.tripcolor)}
+            'fields': (p, u, T, phil),
+            'labels': ('p', '\\mathbf{u}', 'T', '\\phi_l'),
+            'names': ('p', 'u', 'T', 'phil'),
+            'plotfuns': (fe.tripcolor, fe.quiver, fe.tripcolor, fe.tripcolor)}
             
     def run(self, *args, **kwargs):
         
@@ -275,55 +297,12 @@ class Simulation(
         
         p, u, T = self.solution.split()
         
-        dx = fe.dx(degree = self.quadrature_degree)
-        
         div = fe.div
         
-        self.velocity_divergence = fe.assemble(div(u)*dx)
+        self.velocity_divergence = fe.assemble(div(u)*self.dx)
         
         phil = self.liquid_volume_fraction(temperature = T)
         
-        self.liquid_area = fe.assemble(phil*dx)
+        self.liquid_area = fe.assemble(phil*self.dx)
         
         return self
-
-
-diff = fe.diff
-
-def strong_residual(sim, solution):
-    
-    r_p, r_u, r_T = sapphire.simulations.unsteady_navier_stokes_boussinesq.\
-        strong_residual(sim = sim, solution = solution)
-    
-    _, u, T = solution
-    
-    t = sim.time
-    
-    
-    d = sim.solid_velocity_relaxation(temperature = T)
-    
-    r_u += d*u
-    
-    
-    Re = sim.reynolds_number
-    
-    Pr = sim.prandtl_number
-    
-    Ste = sim.stefan_number
-    
-    phil = sim.liquid_volume_fraction(temperature = T)
-    
-    rho_sl = sim.density_solid_to_liquid_ratio
-    
-    c_sl = sim.heat_capacity_solid_to_liquid_ratio
-    
-    C = phase_dependent_material_property(rho_sl*c_sl)(phil)
-    
-    k_sl = sim.thermal_conductivity_solid_to_liquid_ratio
-    
-    k = phase_dependent_material_property(k_sl)(phil)
-    
-    r_T = diff(C*T, t) + 1./Ste*diff(phil, t) + dot(u, grad(C*T)) \
-        - 1./(Re*Pr)*div(k*grad(T))
-    
-    return r_p, r_u, r_T

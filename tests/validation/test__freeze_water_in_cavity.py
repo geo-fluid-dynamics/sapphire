@@ -7,7 +7,8 @@ def test__freeze_water(tmpdir):
     endtime = 1.44
     
     sim = sapphire.simulations.examples.freeze_water_in_cavity.Simulation(
-        element_degrees = (1, 2, 2),
+        taylor_hood_pressure_degree = 1,
+        temperature_degree = 2,
         mesh_dimensions = (24, 24),
         quadrature_degree = 4,
         time_stencil_size = 3,

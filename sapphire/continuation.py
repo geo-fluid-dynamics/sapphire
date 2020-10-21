@@ -58,9 +58,9 @@ def solve_with_over_regularization(
 def solve_with_bounded_regularization_sequence(
         solve,
         solution,
-        backup_solution,
         regularization_parameter,
         initial_regularization_sequence,
+        backup_solution = None,
         maxcount = 24):
     """ Solve a strongly nonlinear problem 
     by solving a sequence of over-regularized problems 
@@ -68,6 +68,10 @@ def solve_with_bounded_regularization_sequence(
     
     Always continue from left to right.
     """
+    if backup_solution is None:
+    
+        backup_solution = fe.Function(solution)
+        
     r0 = regularization_parameter.__float__()
     
     assert(initial_regularization_sequence[-1] == r0)

@@ -19,9 +19,9 @@ class Simulation(sapphire.simulations.navier_stokes_boussinesq.Simulation):
     
     def momentum(self):
         
-        u_t, _ = self.time_discrete_terms()
+        u_t = self.time_discrete_terms["u"]
         
-        _, psi_u, _ = fe.TestFunctions(self.solution_space)
+        psi_u = self.test_functions["u"]
         
         dx = fe.dx(degree = self.quadrature_degree)
         
@@ -29,35 +29,11 @@ class Simulation(sapphire.simulations.navier_stokes_boussinesq.Simulation):
     
     def energy(self):
         
-        _, T_t = self.time_discrete_terms()
+        T_t = self.time_discrete_terms["T"]
         
-        _, _, psi_T = fe.TestFunctions(self.solution_space)
+        psi_T = self.test_functions["T"]
         
         dx = fe.dx(degree = self.quadrature_degree)
         
         return super().energy() + psi_T*T_t*dx
-    
-    def time_discrete_terms(self):
-    
-        _, u_t, T_t = sapphire.Simulation.time_discrete_terms(self)
         
-        return u_t, T_t
-
-
-diff = fe.diff
-
-def strong_residual(sim, solution):
-    
-    r_p, r_u, r_T = sapphire.simulations.navier_stokes_boussinesq.\
-        strong_residual(sim = sim, solution = solution)
-    
-    _, u, T = solution
-    
-    t = sim.time
-    
-    r_u += diff(u, t)
-    
-    r_T += diff(T, t)
-    
-    return r_p, r_u, r_T
-    

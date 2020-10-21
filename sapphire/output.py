@@ -2,7 +2,7 @@
 import typing
 import datetime
 import csv
-from collections import OrderedDict
+import collections
 import matplotlib
 matplotlib.use('Agg')  # Only use back-end to prevent displaying image
 import matplotlib.pyplot as plt
@@ -155,55 +155,26 @@ def writeplots(
         plt.close()
         
         
-class ObjectWithOrderedDict(object):
-    """ Base class for maintaining an ordered dict of all attributes.
-    See https://stackoverflow.com/questions/37591180/get-instance-variables-in-order-in-python
-    """
-    def __new__(Class, *args, **kwargs):
-    
-        instance = object.__new__(Class)
-        
-        instance.__odict__ = OrderedDict()
-        
-        return instance
-        
-    def __setattr__(self, key, value):
-    
-        if not key == "__odict__":
-        
-            self.__odict__[key] = value
-            
-        object.__setattr__(self, key, value)
-        
-    def keys(self):
-    
-        return self.__odict__.keys()
-        
-    def iteritems(self):
-    
-        return self.__odict__.iteritems()
-        
-        
 def report(sim, write_header = True):
     
-    ordered_dict = sim.__odict__.copy()
+    dict = sim.__dict__.copy()
     
-    for key in ordered_dict.keys():
+    for key in dict.keys():
         
-        if type(ordered_dict[key]) is type(fe.Constant(0.)):
+        if type(dict[key]) is type(fe.Constant(0.)):
         
-            ordered_dict[key] = ordered_dict[key].__float__()
+            dict[key] = dict[key].__float__()
             
-    ordered_dict["datetime"] = str(datetime.datetime.now())
+    dict["datetime"] = str(datetime.datetime.now())
     
     with sim.output_directory_path.joinpath(
             "report").with_suffix(".csv").open("a+") as csv_file:
         
-        writer = csv.DictWriter(csv_file, fieldnames = ordered_dict.keys())
+        writer = csv.DictWriter(csv_file, fieldnames = dict.keys())
         
         if write_header:
             
             writer.writeheader()
             
-        writer.writerow(ordered_dict)
+        writer.writerow(dict)
         

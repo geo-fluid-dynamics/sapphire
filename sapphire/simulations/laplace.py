@@ -35,17 +35,3 @@ class Simulation(sapphire.simulation.Simulation):
         dx = fe.dx(degree = self.quadrature_degree)
         
         return -dot(grad(v), grad(u))*dx
-        
-    def time_discrete_terms(self):
-    
-        return None
-    
-
-def strong_residual(sim, solution):
-    
-    div, grad, = fe.div, fe.grad
-    
-    u = solution
-    
-    return div(grad(u))
-    

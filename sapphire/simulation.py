@@ -25,7 +25,7 @@ import sapphire.time_discretization
 import sapphire.output
 
 
-class Simulation(sapphire.output.ObjectWithOrderedDict):
+class Simulation:
     """A PDE-based simulation using the Firedrake framework.
 
     The PDE's are discretized in space using finite elements 
@@ -33,10 +33,6 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
     
     Implementing a simulation requires at least instantiating this 
     class and calling the instance's `run` method.
-    
-    This class is derived from `sapphire.output.ObjectWithOrderedDict`
-    so that all attributes can be consistently written to a CSV file
-    throughout the time-dependent simulation.
     """
     
     def __init__(self,
@@ -52,7 +48,8 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 "pc_type": "lu", 
                 "mat_type": "aij",
                 "pc_factor_mat_solver_type": "mumps"},
-            output_directory_path: str = "output/"):
+            output_directory_path: str = "output/",
+            fieldnames: typing.Iterable[str] = None):
         """
         Instantiating this class requires enough information to fully 
         specify the FE spatial discretization and weak form residual.
@@ -80,10 +77,6 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 Defaults to 1.
                 Higher order time discretizations are assumed to use
                 a constant time step size.
-                Supporting accurate second-order or higher time
-                discretizations with variable time step sizes,
-                redefine `time_discrete_terms` and compute the
-                time step sizes from the solution times.
             quadrature_degree: The quadrature degree used for
                 numerical integration.
                 Defaults to `None`, in which case Firedrake will 
@@ -93,8 +86,27 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
             output_directory_path: String that will be converted
                 to a Path where output files will be written.
                 Defaults to "output/".
+            fieldnames: A list of names for the components of `solution`.
+                Defaults to `None`.
+                These names can be used when indexing solutions that are split
+                either by `firedrake.split` or `firedrake.Function.split`.
+                If not `None`, then the `dict` `self.solution_fields` will be created.
+                The `dict` will have two items for each field,
+                containing the results of either splitting method.
+                The results of `firedrake.split` will be suffixed with "_ufl".
         """
         assert(time_stencil_size > 0)
+        
+        
+        self.fieldcount = len(solution.split())
+        
+        if fieldnames is None:
+        
+            fieldnames = ["w_{}" for i in range(self.fieldcount)]
+        
+        assert(len(fieldnames) == self.fieldcount)
+        
+        self.fieldnames = fieldnames
         
         
         self.solution = solution
@@ -106,11 +118,15 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         
         self.mesh = self.solution_space.mesh()
         
+        self.unit_vectors = unit_vectors(self.mesh) 
+        
         self.element = self.solution_space.ufl_element()
         
         self.timestep_size = fe.Constant(timestep_size)
         
         self.quadrature_degree = quadrature_degree
+        
+        self.dx = fe.dx(degree = self.quadrature_degree)
         
         self.solver_parameters = solver_parameters
         
@@ -150,6 +166,38 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
         self.backup_solution = fe.Function(self.solution)
         
         
+        # Mixed solution indexing helpers
+        self.solution_fields = {}
+        
+        self.solution_subfunctions = {}
+        
+        self.test_functions = {}
+        
+        self.time_discrete_terms = {}
+        
+        self.solution_subspaces = {}
+        
+        for name, field, field_pp, testfun, timeterm in zip(
+                fieldnames,
+                fe.split(self.solution),
+                self.solution.split(),
+                fe.TestFunctions(self.solution_space),
+                time_discrete_terms(
+                    solutions = self.solutions,
+                    timestep_size = self.timestep_size)):
+            
+            self.solution_fields[name] = field
+            
+            self.solution_subfunctions[name] = field_pp
+            
+            self.test_functions[name] = testfun
+            
+            self.time_discrete_terms[name] = timeterm
+            
+            self.solution_subspaces[name] = self.solution_space.sub(
+                fieldnames.index(name))
+                
+                
         # Output controls
         self.output_directory_path = pathlib.Path(output_directory_path)
         
@@ -253,7 +301,7 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
     
     def weak_form_residual(self):
         
-        pass
+        raise("This method must be redefined by the derived class.")
     
     def initial_values(self):
     
@@ -366,18 +414,6 @@ class Simulation(sapphire.output.ObjectWithOrderedDict):
                 # difficult dependency. It may be best to run a separate 
                 # program for generating 3D plots from the solution files.
                 raise NotImplementedError()
-                
-    def unit_vectors(self) -> typing.Tuple[ufl.tensors.ListTensor]:
-        """Returns the spatial unit vectors in each dimension."""
-        return unit_vectors(mesh = self.mesh)
-        
-    def time_discrete_terms(self) -> typing.Union[
-            ufl.core.operator.Operator,
-            typing.List[ufl.core.operator.Operator]]:
-        """Returns time derivative for each solution component."""
-        return time_discrete_terms(
-            solutions = self.solutions,
-            timestep_size = self.timestep_size)
 
     
 def unit_vectors(mesh) -> typing.Tuple[ufl.tensors.ListTensor]:
@@ -426,11 +462,7 @@ def time_discrete_terms(
         sapphire.time_discretization.bdf(
             [fe.split(solutions[n])[i] for n in range(len(solutions))],
             timestep_size = timestep_size)
-        for i in range(len(fe.split(solutions[0])))]
-        
-    if len(time_discrete_terms) == 1:
-    
-        time_discrete_terms = time_discrete_terms[0]
+        for i in range(len(solutions[0].split()))]
         
     return time_discrete_terms
     

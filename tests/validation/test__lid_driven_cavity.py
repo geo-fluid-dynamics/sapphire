@@ -23,7 +23,7 @@ def test__lid_driven_cavity(tmpdir):
     sim = sapphire.simulations.examples.lid_driven_cavity.Simulation(
         reynolds_number = 100.,
         mesh_dimensions = (50, 50),
-        element_degrees = (2, 1),
+        taylor_hood_pressure_degree = 1,
         output_directory_path = tmpdir)
     
     sim.solution = sim.solve()
@@ -32,7 +32,7 @@ def test__lid_driven_cavity(tmpdir):
     
     tests.validation.helpers.check_scalar_solution_component(
         solution = sim.solution,
-        component = 0,
+        component = sim.fieldnames.index('u'),
         subcomponent = 0,
         coordinates = [(0.5, y) 
             for y in (0.9766, 0.1016, 0.0547, 0.0000)],

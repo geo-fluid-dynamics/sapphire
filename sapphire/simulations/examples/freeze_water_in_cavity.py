@@ -23,7 +23,8 @@ class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
 
     def __init__(self, *args,
             mesh_dimensions = (24, 24),
-            element_degrees = (1, 2, 2),
+            taylor_hood_pressure_degree = 1,
+            temperature_degree = 2,
             reference_temperature_range__degC = 10.,
             hotwall_temperature = 1.,
             coldwall_temperature_before_freezing = 0.,
@@ -42,7 +43,8 @@ class Simulation(sapphire.simulations.enthalpy_porosity.Simulation):
         iv_sim = sapphire.simulations.examples.\
             heat_driven_cavity_with_water.Simulation(
                 mesh_dimensions = mesh_dimensions,
-                element_degrees = element_degrees,
+                taylor_hood_pressure_degree = taylor_hood_pressure_degree,
+                temperature_degree = temperature_degree,
                 reference_temperature_range__degC = \
                     reference_temperature_range__degC,
                 hotwall_temperature = hotwall_temperature,

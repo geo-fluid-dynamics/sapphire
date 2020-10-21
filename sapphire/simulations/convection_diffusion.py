@@ -3,8 +3,6 @@ import firedrake as fe
 import sapphire.simulation
 
 
-dot, grad, div = fe.dot, fe.grad, fe.div
-
 class Simulation(sapphire.simulation.Simulation):
     
     def __init__(self, *args,
@@ -42,22 +40,10 @@ class Simulation(sapphire.simulation.Simulation):
         
         dx = fe.dx(degree = self.quadrature_degree)
         
+        dot, grad, div = fe.dot, fe.grad, fe.div
+        
         return (v*dot(a, grad(u)) + dot(grad(v), d*grad(u)))*dx
         
     def time_discrete_terms(self):
     
         return None
-
-
-def strong_residual(sim, solution):
-    
-    x = fe.SpatialCoordinate(sim.mesh)
-    
-    u = solution
-    
-    a = sim.advection_velocity
-    
-    d = sim.diffusion_coefficient
-    
-    return dot(a, grad(u)) - d*div(grad(u))
-    

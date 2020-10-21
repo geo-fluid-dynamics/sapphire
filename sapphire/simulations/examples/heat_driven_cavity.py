@@ -41,7 +41,15 @@ class Simulation(sapphire.simulations.navier_stokes_boussinesq.Simulation):
         
         return [
             fe.DirichletBC(
-                W.sub(1), (0.,)*d, "on_boundary"),
-            fe.DirichletBC(W.sub(2), self.hotwall_temperature, self.hotwall_id),
-            fe.DirichletBC(W.sub(2), self.coldwall_temperature, self.coldwall_id)]
+                self.solution_subspaces["u"],
+                (0,)*d,
+                "on_boundary"),
+            fe.DirichletBC(
+                self.solution_subspaces["T"],
+                self.hotwall_temperature,
+                self.hotwall_id),
+            fe.DirichletBC(
+                self.solution_subspaces["T"],
+                self.coldwall_temperature,
+                self.coldwall_id)]
             

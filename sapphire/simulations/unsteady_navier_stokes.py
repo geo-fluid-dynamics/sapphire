@@ -17,44 +17,11 @@ inner, dot, grad, div, sym = \
     
 class Simulation(sapphire.simulations.navier_stokes.Simulation):
     
-    def __init__(self, *args, **kwargs):
-        
-        if "time_stencil_size" not in kwargs:
-        
-            kwargs["time_stencil_size"] = 2
-            
-        super().__init__(*args, **kwargs)
-    
     def momentum(self):
         
-        u_t = self.time_discrete_terms()
+        u_t = self.time_discrete_terms["u"]
         
-        psi_u, _ = fe.TestFunctions(self.solution_space)
+        psi_u = self.test_functions["u"]
         
-        dx = fe.dx(degree = self.quadrature_degree)
-        
-        return super().momentum() + dot(psi_u, u_t)*dx
-        
-    def time_discrete_terms(self):
-        
-        u_t, _ = sapphire.Simulation.time_discrete_terms(self)
-        
-        return u_t
-
-
-diff = fe.diff
-
-def strong_residual(sim, solution):
-    
-    u, p = solution
-    
-    t = sim.time
-    
-    Re = sim.reynolds_number
-    
-    r_u = diff(u, t) + grad(u)*u + grad(p) - 2./Re*div(sym(grad(u)))
-    
-    r_p = div(u)
-    
-    return r_u, r_p
+        return super().momentum() + dot(psi_u, u_t)*self.dx
     

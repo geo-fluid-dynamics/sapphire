@@ -21,30 +21,20 @@ class Simulation(sapphire.simulation.Simulation):
             kwargs["solution"] = fe.Function(fe.FunctionSpace(mesh, element))
             
         super().__init__(*args,
-            solver_parameters = solver_parameters, **kwargs)
+            solver_parameters = solver_parameters,
+            fieldnames = ('T',),
+            **kwargs)
     
     def weak_form_residual(self):
         
-        u = self.solution
+        T = self.solution
         
-        u_t = super().time_discrete_terms()
+        T_t = self.time_discrete_terms['T']
         
-        v = fe.TestFunction(self.solution_space)
+        psi = fe.TestFunction(self.solution_space)
         
         dot, grad = fe.dot, fe.grad
         
         dx = fe.dx(degree = self.quadrature_degree)
         
-        return (v*u_t + dot(grad(v), grad(u)))*dx
-
-
-def strong_residual(sim, solution):
-    
-    u = solution
-    
-    t = sim.time
-    
-    diff, div, grad = fe.diff, fe.div, fe.grad
-    
-    return diff(u, t) - div(grad(u))
-    
+        return (psi*T_t + dot(grad(psi), grad(T)))*dx
