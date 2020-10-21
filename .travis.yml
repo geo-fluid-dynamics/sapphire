@@ -7,7 +7,7 @@ branches:
 
 before_install:
 - docker pull zimmerman/firedrake:2020.09.07
-- docker run -dti -v `pwd`:/home/firedrake/sapphire -w /home/firedrake --name fd zimmerman/firedrake
+- docker run -dti -v `pwd`:/home/firedrake/sapphire -w /home/firedrake --name fd zimmerman/firedrake:2020.09.07
 - docker exec fd ls
 - docker exec fd pip3 install pytest
 - docker exec fd bash -c "source firedrake/bin/activate && pip3 install -r sapphire/requirements.txt"
