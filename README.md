@@ -11,11 +11,14 @@ and in time with finite differences.
 
 ## Examples
 
-### Melting octadecane
-![Melting octadecane](https://github.com/geo-fluid-dynamics/sapphire-docs/blob/master/OctadecaneMelting.gif?raw=true)
+### Melting gallium
+<img src="https://github.com/geo-fluid-dynamics/sapphire-docs/blob/master/GalliumMelting.gif?raw=true" height="400" />
 
 ### Freezing water
-![Freezing water](https://github.com/geo-fluid-dynamics/sapphire-docs/blob/master/WaterFreezing.gif?raw=true)
+<img src="https://github.com/geo-fluid-dynamics/sapphire-docs/blob/master/WaterFreezing.gif?raw=true" height="400" />
+
+### Melting octadecane
+<img src="https://github.com/geo-fluid-dynamics/sapphire-docs/blob/master/OctadecaneMelting.gif?raw=true" height="400" />
 
 
 ## Setup
