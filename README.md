@@ -9,13 +9,13 @@ and in time with finite differences.
 [![DOI](https://zenodo.org/badge/157389237.svg)](https://zenodo.org/badge/latestdoi/157389237)
 
 
-## Portfolio
+## Examples
 
-### Benchmarks
+### Melting octadecane
+![Melting octadecane](https://github.com/geo-fluid-dynamics/sapphire-docs/blob/master/OctadecaneMelting.gif?raw=true)
 
-[Melting Octadecane](https://www.researchgate.net/publication/245092223_Analysis_of_heat_transfer_during_melting_from_a_vertical_wall)
-
-![Octadecane melting benchmark](https://github.com/geo-fluid-dynamics/sapphire-docs/blob/master/OctadecaneMelting.gif?raw=true)
+### Freezing water
+![Freezing water](https://github.com/geo-fluid-dynamics/sapphire-docs/blob/master/WaterFreezing.gif?raw=true)
 
 
 ## Setup
