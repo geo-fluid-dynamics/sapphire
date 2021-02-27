@@ -1,10 +1,4 @@
-"""Verify accuracy of the unsteady Navier-Stokes solver.
-
-The pressure accuracy is not verified.
-On the other hand, the pressure accuracy in `test__navier_stokes.py`
-(steady state) is verified.
-This should be investigated further.
-"""
+"""Verify accuracy of the unsteady Navier-Stokes solver."""
 import firedrake as fe 
 import sapphire.mms
 import tests.verification.test__navier_stokes
