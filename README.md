@@ -11,6 +11,8 @@ and in time with finite differences.
 
 ## Examples
 
+Details from the following examples were published in a [journal article](https://doi.org/10.1016/j.camwa.2020.11.008).
+
 ### Melting gallium
 <img src="https://github.com/geo-fluid-dynamics/sapphire-docs/blob/master/GalliumMelting.gif?raw=true" height="400" />
 
@@ -19,7 +21,6 @@ and in time with finite differences.
 
 ### Melting octadecane
 <img src="https://github.com/geo-fluid-dynamics/sapphire-docs/blob/master/OctadecaneMelting.gif?raw=true" height="400" />
-
 
 ## Setup
 
