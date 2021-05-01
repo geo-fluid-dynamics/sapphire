@@ -25,6 +25,14 @@ import sapphire.time_discretization
 import sapphire.output
 
 
+default_solver_parameters = {
+    "snes_type": "newtonls",
+    "snes_monitor": None,
+    "ksp_type": "preonly", 
+    "pc_type": "lu", 
+    "mat_type": "aij",
+    "pc_factor_mat_solver_type": "mumps"}
+
 class Simulation:
     """A PDE-based simulation using the Firedrake framework.
 
@@ -41,13 +49,7 @@ class Simulation:
             time_stencil_size: int = 2,
             timestep_size: float = 1.,
             quadrature_degree: int = None,
-            solver_parameters: dict = {
-                "snes_type": "newtonls",
-                "snes_monitor": None,
-                "ksp_type": "preonly", 
-                "pc_type": "lu", 
-                "mat_type": "aij",
-                "pc_factor_mat_solver_type": "mumps"},
+            solver_parameters: dict = None,
             output_directory_path: str = "output/",
             fieldnames: typing.Iterable[str] = None):
         """
@@ -95,6 +97,10 @@ class Simulation:
                 containing the results of either splitting method.
                 The results of `firedrake.split` will be suffixed with "_ufl".
         """
+        if solver_parameters is None:
+
+            solver_parameters = default_solver_parameters
+            
         assert(time_stencil_size > 0)
         
         

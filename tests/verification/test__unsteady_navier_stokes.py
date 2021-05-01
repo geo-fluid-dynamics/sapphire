@@ -94,7 +94,7 @@ def test__verify_second_order_spatial_convergence_via_mms(tmpdir):
     
     sim_kwargs["taylor_hood_pressure_degree"] = 1
     
-    sim_kwargs["timestep_size"] = 1./16.
+    sim_kwargs["timestep_size"] = 1./4.
     
     sim_kwargs["time_stencil_size"] = 3
     

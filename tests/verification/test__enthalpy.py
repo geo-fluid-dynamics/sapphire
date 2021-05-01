@@ -86,7 +86,7 @@ def test__verify_temporal_convergence__first_order__via_mms():
     
     sapphire.mms.verify_order_of_accuracy(
         discretization_parameter_name = "timestep_size",
-        discretization_parameter_values = (1/16, 1/32, 1/64, 1/128),
+        discretization_parameter_values = (1/64, 1/128, 1/256),
         Simulation = UnitIntervalUniformMeshSimulation,
         sim_kwargs = {
             "stefan_number": 0.1,
@@ -105,7 +105,7 @@ def test__verify_temporal_convergence__second_order__via_mms():
     
     sapphire.mms.verify_order_of_accuracy(
         discretization_parameter_name = "timestep_size",
-        discretization_parameter_values = (1/32, 1/64, 1/128),
+        discretization_parameter_values = (1/64, 1/128),
         Simulation = UnitIntervalUniformMeshSimulation,
         sim_kwargs = {
             "stefan_number": 0.1,
