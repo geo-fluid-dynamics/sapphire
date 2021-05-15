@@ -9,9 +9,11 @@ def solve_with_over_regularization(
         solve,
         solution,
         regularization_parameter,
-        search_operator = lambda r: 2.*r,
-        attempts = 24,
-        startval = None):
+        search_operator=lambda r: 2.*r,
+        attempts=24,
+        startval=None,
+        maxval=None,
+        regularization_parameter_name=None):
     
     original_regularization_parameter_value = \
         regularization_parameter.__float__()
@@ -24,6 +26,14 @@ def solve_with_over_regularization(
     
         r0 = startval
     
+    if regularization_parameter_name is None:
+
+        rname = "r"
+
+    else:
+
+        rname = regularization_parameter_name
+
     backup_solution = fe.Function(solution)
     
     print("Searching for a working regularization")
@@ -34,7 +44,7 @@ def solve_with_over_regularization(
         
         regularization_parameter = regularization_parameter.assign(r)
         
-        print("Trying r = {}".format(r))
+        print("Trying {} = {}".format(rname, r))
         
         try:
             
@@ -54,14 +64,26 @@ def solve_with_over_regularization(
             if attempt == range(attempts)[-1]:
             
                 raise(exception)
-                
+
+            if maxval is not None:
+
+                if r > maxval:
+
+                    regularization_parameter = regularization_parameter.assign(r0)
+
+                    print("Failed to solve before exceeding max continuation parameter. Raising exception")
+
+                    raise(exception)
+
+
 def solve_with_bounded_regularization_sequence(
         solve,
         solution,
         regularization_parameter,
         initial_regularization_sequence,
-        backup_solution = None,
-        maxcount = 24):
+        backup_solution=None,
+        maxcount=24,
+        regularization_parameter_name="r"):
     """ Solve a strongly nonlinear problem 
     by solving a sequence of over-regularized problems 
     with successively reduced regularization.
@@ -71,6 +93,14 @@ def solve_with_bounded_regularization_sequence(
     if backup_solution is None:
     
         backup_solution = fe.Function(solution)
+
+    if regularization_parameter_name is None:
+
+        rname = "r"
+
+    else:
+
+        rname = regularization_parameter_name
         
     r0 = regularization_parameter.__float__()
     
@@ -95,12 +125,14 @@ def solve_with_bounded_regularization_sequence(
             for r in regularization_sequence[r_start_index:]:
                 
                 regularization_parameter.assign(r)
+
+                print("Trying to solve with continuation parameter {} = {}".format(rname, r))
                 
                 solution = solve()
                 
                 backup_solution = backup_solution.assign(solution)
                 
-                print("Solved with continuation parameter = {}".format(r))
+                print("Solved with continuation parameter {} = {}".format(rname, r))
                 
             solved = True
             
@@ -112,8 +144,8 @@ def solve_with_bounded_regularization_sequence(
             
             rs = regularization_sequence
         
-            print("Failed to solve with continuation parameter = {}"
-                  " from the sequence {}".format(current_r, rs))
+            print("Failed to solve with continuation parameter {} = {}"
+                  " from the sequence {}".format(rname, current_r, rs))
                 
             index = rs.index(current_r)
             
@@ -131,7 +163,7 @@ def solve_with_bounded_regularization_sequence(
             
             regularization_sequence = new_rs
             
-            print("Inserted new value of " + str(r_to_insert))
+            print("Inserted new value of {} = {}".format(rname, r_to_insert))
             
             first_r_to_solve = r_to_insert
             

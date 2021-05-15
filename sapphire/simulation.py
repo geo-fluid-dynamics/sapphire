@@ -50,7 +50,7 @@ class Simulation:
             timestep_size: float = 1.,
             quadrature_degree: int = None,
             solver_parameters: dict = None,
-            output_directory_path: str = "output/",
+            output_directory_path: str = "sapphire_simulation_output/",
             fieldnames: typing.Iterable[str] = None):
         """
         Instantiating this class requires enough information to fully 
@@ -146,12 +146,17 @@ class Simulation:
         
         # States for time dependent simulation and checkpointing
         self.solutions = [self.solution,]
-        
+
         self.times = [self.time,]
-        
+
+        self.post_processed_solutions = {}
+
+        self.post_processed_solutions_list = [self.post_processed_solutions,]
+
         self.state = {
             "solution": self.solution,
             "time": self.time,
+            "post_processed_solutions": self.post_processed_solutions,
             "index": 0}
             
         self.states = [self.state,]
@@ -161,10 +166,13 @@ class Simulation:
             self.solutions.append(fe.Function(self.solution))
             
             self.times.append(fe.Constant(self.time - i*timestep_size))
+
+            self.post_processed_solutions_list.append(self.post_processed_solutions)
         
             self.states.append({
                 "solution": self.solutions[i],
                 "time": self.times[i],
+                "post_processed_solutions": self.post_processed_solutions_list[i],
                 "index": -i})
         
         
@@ -223,7 +231,7 @@ class Simulation:
             write_initial_outputs: bool = True,
             endtime_tolerance: float = 1.e-8,
             solve: typing.Callable = None) \
-            -> (typing.List[fe.Function], float):
+            -> typing.List[fe.Function]:
         """Run simulation forward in time.
         
         Args:
@@ -277,6 +285,8 @@ class Simulation:
                 checkpoint = write_checkpoints,
                 vtk = write_vtk_solutions,
                 plots = write_plots)
+
+            self.validate()
             
         return self.states
         
@@ -349,6 +359,13 @@ class Simulation:
         Redefine this to add post-processing.
         """
         return self
+
+    def validate(self):
+        """ This is called during `run` after `write_outputs` before continuing to the next time step. 
+        
+        Redefine this to add validation.
+        """
+        pass
         
     def kwargs_for_writeplots(self) -> dict:
         """Return kwargs needed for `sappphire.outupt.writeplots`.
