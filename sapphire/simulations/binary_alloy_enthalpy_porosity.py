@@ -147,11 +147,13 @@ class Simulation(sapphire.Simulation):
 
             del kwargs["mesh"]
 
-            kwargs["solution"] = fe.Function(fe.FunctionSpace(mesh, element(mesh.ufl_cell(), taylor_hood_pressure_degree, enthalpy_degree, solute_degree)))
+            kwargs["solution"] = fe.Function(fe.FunctionSpace(mesh, element(
+                mesh.ufl_cell(), taylor_hood_pressure_degree, enthalpy_degree, solute_degree)))
 
         if frame_translation_velocity is None:
 
-            frame_translation_velocity = (0.,)*self.solution.function_space().mesh.geometric_dimension()
+            frame_translation_velocity = (
+                0.,)*self.solution.function_space().mesh.geometric_dimension()
 
         self.partition_coefficient = fe.Constant(partition_coefficient)
 
@@ -161,25 +163,31 @@ class Simulation(sapphire.Simulation):
 
         self.lewis_number = fe.Constant(lewis_number)
 
-        self.heat_capacity_solid_to_liquid_ratio = fe.Constant(heat_capacity_solid_to_liquid_ratio)
+        self.heat_capacity_solid_to_liquid_ratio = fe.Constant(
+            heat_capacity_solid_to_liquid_ratio)
 
-        self.thermal_conductivity_solid_to_liquid_ratio = fe.Constant(thermal_conductivity_solid_to_liquid_ratio)
+        self.thermal_conductivity_solid_to_liquid_ratio = fe.Constant(
+            thermal_conductivity_solid_to_liquid_ratio)
 
         self.concentration_ratio = fe.Constant(concentration_ratio)
 
         self.stefan_number = fe.Constant(stefan_number)
 
-        self.temperature_rayleigh_number = fe.Constant(temperature_rayleigh_number)
+        self.temperature_rayleigh_number = fe.Constant(
+            temperature_rayleigh_number)
 
         self.solute_rayleigh_number = fe.Constant(solute_rayleigh_number)
 
         self.reference_permeability = reference_permeability
 
-        self.unit_gravity_direction = sapphire.helpers.normalize_to_unit_vector(gravity_direction)
+        self.unit_gravity_direction = sapphire.helpers.normalize_to_unit_vector(
+            gravity_direction)
 
-        self.frame_translation_velocity = fe.Constant(frame_translation_velocity)
+        self.frame_translation_velocity = fe.Constant(
+            frame_translation_velocity)
 
-        self.phase_diagram_smoothing_factor = fe.Constant(phase_diagram_smoothing_factor)
+        self.phase_diagram_smoothing_factor = fe.Constant(
+            phase_diagram_smoothing_factor)
 
         self.phase_diagram_smoothing_sequence = None
 
@@ -272,7 +280,8 @@ class Simulation(sapphire.Simulation):
 
         Ra_S = self.solute_rayleigh_number
 
-        ghat = fe.Constant(sum([self.unit_vectors[i]*self.unit_gravity_direction[i] for i in range(len(self.unit_vectors))]))
+        ghat = fe.Constant(sum([self.unit_vectors[i]*self.unit_gravity_direction[i]
+                           for i in range(len(self.unit_vectors))]))
 
         p = self.solution_fields['p']
 
@@ -374,66 +383,63 @@ class Simulation(sapphire.Simulation):
             regularization_parameter=self.phase_diagram_smoothing_factor,
             initial_regularization_sequence=self.phase_diagram_smoothing_sequence,
             regularization_parameter_name="sigma")
-            
+
     def solve_with_phase_diagram_smoothing_continuation(self):
-        
+
         sigma = self.phase_diagram_smoothing_factor.__float__()
-        
+
         if self.phase_diagram_smoothing_sequence is None:
-        
+
             given_smoothing_sequence = False
-            
+
         else:
-        
+
             given_smoothing_sequence = True
-        
-        
+
         if not given_smoothing_sequence:
             # Find an over-regularization that works.
             self.solution, sigma_max = self.solve_with_phase_diagram_over_smoothing()
-            
+
             if sigma_max == sigma:
                 # No over-regularization was necessary.
                 return self.solution
-                
+
             else:
                 # A working over-regularization was found, which becomes
                 # the upper bound of the sequence.
                 self.phase_diagram_smoothing_sequence = (sigma_max, sigma)
-                
-                
+
         # At this point, either a smoothing sequence has been provided,
         # or a working upper bound has been found.
         # Next, a viable sequence will be sought.
         try:
-            
+
             self.solution, self.phase_diagram_smoothing_sequence = self.solve_with_bounded_phase_diagram_smoothing_sequence()
-                
-        except fe.exceptions.ConvergenceError as error: 
-            
+
+        except fe.exceptions.ConvergenceError as error:
+
             if given_smoothing_sequence:
                 # Try one more time without using the given sequence.
                 # This is sometimes useful after solving some time steps
                 # with a previously successful regularization sequence
                 # that is not working for a new time step.
                 self.solution = self.solution.assign(self.solutions[1])
-                
+
                 self.solution, smax = self.solve_with_phase_diagram_over_smoothing()
 
                 self.smoothing_sequence = (smax, sigma)
 
                 self.solution, self.smoothing_sequence = self.solve_with_bounded_phase_diagram_smoothing_sequence()
-                    
+
             else:
-                
+
                 raise error
-                
-                
-        # For debugging purposes, ensure that the problem was solved with the 
+
+        # For debugging purposes, ensure that the problem was solved with the
         # correct regularization and that the simulation's attribute for this
         # has been set to the correct value before returning.
         assert(self.phase_diagram_smoothing_factor.__float__() == sigma)
-        
+
         return self.solution
 
     def nullspace(self):
@@ -451,7 +457,7 @@ class Simulation(sapphire.Simulation):
              self.solution_subspaces['H']])
 
     def run(self, *args, **kwargs):
-        
+
         return sapphire.Simulation.run(
             self,
             *args,
@@ -496,19 +502,23 @@ class Simulation(sapphire.Simulation):
 
         if not self.minimum_solute >= (allowable_min_solute - tolerance):
 
-            raise Exception("Maximum bulk solute concentration {} is below allowable minimum of {}".format(self.minimum_solute, allowable_min_solute))
+            raise Exception("Maximum bulk solute concentration {} is below allowable minimum of {}".format(
+                self.minimum_solute, allowable_min_solute))
 
         if not self.maximum_solute <= (allowable_max_solute + tolerance):
 
-            raise Exception("Minimum bulk solute concentration {} is above allowable maximum of {}".format(self.maximum_solute, allowable_max_solute))
+            raise Exception("Minimum bulk solute concentration {} is above allowable maximum of {}".format(
+                self.maximum_solute, allowable_max_solute))
 
         if not self.minimum_porosity >= -tolerance:
 
-            raise Exception("Minimum porosity {} is below minimum physically valid value of {}".format(self.minimum_porosity, 0.))
+            raise Exception("Minimum porosity {} is below minimum physically valid value of {}".format(
+                self.minimum_porosity, 0.))
 
         if not self.maximum_porosity <= (1. + tolerance):
 
-            raise Exception("Maximum porosity {} is above maximum physically valid value of {}".format(self.maximum_porosity, 1.))
+            raise Exception("Maximum porosity {} is above maximum physically valid value of {}".format(
+                self.maximum_porosity, 1.))
 
     def kwargs_for_writeplots(self):
 
