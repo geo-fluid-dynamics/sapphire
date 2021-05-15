@@ -345,7 +345,7 @@ class Simulation(sapphire.Simulation):
 
         H = self.solution_fields['H']
 
-        phi = self.porosity(H, S)
+        phi = self.porosity(S, H)
 
         S_l = self.liquid_solute(S, H)
 
@@ -494,7 +494,7 @@ class Simulation(sapphire.Simulation):
 
     def validate(self):
 
-        tolerance = 1.e-2  # @todo Smaller tolerance wasn't working for phi so double check how that is being post-processed
+        tolerance = 1.e-6
 
         allowable_min_solute = -self.concentration_ratio.__float__()
 
