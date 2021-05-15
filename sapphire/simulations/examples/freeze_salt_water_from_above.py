@@ -1,4 +1,3 @@
-from os import write
 import firedrake as fe
 import sapphire.simulations.binary_alloy_enthalpy_porosity
 
