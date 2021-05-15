@@ -64,7 +64,8 @@ class Simulation(sapphire.simulations.binary_alloy_enthalpy_porosity.Simulation)
             solve=self.solve_with_phase_diagram_smoothing_continuation,
             regularization_parameter=self.top_wall_enthalpy,
             initial_regularization_sequence=(self.initial_enthalpy.__float__(), self.top_wall_enthalpy.__float__()),
-            regularization_parameter_name="H_top")
+            regularization_parameter_name="H_top",
+            maxcount=8)
 
     def run_using_top_wall_bc_continuation_for_first_timestep(self, *args, write_plots, **kwargs):
 
