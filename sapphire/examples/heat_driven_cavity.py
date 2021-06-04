@@ -66,16 +66,16 @@ def ufl_constants(
         rayleigh_number: float,
         prandtl_number: float):
 
-    return sapphire.ufl_constants({
+    return {
         'hotwall_temperature': hotwall_temperature,
         'coldwall_temperature': coldwall_temperature,
         'reynolds_number': reynolds_number,
         'rayleigh_number': rayleigh_number,
-        'prandtl_number': prandtl_number})
+        'prandtl_number': prandtl_number}
 
 
-def buoyancy(solution: sapphire.Solution):
-    """Linear Boussinesq buoyancy"""
+def linear_boussinesq_buoyancy(solution: sapphire.Solution):
+
     T = solution.ufl_fields.T
 
     Re = solution.ufl_constants.reynolds_number
@@ -103,7 +103,7 @@ def mass_residual(solution: sapphire.Solution):
     return psi_p*div(u)*dx
 
 
-def momentum_residual(solution: sapphire.Solution):
+def momentum_residual(solution: sapphire.Solution, buoyancy: typing.Callable[[sapphire.Solution], typing.Any] = None):
     """Momentum residual for natural convection governed by the Navier-Stokes-Boussinesq equations.
 
     Non-homogeneous Neumann BC's are not implemented for the velocity.
@@ -140,9 +140,13 @@ def energy_residual(solution: sapphire.Solution):
     return (psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./(Re*Pr)*grad(T)))*dx
 
 
-def residual(solution: sapphire.Solution):
+def residual(solution: sapphire.Solution, buoyancy: typing.Callable[[sapphire.Solution], typing.Any] = None):
     """Sum of the mass, momentum, and energy residuals"""
-    return mass_residual(solution) + momentum_residual(solution) + energy_residual(solution)
+    if buoyancy is None:
+
+        buoyancy = linear_boussinesq_buoyancy
+
+    return mass_residual(solution) + momentum_residual(solution, buoyancy=buoyancy) + energy_residual(solution)
 
 
 def dirichlet_boundary_conditions(solution: sapphire.Solution):
@@ -196,14 +200,14 @@ def solve(problem: sapphire.Problem) -> sapphire.Solution:
     return solve_with_rayleigh_number_continuation(problem)
 
 
-def output(solution: sapphire.Solution):
+def output(solution: sapphire.Solution, outdir_path: str = "sapphire_output/heat_driven_cavity/"):
 
     sapphire.plot(
         solution=solution,
-        outdir_path="sapphire_output/heat_driven_cavity/")
+        outdir_path=outdir_path)
 
 
-def heat_driven_cavity(
+def run_simulation(
         hotwall_temperature=0.5,
         coldwall_temperature=-0.5,
         reynolds_number=1.,
@@ -211,27 +215,22 @@ def heat_driven_cavity(
         prandtl_number=0.71,
         mesh_dimensions=(20, 20),
         taylor_hood_pressure_element_degree=1,
-        temperature_element_degree=2):
-
-    _ufl_constants = ufl_constants(
-        hotwall_temperature=hotwall_temperature,
-        coldwall_temperature=coldwall_temperature,
-        reynolds_number=reynolds_number,
-        rayleigh_number=rayleigh_number,
-        prandtl_number=prandtl_number)
+        temperature_element_degree=2
+        ) -> sapphire.Simulation:
 
     _mesh = mesh(mesh_dimensions)
 
-    _element = element(_mesh.ufl_cell(), taylor_hood_pressure_element_degree, temperature_element_degree)
-
-    solution_function_space = fe.FunctionSpace(_mesh, _element)
-
-    solution_function = fe.Function(solution_function_space)
-
     solution = sapphire.data.Solution(
-        function=solution_function,
+        function=fe.Function(fe.FunctionSpace(
+            _mesh,
+            element(_mesh.ufl_cell(), taylor_hood_pressure_element_degree, temperature_element_degree))),
         function_component_names=SOLUTION_FUNCTION_COMPONENT_NAMES,
-        ufl_constants=_ufl_constants)
+        ufl_constants=ufl_constants(
+            hotwall_temperature=hotwall_temperature,
+            coldwall_temperature=coldwall_temperature,
+            reynolds_number=reynolds_number,
+            rayleigh_number=rayleigh_number,
+            prandtl_number=prandtl_number))
 
     problem = sapphire.data.Problem(
         solution=solution,
@@ -241,13 +240,20 @@ def heat_driven_cavity(
 
     sim = sapphire.data.Simulation(problem=problem, solutions=(solution,))
 
-    sim = sapphire.run(sim=sim, solve=solve, output=output)
+    return sapphire.run(sim=sim, solve=solve, output=output)
 
-    Ra = rayleigh_number
 
-    Pr = prandtl_number
+def verify_default_simulation():
 
-    sapphire.verify_function_values_at_coordinates(
+    sim = run_simulation()
+
+    solution = sim.solutions[0]
+
+    Ra = solution.ufl_constants.rayleigh_number.__float__()
+
+    Pr = solution.ufl_constants.prandtl_number.__float__()
+
+    sapphire.helpers.verify_function_values_at_coordinates(
         function=sim.solutions[0].subfunctions.u,
         coordinates=[(0.5, y) for y in (0., 0.15, 0.34999, 0.5, 0.65, 0.84999)],
         # Checking y coordinates 0.3499 and 0.8499 instead of 0.35, 0.85 because the `firedrake.Function` evaluation fails at the exact coordinates. See https://github.com/firedrakeproject/firedrake/issues/1340
@@ -257,4 +263,4 @@ def heat_driven_cavity(
 
 if __name__ == '__main__':
 
-    heat_driven_cavity()
+    verify_default_simulation()

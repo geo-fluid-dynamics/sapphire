@@ -17,7 +17,7 @@ class Solution:
 
     function_component_names: typing.Tuple[str]
 
-    ufl_constants: typing.Union[typing.Tuple[fe.Constant], None] = None
+    ufl_constants: typing.Union[typing.Dict[str, fe.Constant], typing.Tuple[fe.Constant], None] = None
 
     quadrature_degree: typing.Union[int, None] = None
 
@@ -49,6 +49,16 @@ class Solution:
     dim: int = field(init=False)
 
     def __post_init__(self):
+
+        if isinstance(self.ufl_constants, dict):
+
+            _ufl_constants = self.ufl_constants.copy()
+
+            for key in self.ufl_constants:
+
+                _ufl_constants[key] = fe.Constant(self.ufl_constants[key])
+
+            self.ufl_constants = namedtuple('UFLConstants', self.ufl_constants.keys())(**_ufl_constants)
 
         self.continuation_history = []
 

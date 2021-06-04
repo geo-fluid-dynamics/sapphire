@@ -1,6 +1,5 @@
 """This module provides helper functions which are independent of other `sapphire` modules"""
 import typing
-from collections import namedtuple
 import numpy as np
 import firedrake as fe
 
@@ -40,17 +39,6 @@ def assign_constant(constant: fe.Constant, value: typing.Union[float, typing.Tup
 def snes_iteration_count(solver: fe.NonlinearVariationalSolver) -> int:
     """ Get iteration number without losing type info """
     return solver.snes.getIterationNumber()
-
-
-def ufl_constants(constants: typing.Dict[str, typing.Union[float, typing.Tuple[float]]]) -> typing.Tuple[fe.Constant]:
-    """ Creates a namedtuple of UFL constants for each item in the dictionary. """
-    _ufl_constants = constants.copy()
-
-    for key in constants:
-
-        _ufl_constants[key] = fe.Constant(constants[key])
-
-    return namedtuple('UFLConstants', constants.keys())(**_ufl_constants)
 
 
 def magnitude(vector: typing.Iterable) -> float:
