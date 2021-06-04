@@ -1,4 +1,4 @@
-""" Example heat-driven cavity simulation governed by the Navier-Stokes-Boussinesq equations
+""" Example heat-driven cavity simulation
 
 The result is compared to data published in
 
@@ -14,233 +14,172 @@ The result is compared to data published in
         doi = {10.1016/0021-9991(82)90058-4}
     }
 """
-import typing
-import sapphire
-import firedrake as fe
+from typing import Tuple, Union, Callable, Dict, Any
+from sapphire import Problem, Solver, Solution, Simulation, solve_with_bounded_continuation_sequence, run, plot
+from sapphire import solve as default_solve
+from sapphire.forms.natural_convection import SOLUTION_FUNCTION_COMPONENT_NAMES, element, residual
+from sapphire.forms.natural_convection import ufl_constants as form_ufl_constants
+from sapphire.forms.natural_convection import linear_boussinesq_buoyancy as default_buoyancy
+from sapphire.helpers.pointwise_verification import verify_function_values_at_points
+from firedrake import UnitSquareMesh, UnitCubeMesh, Function, FunctionSpace, DirichletBC, MixedVectorSpaceBasis, VectorSpaceBasis, dx, assemble
 
-
-SOLUTION_FUNCTION_COMPONENT_NAMES = ('p', 'u', 'T')
 
 MESH_HOTWALL_ID = 1
 
 MESH_COLDWALL_ID = 2
 
-
-def mesh(mesh_dimensions: typing.Tuple[int, int]) -> fe.Mesh:
-
-    return fe.UnitSquareMesh(*mesh_dimensions)
+DEFAULT_MESH_DIMENSIONS = (20, 20)
 
 
-def element(cell: fe.Cell, taylor_hood_pressure_degree: int = 1, temperature_degree: int = 2) -> fe.MixedElement:
-
-    if taylor_hood_pressure_degree < 1:
-
-        raise Exception("Taylor-Hood pressure element degree must be at least 1")
-
-    if temperature_degree < 1:
-
-        raise Exception("Temperature element degree must be at least 1 because continuous Galerkin discretization is assumed")
-
-    return fe.MixedElement(
-        fe.FiniteElement('P', cell, taylor_hood_pressure_degree),
-        fe.VectorElement('P', cell, taylor_hood_pressure_degree + 1),
-        fe.FiniteElement('P', cell, temperature_degree))
-
-
-def nullspace(solution: sapphire.Solution) -> fe.MixedVectorSpaceBasis:
-    """Inform solver that pressure solution is not unique.
-
-    It is only defined up to adding an arbitrary constant because there will be no boundary conditions on the pressure.
-    """
-    return fe.MixedVectorSpaceBasis(
-        solution.function_space,
-        [fe.VectorSpaceBasis(constant=True),
-         solution.function_subspaces.u,
-         solution.function_subspaces.T])
-
-
-def ufl_constants(
-        hotwall_temperature: float,
-        coldwall_temperature: float,
-        reynolds_number: float,
-        rayleigh_number: float,
-        prandtl_number: float):
+def bc_ufl_constants(hotwall_temperature: float, coldwall_temperature: float) -> Dict[str, float]:
 
     return {
         'hotwall_temperature': hotwall_temperature,
-        'coldwall_temperature': coldwall_temperature,
-        'reynolds_number': reynolds_number,
-        'rayleigh_number': rayleigh_number,
-        'prandtl_number': prandtl_number}
+        'coldwall_temperature': coldwall_temperature}
 
 
-def linear_boussinesq_buoyancy(solution: sapphire.Solution):
+def default_mesh(mesh_dimensions: Union[Tuple[int, int], Tuple[int, int, int]] = None) -> Any:
 
-    T = solution.ufl_fields.T
+    if mesh_dimensions is None:
 
-    Re = solution.ufl_constants.reynolds_number
+        mesh_dimensions = DEFAULT_MESH_DIMENSIONS
 
-    Ra = solution.ufl_constants.rayleigh_number
+    if len(mesh_dimensions) == 2:
 
-    Pr = solution.ufl_constants.prandtl_number
+        return UnitSquareMesh(*mesh_dimensions)
 
-    ghat = fe.Constant(-solution.unit_vectors[1])
+    elif len(mesh_dimensions) == 3:
 
-    return Ra/(Pr*Re**2)*T*ghat
-
-
-inner, dot, grad, div, sym = fe.inner, fe.dot, fe.grad, fe.div, fe.sym
+        return UnitCubeMesh(*mesh_dimensions)
 
 
-def mass_residual(solution: sapphire.Solution):
-    """Mass residual assuming incompressible flow"""
-    u = solution.ufl_fields.u
-
-    psi_p = solution.test_functions.p
-
-    dx = fe.dx(degree=solution.quadrature_degree)
-
-    return psi_p*div(u)*dx
-
-
-def momentum_residual(solution: sapphire.Solution, buoyancy: typing.Callable[[sapphire.Solution], typing.Any] = None):
-    """Momentum residual for natural convection governed by the Navier-Stokes-Boussinesq equations.
-
-    Non-homogeneous Neumann BC's are not implemented for the velocity.
-    """
-    p = solution.ufl_fields.p
-
-    u = solution.ufl_fields.u
-
-    psi_u = solution.test_functions.u
-
-    b = buoyancy(solution)
-
-    Re = solution.ufl_constants.reynolds_number
-
-    dx = fe.dx(degree=solution.quadrature_degree)
-
-    return (dot(psi_u, grad(u)*u + b) - div(psi_u)*p + 2./Re*inner(sym(grad(psi_u)), sym(grad(u))))*dx
-
-
-def energy_residual(solution: sapphire.Solution):
-    """Energy residual formulated as convection and diffusion of a temperature field"""
-    Re = solution.ufl_constants.reynolds_number
-
-    Pr = solution.ufl_constants.prandtl_number
-
-    u = solution.ufl_fields.u
-
-    T = solution.ufl_fields.T
-
-    psi_T = solution.test_functions.T
-
-    dx = fe.dx(degree=solution.quadrature_degree)
-
-    return (psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./(Re*Pr)*grad(T)))*dx
-
-
-def residual(solution: sapphire.Solution, buoyancy: typing.Callable[[sapphire.Solution], typing.Any] = None):
-    """Sum of the mass, momentum, and energy residuals"""
-    if buoyancy is None:
-
-        buoyancy = linear_boussinesq_buoyancy
-
-    return mass_residual(solution) + momentum_residual(solution, buoyancy=buoyancy) + energy_residual(solution)
-
-
-def dirichlet_boundary_conditions(solution: sapphire.Solution):
+def dirichlet_boundary_conditions(solution: Solution) -> Tuple[DirichletBC]:
     """No-slip BCs for the velocity on every wall and constant temperature BCs on the left and right walls.
 
     The weak formulation does not admit Dirichlet boundary conditions on the pressure solution.
     To make the solution unique, the returned pressure solution will always be post-processed to have zero mean.
     """
-    d = solution.mesh.geometric_dimension()
 
-    return [
-        fe.DirichletBC(solution.function_subspaces.u, (0,)*d, "on_boundary"),
-        fe.DirichletBC(solution.function_subspaces.T, solution.ufl_constants.hotwall_temperature, MESH_HOTWALL_ID),
-        fe.DirichletBC(solution.function_subspaces.T, solution.ufl_constants.coldwall_temperature, MESH_COLDWALL_ID)]
+    return (
+        DirichletBC(solution.function_subspaces.u, (0,)*solution.geometric_dimension, "on_boundary"),
+        DirichletBC(solution.function_subspaces.T, solution.ufl_constants.hotwall_temperature, MESH_HOTWALL_ID),
+        DirichletBC(solution.function_subspaces.T, solution.ufl_constants.coldwall_temperature, MESH_COLDWALL_ID))
 
 
-def solve_and_subtract_mean_pressure(problem: sapphire.Problem) -> sapphire.Solution:
+def nullspace(solution: Solution) -> MixedVectorSpaceBasis:
+    """Inform solver that pressure solution is not unique.
 
-    solution = sapphire.nonlinear_solve(problem)
+    It is only defined up to adding an arbitrary constant because there will be no boundary conditions on the pressure.
+    """
+    return MixedVectorSpaceBasis(
+        solution.function_space,
+        [VectorSpaceBasis(constant=True), solution.function_subspaces.u, solution.function_subspaces.T])
+
+
+def solve_and_subtract_mean_pressure(sim: Simulation) -> Solution:
+
+    solution = default_solve(sim)
 
     print("Subtracting mean pressure to make solution unique")
 
     p = solution.ufl_fields.p
 
-    dx = fe.dx(degree=solution.quadrature_degree)
-
-    mean_pressure = fe.assemble(p*dx)
+    mean_pressure = assemble(p*dx(degree=solution.quadrature_degree))
 
     p = solution.subfunctions.p
 
-    p = sapphire.helpers.assign_function_values(p - mean_pressure, p)
+    p.assign(p - mean_pressure)
 
     print("Done subtracting mean pressure")
 
     return solution
 
 
-def solve_with_rayleigh_number_continuation(problem: sapphire.Problem) -> sapphire.Solution:
+def solve_with_rayleigh_number_continuation(sim: Simulation) -> Solution:
 
-    Ra = problem.solution.ufl_constants.rayleigh_number
+    Ra = sim.solutions[0].ufl_constants.rayleigh_number
 
-    return sapphire.continuation.solve_with_bounded_continuation_sequence(
-        problem=problem,
-        nonlinear_solve=sapphire.nonlinear_solve,
+    return solve_with_bounded_continuation_sequence(
+        sim=sim,
+        solve=default_solve,
         continuation_parameter_and_name=(Ra, 'Ra'),
         initial_sequence=(1, Ra.__float__()))
 
 
-def solve(problem: sapphire.Problem) -> sapphire.Solution:
+def solve(sim: Simulation) -> Solution:
 
-    return solve_with_rayleigh_number_continuation(problem)
+    return solve_with_rayleigh_number_continuation(sim)
 
 
-def output(solution: sapphire.Solution, outdir_path: str = "sapphire_output/heat_driven_cavity/"):
+def output(solution: Solution, outdir_path: str = "sapphire_output/heat_driven_cavity/"):
 
-    sapphire.plot(
+    plot(
         solution=solution,
         outdir_path=outdir_path)
 
 
+def simulation(
+        ufl_constants: Dict[str, float],
+        buoyancy: Callable[[Solution], Any] = None,
+        mesh: Any = None,
+        taylor_hood_pressure_element_degree=1,
+        temperature_element_degree=2):
+
+    if buoyancy is None:
+
+        buoyancy = default_buoyancy
+
+    if mesh is None:
+
+        mesh = default_mesh()
+
+    solution = Solution(
+        function=Function(FunctionSpace(
+            mesh,
+            element(mesh.ufl_cell(), taylor_hood_pressure_element_degree, temperature_element_degree))),
+        function_component_names=SOLUTION_FUNCTION_COMPONENT_NAMES,
+        ufl_constants=ufl_constants)
+
+    def _residual(_solution):
+
+        return residual(_solution, buoyancy=buoyancy)
+
+    problem = Problem(
+        residual=_residual,
+        dirichlet_boundary_conditions=dirichlet_boundary_conditions(solution))
+
+    solver = Solver(nullspace=nullspace(solution))
+
+    sim = Simulation(solutions=(solution,), problem=problem, solver=solver)
+
+    return sim
+
+
 def run_simulation(
-        hotwall_temperature=0.5,
-        coldwall_temperature=-0.5,
         reynolds_number=1.,
         rayleigh_number=1.e6,
         prandtl_number=0.71,
+        hotwall_temperature=0.5,
+        coldwall_temperature=-0.5,
         mesh_dimensions=(20, 20),
         taylor_hood_pressure_element_degree=1,
         temperature_element_degree=2
-        ) -> sapphire.Simulation:
+        ) -> Simulation:
 
-    _mesh = mesh(mesh_dimensions)
+    sim = simulation(
+        ufl_constants={
+            **form_ufl_constants(
+                reynolds_number=reynolds_number,
+                rayleigh_number=rayleigh_number,
+                prandtl_number=prandtl_number),
+            **bc_ufl_constants(
+                hotwall_temperature=hotwall_temperature,
+                coldwall_temperature=coldwall_temperature)},
+        mesh=default_mesh(mesh_dimensions),
+        taylor_hood_pressure_element_degree=taylor_hood_pressure_element_degree,
+        temperature_element_degree=temperature_element_degree)
 
-    solution = sapphire.data.Solution(
-        function=fe.Function(fe.FunctionSpace(
-            _mesh,
-            element(_mesh.ufl_cell(), taylor_hood_pressure_element_degree, temperature_element_degree))),
-        function_component_names=SOLUTION_FUNCTION_COMPONENT_NAMES,
-        ufl_constants=ufl_constants(
-            hotwall_temperature=hotwall_temperature,
-            coldwall_temperature=coldwall_temperature,
-            reynolds_number=reynolds_number,
-            rayleigh_number=rayleigh_number,
-            prandtl_number=prandtl_number))
-
-    problem = sapphire.data.Problem(
-        solution=solution,
-        residual=residual,
-        dirichlet_boundary_conditions=dirichlet_boundary_conditions(solution),
-        nullspace=nullspace(solution))
-
-    sim = sapphire.data.Simulation(problem=problem, solutions=(solution,))
-
-    return sapphire.run(sim=sim, solve=solve, output=output)
+    return run(sim=sim, solve=solve, output=output)
 
 
 def verify_default_simulation():
@@ -253,9 +192,9 @@ def verify_default_simulation():
 
     Pr = solution.ufl_constants.prandtl_number.__float__()
 
-    sapphire.helpers.verify_function_values_at_coordinates(
+    verify_function_values_at_points(
         function=sim.solutions[0].subfunctions.u,
-        coordinates=[(0.5, y) for y in (0., 0.15, 0.34999, 0.5, 0.65, 0.84999)],
+        points=[(0.5, y) for y in (0., 0.15, 0.34999, 0.5, 0.65, 0.84999)],
         # Checking y coordinates 0.3499 and 0.8499 instead of 0.35, 0.85 because the `firedrake.Function` evaluation fails at the exact coordinates. See https://github.com/firedrakeproject/firedrake/issues/1340
         expected_values=[(u_x*Ra**0.5/Pr, None) for u_x in (0.0000, -0.0649, -0.0194, 0.0000, 0.0194, 0.0649)],
         absolute_tolerances=[(tol*Ra**0.5/Pr, None) for tol in (1.e-12, 0.001, 0.001, 1.e-12, 0.001, 0.001)])

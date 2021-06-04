@@ -1,4 +1,4 @@
-""" Time discretization formulas
+"""Time discretization formulas
 
 Derived from
 
@@ -10,15 +10,15 @@ Derived from
       publisher={Siam}
     }
 """
-import typing
-import sapphire.data
-import firedrake as fe
+from typing import Deque, Any
+from sapphire.data.solution import Solution
+from firedrake import Constant, split
 
 
 def ufl_time_discrete_terms(
-        solutions: typing.Deque[sapphire.data.Solution],
-        timestep_size: fe.Constant
-        ) -> typing.Any:  # @todo What type is this?
+        solutions: Deque[Solution],
+        timestep_size: Constant
+        ) -> Any:
     """Returns backward difference time discretization.
 
     The backward difference formula's stencil size is determine by the number of solutions provided, i.e. `len(solutions)`.
@@ -42,7 +42,7 @@ def ufl_time_discrete_terms(
 
     return [
         bdf(
-            [fe.split(functions[j])[i] for j in range(len(functions))],
+            [split(functions[j])[i] for j in range(len(functions))],
             timestep_size=timestep_size)
         for i in range(component_count)]
 

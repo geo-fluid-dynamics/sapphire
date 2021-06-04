@@ -2,26 +2,26 @@
 
 for regularized nonlinear problems.
 """
-import typing
-import sapphire.helpers
-import sapphire.data
-import firedrake as fe
+from typing import Callable, Tuple, Union
+from sapphire.data.solution import Solution
+from sapphire.data.simulation import Simulation
+from firedrake import Function, Constant, ConvergenceError
 
 
 def find_working_continuation_parameter_value(
-        problem: sapphire.data.Problem,
-        nonlinear_solve: typing.Callable[[sapphire.data.Problem], sapphire.data.Solution],
-        continuation_parameter_and_name: typing.Tuple[fe.Constant, str],
-        search_operator: typing.Callable = lambda r: 2.*r,
+        sim: Simulation,
+        solve: Callable[[Simulation], Solution],
+        continuation_parameter_and_name: Tuple[Constant, str],
+        search_operator: Callable = lambda r: 2.*r,
         max_attempts: int = 8,
-        backup_solution_function: typing.Union[fe.Function, None] = None,
-        ) -> sapphire.data.Solution:
+        backup_solution_function: Union[Function, None] = None,
+        ) -> Solution:
     """ Attempt to solve a sequence of nonlinear problems where the continuation parameter value is varied according to the search operator until a solution is found.
 
     The resulting solution will *not* be the solution to the original problem with the original parameter value.
     Rather the solution can be used as a starting point for bounded continuation.
     """
-    solution = problem.solution
+    solution = sim.solutions[0]
 
     continuation_parameter, rname = continuation_parameter_and_name
 
@@ -31,7 +31,7 @@ def find_working_continuation_parameter_value(
 
     if backup_solution_function is None:
 
-        backup_solution_function = fe.Function(solution.function)
+        backup_solution_function = Function(solution.function)
 
     elif backup_solution_function.function_space() != solution.function_space:
 
@@ -45,7 +45,7 @@ def find_working_continuation_parameter_value(
 
     for attempt in range(max_attempts):
 
-        continuation_parameter = continuation_parameter.assign(r)
+        continuation_parameter.assign(r)
 
         print("Trying {} = {}".format(rname, r))
 
@@ -53,21 +53,21 @@ def find_working_continuation_parameter_value(
 
             snes_iteration_count = solution.snes_cumulative_iteration_count
 
-            solution = nonlinear_solve(problem)
+            solution = solve(sim)
 
             solution.continuation_history.append((rname, r, solution.snes_cumulative_iteration_count - snes_iteration_count))
 
             return solution
 
-        except fe.exceptions.ConvergenceError as exception:
+        except ConvergenceError as exception:
 
             r = search_operator(r)
 
-            solution.function = sapphire.helpers.assign_function_values(backup_solution_function, solution.function)
+            solution.function.assign(backup_solution_function)
 
             if attempt == range(max_attempts)[-1]:
 
-                continuation_parameter = continuation_parameter.assign(r0)
+                continuation_parameter.assign(r0)
 
                 raise(exception)
 
@@ -75,21 +75,21 @@ def find_working_continuation_parameter_value(
 
 
 def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-arguments
-        problem: sapphire.data.Problem,
-        nonlinear_solve: typing.Callable[[sapphire.data.Problem], sapphire.data.Solution],
-        continuation_parameter_and_name: typing.Tuple[fe.Constant, str],
-        initial_sequence: typing.Tuple[float],
+        sim: Simulation,
+        solve: Callable[[Simulation], Solution],
+        continuation_parameter_and_name: Tuple[Constant, str],
+        initial_sequence: Tuple[float],
         maxcount: int = 16,
         start_from_right: bool = False,
-        backup_solution_function: typing.Union[fe.Function, None] = None,
-        ) -> sapphire.data.Solution:
+        backup_solution_function: Union[Function, None] = None,
+        ) -> Solution:
     """ Solve a sequence of nonlinear problems where the continuation parameter value varies between bounds.
 
     Always continue from left to right.
 
     If successful, then the final solution is for the right bounding continuation parameter value.
     """
-    solution = problem.solution
+    solution = sim.solutions[0]
 
     continuation_parameter, rname = continuation_parameter_and_name
 
@@ -119,7 +119,7 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
 
     if backup_solution_function is None:
 
-        backup_solution_function = fe.Function(solution.function)
+        backup_solution_function = Function(solution.function)
 
     elif backup_solution_function.function_space() != solution.function_space:
 
@@ -133,17 +133,17 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
 
             for r in sequence[r_start_index:]:
 
-                continuation_parameter = sapphire.helpers.assign_constant(continuation_parameter, r)
+                continuation_parameter.assign(r)
 
                 print("Trying to solve with continuation parameter {} = {}".format(rname, r))
 
                 snes_iteration_count = solution.snes_cumulative_iteration_count
 
-                solution = nonlinear_solve(problem)
+                solution = solve(sim)
 
                 solution.continuation_history.append((rname, r, solution.snes_cumulative_iteration_count - snes_iteration_count))
 
-                backup_solution_function = sapphire.helpers.assign_function_values(solution.function, backup_solution_function)
+                backup_solution_function.assign(solution.function)
 
                 print("Solved with continuation parameter {} = {}".format(rname, r))
 
@@ -151,7 +151,7 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
 
             break
 
-        except fe.exceptions.ConvergenceError as exception:
+        except ConvergenceError as exception:
 
             current_r = continuation_parameter.__float__()
 
@@ -163,11 +163,11 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
 
             if attempt == attempts[-1] or (index == 0):
 
-                continuation_parameter = sapphire.helpers.assign_constant(continuation_parameter, r0)
+                continuation_parameter.assign(r0)
 
                 raise(exception)
 
-            solution.function = sapphire.helpers.assign_function_values(backup_solution_function, solution.function)
+            solution.function.assign(backup_solution_function)
 
             r_to_insert = (current_r + rs[index - 1])/2.
 

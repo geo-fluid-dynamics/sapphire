@@ -1,10 +1,11 @@
-""" Module for running a Simulation. """
+"""Module for running simulations"""
 from logging import warning
-import typing
-import sapphire.helpers
-import sapphire.data
-import sapphire.nonlinear_solve
-import sapphire.output.plot
+from typing import Callable
+from sapphire.helpers.upstream import assign_function_values, rotate_deque
+from sapphire.data.solution import Solution
+from sapphire.data.simulation import Simulation
+from sapphire.solve import solve as default_solve
+from sapphire.output.plot import plot
 
 
 ENDTIME_TOLERANCE = 1.e-8
@@ -14,24 +15,19 @@ This is larger than a typical floating point comparison tolerance because errors
 """
 
 
-def default_solve(problem: sapphire.data.Problem) -> sapphire.data.Solution:
+def default_output(solution: Solution, outdir_path: str) -> None:
 
-    return sapphire.nonlinear_solve.nonlinear_solve(problem)
-
-
-def default_output(solution: sapphire.data.Solution, outdir_path: str):
-
-    sapphire.output.plot.plot(solution=solution, outdir_path=outdir_path)
+    plot(solution=solution, outdir_path=outdir_path)
 
 
 def run(  # pylint: disable=too-many-arguments
-        sim: sapphire.data.Simulation,
+        sim: Simulation,
         endtime: float = None,
-        solve: typing.Callable[[sapphire.data.Problem], sapphire.data.Solution] = None,
-        postprocess: typing.Callable[[sapphire.data.Solution], sapphire.data.Solution] = None,
-        output: typing.Callable[[sapphire.data.Solution], None] = None,
-        validate: typing.Callable[[sapphire.data.Solution], bool] = None,
-        ) -> sapphire.data.Simulation:
+        solve: Callable[[Simulation], Solution] = None,
+        postprocess: Callable[[Solution], Solution] = None,
+        output: Callable[[Solution], None] = None,
+        validate: Callable[[Solution], bool] = None,
+        ) -> Simulation:
     """Run simulation forward in time.
 
     :param sim: The simulation data.
@@ -78,7 +74,7 @@ def run(  # pylint: disable=too-many-arguments
 
             raise Exception("`sim.solutions` should only contain a single solution if there is no time discretization")
 
-        sim.solutions[0] = _run_one_step(problem=sim.problem, solve=solve, postprocess=postprocess, output=output, validate=validate)
+        sim.solutions[0] = _run_one_step(sim=sim, solve=solve, postprocess=postprocess, output=output, validate=validate)
 
         return sim
 
@@ -97,15 +93,17 @@ def run(  # pylint: disable=too-many-arguments
 
         if stepcount > 0:
 
-            sim.solutions = sapphire.helpers.rotate_deque(sim.solutions, 1)
+            sim.solutions = rotate_deque(sim.solutions, 1)
 
-            sim.solutions[0].function = sapphire.helpers.assign_function_values(sim.solutions[1].function, sim.solutions[0].function)
+            sim.solutions[0].function = assign_function_values(sim.solutions[1].function, sim.solutions[0].function)
 
             sim.solutions[0].time = sim.solutions[1].time + timestep_size
 
             sim.solutions[0].checkpoint_index = sim.solutions[1].checkpoint_index + 1
 
-        sim.solutions[0] = _run_one_step(problem=sim.problem, solve=solve, postprocess=postprocess, output=output, validate=validate)
+        sim.solutions[0] = _run_one_step(sim=sim, solve=solve, postprocess=postprocess, output=output, validate=validate)
+
+        print("Solved at time t = {}".format(time))
 
         stepcount += 1
 
@@ -115,18 +113,14 @@ def run(  # pylint: disable=too-many-arguments
 
 
 def _run_one_step(
-        problem: sapphire.data.Problem,
-        solve: typing.Callable[[sapphire.data.Problem], sapphire.data.Solution] = None,
-        postprocess: typing.Callable[[sapphire.data.Solution], sapphire.data.Solution] = None,
-        output: typing.Callable[[sapphire.data.Solution], None] = None,
-        validate: typing.Callable[[sapphire.data.Solution], bool] = None,
-        ) -> sapphire.data.Solution:
+        sim: Simulation,
+        solve: Callable[[Simulation], Solution],
+        postprocess: Callable[[Solution], Solution] = None,
+        output: Callable[[Solution], None] = None,
+        validate: Callable[[Solution], bool] = None,
+        ) -> Solution:
 
-    solution = solve(problem)
-
-    if solution.time:
-
-        print("Solved at time t = {}".format(solution.time))
+    solution = solve(sim)
 
     if postprocess:
 
@@ -134,9 +128,11 @@ def _run_one_step(
 
         solution = postprocess(solution)
 
-    print("Writing outputs")
+    if output:
 
-    output(solution)
+        print("Writing outputs")
+
+        output(solution)
 
     if validate:
 

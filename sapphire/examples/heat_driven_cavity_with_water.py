@@ -14,25 +14,20 @@ The result is compared to data published in
         doi = {10.1016/0021-9991(82)90058-4}
     }
 """
-import sapphire
-import sapphire.examples.heat_driven_cavity
-from sapphire.examples.heat_driven_cavity import mesh, element, nullspace, dirichlet_boundary_conditions, solve
-import firedrake as fe
+from typing import Dict, Any
+from sapphire import Solution, Simulation
+from sapphire.forms.natural_convection import residual as natural_convection_residual
+from sapphire.examples.heat_driven_cavity import MESH_COLDWALL_ID, default_mesh, form_ufl_constants, bc_ufl_constants, simulation, solve, run
+from sapphire.examples.heat_driven_cavity import output as heat_driven_cavity_output
+from firedrake import Constant, dot, grad, FacetNormal, assemble, ds
 
 
-SOLUTION_FUNCTION_COMPONENT_NAMES = sapphire.examples.heat_driven_cavity.SOLUTION_FUNCTION_COMPONENT_NAMES
-
-MESH_HOTWALL_ID = sapphire.examples.heat_driven_cavity.MESH_HOTWALL_ID
-
-MESH_COLDWALL_ID = sapphire.examples.heat_driven_cavity.MESH_COLDWALL_ID
-
-
-def ufl_constants_for_water_buoyancy(reference_temperature_range__degC: float):
+def ufl_constants_for_water_buoyancy(reference_temperature_range__degC: float) -> Dict[str, float]:
 
     return {'reference_temperature_range__degC': reference_temperature_range__degC}
 
 
-def buoyancy_with_density_anomaly_of_water(solution: sapphire.Solution):
+def buoyancy_with_density_anomaly_of_water(solution: Solution) -> Any:
     """Eq. (25) from @cite{danaila2014newton}"""
     T = solution.ufl_fields.T
 
@@ -44,15 +39,15 @@ def buoyancy_with_density_anomaly_of_water(solution: sapphire.Solution):
 
     DeltaT = solution.ufl_constants.reference_temperature_range__degC
 
-    ghat = fe.Constant(-solution.unit_vectors[1])
+    ghat = Constant(-solution.unit_vectors[1])
 
-    T_anomaly_degC = fe.Constant(4.0293)
+    T_anomaly_degC = Constant(4.0293)
 
-    rho_anomaly_SI = fe.Constant(999.972)
+    rho_anomaly_SI = Constant(999.972)
 
-    w_degC = fe.Constant(9.2793e-6)
+    w_degC = Constant(9.2793e-6)
 
-    q = fe.Constant(1.894816)
+    q = Constant(1.894816)
 
     def T_degC(T):
         """ T = T_degC/DeltaT """
@@ -66,21 +61,21 @@ def buoyancy_with_density_anomaly_of_water(solution: sapphire.Solution):
 
         return rho_of_T_degC(T_degC(T))
 
-    beta = fe.Constant(6.91e-5)  # [K^-1]
+    beta = Constant(6.91e-5)  # [K^-1]
 
     rho_0 = rho(T=0.)
 
     return Ra/(Pr*Re**2*beta*DeltaT)*(rho_0 - rho(T))/rho_0*ghat
 
 
-def residual(solution: sapphire.Solution):
+def residual(solution: Solution) -> Any:
 
-    return sapphire.examples.heat_driven_cavity.residual(solution, buoyancy=buoyancy_with_density_anomaly_of_water)
+    return natural_convection_residual(solution, buoyancy=buoyancy_with_density_anomaly_of_water)
 
 
-def output(solution: sapphire.Solution, outdir_path="sapphire_output/heat_driven_cavity_with_water/"):
+def output(solution: Solution, outdir_path="sapphire_output/heat_driven_cavity_with_water/") -> None:
 
-    sapphire.examples.heat_driven_cavity.output(solution, outdir_path=outdir_path)
+    heat_driven_cavity_output(solution, outdir_path=outdir_path)
 
 
 def run_simulation(
@@ -93,41 +88,24 @@ def run_simulation(
         mesh_dimensions=(20, 20),
         taylor_hood_pressure_element_degree=1,
         temperature_element_degree=2
-        ) -> sapphire.Simulation:
+        ) -> Simulation:
 
-    _ufl_constants = {
-        **sapphire.examples.heat_driven_cavity.ufl_constants(
-            hotwall_temperature=hotwall_temperature,
-            coldwall_temperature=coldwall_temperature,
-            reynolds_number=reynolds_number,
-            rayleigh_number=rayleigh_number,
-            prandtl_number=prandtl_number),
-        **ufl_constants_for_water_buoyancy(reference_temperature_range__degC=reference_temperature_range__degC)}
+    sim = simulation(
+        ufl_constants={
+            **form_ufl_constants(
+                reynolds_number=reynolds_number,
+                rayleigh_number=rayleigh_number,
+                prandtl_number=prandtl_number),
+            **bc_ufl_constants(
+                hotwall_temperature=hotwall_temperature,
+                coldwall_temperature=coldwall_temperature),
+            **ufl_constants_for_water_buoyancy(reference_temperature_range__degC=reference_temperature_range__degC)},
+        buoyancy=buoyancy_with_density_anomaly_of_water,
+        mesh=default_mesh(mesh_dimensions),
+        taylor_hood_pressure_element_degree=taylor_hood_pressure_element_degree,
+        temperature_element_degree=temperature_element_degree)
 
-    _mesh = mesh(mesh_dimensions)
-
-    _element = element(_mesh.ufl_cell(), taylor_hood_pressure_element_degree, temperature_element_degree)
-
-    solution_function_space = fe.FunctionSpace(_mesh, _element)
-
-    solution_function = fe.Function(solution_function_space)
-
-    solution = sapphire.data.Solution(
-        function=solution_function,
-        function_component_names=SOLUTION_FUNCTION_COMPONENT_NAMES,
-        ufl_constants=_ufl_constants)
-
-    problem = sapphire.data.Problem(
-        solution=solution,
-        residual=residual,
-        dirichlet_boundary_conditions=dirichlet_boundary_conditions(solution),
-        nullspace=nullspace(solution))
-
-    sim = sapphire.data.Simulation(problem=problem, solutions=(solution,))
-
-    sim = sapphire.run(sim=sim, solve=solve, output=output)
-
-    return sim
+    return run(sim=sim, solve=solve, output=output)
 
 
 def verify_default_simulation():
@@ -136,15 +114,11 @@ def verify_default_simulation():
 
     solution = sim.solutions[0]
 
-    ds = fe.ds(subdomain_id=MESH_COLDWALL_ID)
-
-    nhat = fe.FacetNormal(solution.mesh)
+    nhat = FacetNormal(solution.mesh)
 
     T = solution.ufl_fields.T
 
-    dot, grad = fe.dot, fe.grad
-
-    coldwall_heatflux = fe.assemble(dot(grad(T), nhat)*ds)
+    coldwall_heatflux = assemble(dot(grad(T), nhat)*ds(subdomain_id=MESH_COLDWALL_ID))
 
     expected_coldwall_heatflux = -8
 
