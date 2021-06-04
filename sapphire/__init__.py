@@ -1,22 +1,23 @@
 """ Sapphire (Simulations automatically programmed in Firedrake)
 
-Sapphire is an engine for constructing PDE-based simulations based on
-the Firedrake framework.
-It provides the `sapphire.Simulation` base class, along with packages 
-of general simulations and specific examples.
+Sapphire is an engine for constructing PDE-based simulations based on the Firedrake framework.
 
-Simulations proceed forward in time by solving a sequence of 
-initial boundary value problems (IBVP's).
-Using the Firedrake framework, the PDE's are discretized in space with
-finite element methods.
-The symbolic capabilities of Firedrake are used to automatically 
-implement backward difference formula (BDF) time discretizations and
-to automatically linearize nonlinear problems with Newton's method.
+Simulations proceed forward in time by solving a sequence of initial boundary value problems (IBVP's).
+Using the Firedrake framework, the PDE's are discretized in space with finite element methods.
+The symbolic capabilities of Firedrake are used to automatically implement backward difference formula (BDF) time discretizations and to automatically linearize nonlinear problems with Newton's method.
 
-Nonlinear and linear solvers are provided by PETSc and are accessed via
-the Firedrake interface.
+Nonlinear and linear solvers are provided by PETSc and are accessed via the Firedrake interface.
 """
 import sys
+import sapphire.time_discretization
+import sapphire.continuation
+from sapphire.helpers import ufl_constants, verify_function_values_at_coordinates
+from sapphire.data import Solution
+from sapphire.data import Problem
+from sapphire.data import Simulation
+from sapphire.nonlinear_solve import nonlinear_solve
+from sapphire.output.plot import plot
+from sapphire.run import run
 
 
 _major, _minor = sys.version_info[:2]
@@ -28,6 +29,3 @@ assert _major >= 3, _required_version_message
 if _major == 3:
 
     assert _minor >= 6, _required_version_message
-
-
-from sapphire.simulation import Simulation

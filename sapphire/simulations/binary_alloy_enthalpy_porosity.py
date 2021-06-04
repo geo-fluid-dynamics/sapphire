@@ -21,6 +21,7 @@ The PDE formulation (with a different discretization and solution procedure--als
         doi = {10.1016/j.jcpx.2019.100043}
     }
 """
+import typing
 import firedrake as fe
 import sapphire.helpers
 import sapphire.simulation
@@ -29,7 +30,22 @@ import sapphire.simulations.navier_stokes
 import sapphire.simulations.enthalpy_porosity
 
 
-default_solver_parameters = sapphire.simulations.enthalpy_porosity.default_solver_parameters
+DEFAULT_DISCRETIZATION_PARAMETERS = {
+    'time_stencil_size': 2,
+    'taylor_hood_pressure_element_degree': 1,
+    'enthalpy_element_degree': 1,
+    'solute_element_degree': 1,
+    'quadrature_degree': 4,
+}
+
+DEFAULT_CONTINUATION_PARAMETERS = {
+    'max_timestep_size_continuation_steps': 16,
+    'max_porosity_smoothing_continuation_valu': 2.,
+    'max_porosity_smoothing_continuation_steps': 8,
+    'max_solute_rayleigh_number_continuation_steps': 16,
+}
+
+DEFAULT_SOLVER_PARAMETERS = sapphire.simulations.enthalpy_porosity.default_solver_parameters
 
 sqrt = fe.sqrt
 
@@ -115,31 +131,25 @@ class Simulation(sapphire.Simulation):
     def __init__(
             self,
             *args,
-            partition_coefficient,
-            prandtl_number,
-            darcy_number,
-            lewis_number,
-            heat_capacity_solid_to_liquid_ratio,
-            thermal_conductivity_solid_to_liquid_ratio,
-            concentration_ratio,
-            stefan_number,
-            temperature_rayleigh_number,
-            solute_rayleigh_number,
-            reference_permeability,
-            phase_diagram_smoothing_factor,
-            taylor_hood_pressure_degree,
-            enthalpy_degree,
-            solute_degree,
+            enthalpy_porosity_parameters,
+            binary_alloy_parameters,
+            discretization_parameters,
             gravity_direction=(0, -1),
-            quadrature_degree=4,
-            frame_translation_velocity=None,
+            continuation_parameters=None,
             solver_parameters=None,
-            phase_diagram_smoothing_continuation_enabled=True,
             **kwargs):
+
+        if discretization_parameters is None:
+
+            discretization_parameters = DEFAULT_DISCRETIZATION_PARAMETERS
+
+        if continuation_parameters is None:
+
+            continuation_parameters = DEFAULT_CONTINUATION_PARAMETERS
 
         if solver_parameters is None:
 
-            solver_parameters = default_solver_parameters
+            solver_parameters = DEFAULT_SOLVER_PARAMETERS
 
         if "solution" not in kwargs:
 
@@ -147,58 +157,60 @@ class Simulation(sapphire.Simulation):
 
             del kwargs["mesh"]
 
-            kwargs["solution"] = fe.Function(fe.FunctionSpace(mesh, element(
-                mesh.ufl_cell(), taylor_hood_pressure_degree, enthalpy_degree, solute_degree)))
+            kwargs["solution"] = fe.Function(fe.FunctionSpace(
+                mesh,
+                element(
+                    mesh.ufl_cell(),
+                    discretization_parameters['taylor_hood_pressure_element_degree'],
+                    discretization_parameters['enthalpy_degree'],
+                    discretization_parameters['solute_degree']
+                    )))
 
+        self.prandtl_number = fe.Constant(enthalpy_porosity_parameters['prandtl_number'])
+
+        self.heat_capacity_solid_to_liquid_ratio = fe.Constant(enthalpy_porosity_parameters['heat_capacity_solid_to_liquid_ratio'])
+
+        self.thermal_conductivity_solid_to_liquid_ratio = fe.Constant(enthalpy_porosity_parameters['thermal_conductivity_solid_to_liquid_ratio'])
+
+        self.stefan_number = fe.Constant(enthalpy_porosity_parameters['stefan_number'])
+
+        self.porosity_smoothing_factor = fe.Constant(enthalpy_porosity_parameters['porosity_smoothing_factor'])
+
+        self.partition_coefficient = fe.Constant(binary_alloy_parameters['partition_coefficient'])
+
+        self.darcy_number = fe.Constant(binary_alloy_parameters['darcy_number'])
+
+        self.lewis_number = fe.Constant(binary_alloy_parameters['lewis_number'])
+
+        self.concentration_ratio = fe.Constant(binary_alloy_parameters['concentration_ratio'])
+
+        self.solute_rayleigh_number = fe.Constant(binary_alloy_parameters['solute_rayleigh_number'])
+
+        self.temperature_rayleigh_number = fe.Constant(binary_alloy_parameters['temperature_rayleigh_number'])
+
+        self.reference_permeability = fe.Constant(binary_alloy_parameters['reference_permeability'])
+
+        self.unit_gravity_direction = sapphire.helpers.normalize_to_unit_vector(gravity_direction)
+
+        frame_translation_velocity = binary_alloy_parameters['frame_translation_velocity']
+        
         if frame_translation_velocity is None:
 
-            frame_translation_velocity = (
-                0.,)*self.solution.function_space().mesh.geometric_dimension()
+            frame_translation_velocity = (0.,)*self.solution.function_space().mesh.geometric_dimension()
 
-        self.partition_coefficient = fe.Constant(partition_coefficient)
+        self.frame_translation_velocity = fe.Constant(frame_translation_velocity)
 
-        self.prandtl_number = fe.Constant(prandtl_number)
+        self.continuation_parameters = continuation_parameters
 
-        self.darcy_number = fe.Constant(darcy_number)
-
-        self.lewis_number = fe.Constant(lewis_number)
-
-        self.heat_capacity_solid_to_liquid_ratio = fe.Constant(
-            heat_capacity_solid_to_liquid_ratio)
-
-        self.thermal_conductivity_solid_to_liquid_ratio = fe.Constant(
-            thermal_conductivity_solid_to_liquid_ratio)
-
-        self.concentration_ratio = fe.Constant(concentration_ratio)
-
-        self.stefan_number = fe.Constant(stefan_number)
-
-        self.temperature_rayleigh_number = fe.Constant(
-            temperature_rayleigh_number)
-
-        self.solute_rayleigh_number = fe.Constant(solute_rayleigh_number)
-
-        self.reference_permeability = reference_permeability
-
-        self.unit_gravity_direction = sapphire.helpers.normalize_to_unit_vector(
-            gravity_direction)
-
-        self.frame_translation_velocity = fe.Constant(
-            frame_translation_velocity)
-
-        self.phase_diagram_smoothing_factor = fe.Constant(
-            phase_diagram_smoothing_factor)
-
-        self.phase_diagram_smoothing_sequence = None
-
-        self.phase_diagram_smoothing_continuation_enabled = phase_diagram_smoothing_continuation_enabled
+        self.porosity_smoothing_sequence = None
 
         sapphire.Simulation.__init__(
             self,
             *args,
             fieldnames=("p", "U", "S", "H"),
+            discretization_parameters=discretization_parameters,
+            continuation_parameters=continuation_parameters,
             solver_parameters=solver_parameters,
-            quadrature_degree=quadrature_degree,
             **kwargs)
 
     def porosity(self, bulk_solute, enthalpy):
@@ -215,7 +227,7 @@ class Simulation(sapphire.Simulation):
 
         Ste = self.stefan_number
 
-        σ = self.phase_diagram_smoothing_factor
+        σ = self.porosity_smoothing_factor
 
         H_S = solidus_enthalpy(S, c, p, r)
 
@@ -365,30 +377,31 @@ class Simulation(sapphire.Simulation):
 
         return sapphire.simulations.navier_stokes.Simulation.solve(self)
 
-    def solve_with_phase_diagram_over_smoothing(self):
+    def solve_with_porosity_over_smoothing(self):
 
         return sapphire.continuation.solve_with_over_regularization(
             solve=self.solve,
             solution=self.solution,
-            regularization_parameter=self.phase_diagram_smoothing_factor,
-            maxval=2.,
-            regularization_parameter_name="sigma")
+            regularization_parameter=self.porosity_smoothing_factor,
+            maxval=self.max_porosity_smoothing_continuation_value,
+            regularization_parameter_name="𝜎")
 
-    def solve_with_bounded_phase_diagram_smoothing_sequence(self):
+    def solve_with_bounded_porosity_smoothing(self):
 
         return sapphire.continuation.solve_with_bounded_regularization_sequence(
             solve=self.solve,
             solution=self.solution,
             backup_solution=self.backup_solution,
-            regularization_parameter=self.phase_diagram_smoothing_factor,
-            initial_regularization_sequence=self.phase_diagram_smoothing_sequence,
-            regularization_parameter_name="sigma")
+            regularization_parameter=self.porosity_smoothing_factor,
+            initial_regularization_sequence=self.porosity_smoothing_sequence,
+            maxcount=self.max_porosity_smoothing_continuation_steps,
+            regularization_parameter_name="𝜎")
 
-    def solve_with_phase_diagram_smoothing_continuation(self):
+    def solve_with_porosity_smoothing_continuation(self):
 
-        sigma = self.phase_diagram_smoothing_factor.__float__()
+        sigma = self.porosity_smoothing_factor.__float__()
 
-        if self.phase_diagram_smoothing_sequence is None:
+        if self.porosity_smoothing_sequence is None:
 
             given_smoothing_sequence = False
 
@@ -398,7 +411,7 @@ class Simulation(sapphire.Simulation):
 
         if not given_smoothing_sequence:
             # Find an over-regularization that works.
-            self.solution, sigma_max = self.solve_with_phase_diagram_over_smoothing()
+            self.solution, sigma_max = self.solve_with_porosity_over_smoothing()
 
             if sigma_max == sigma:
                 # No over-regularization was necessary.
@@ -414,7 +427,7 @@ class Simulation(sapphire.Simulation):
         # Next, a viable sequence will be sought.
         try:
 
-            self.solution, self.phase_diagram_smoothing_sequence = self.solve_with_bounded_phase_diagram_smoothing_sequence()
+            self.solution, self.porosity_smoothing_sequence = self.solve_with_bounded_porosity_smoothing()
 
         except fe.exceptions.ConvergenceError as error:
 
@@ -456,17 +469,9 @@ class Simulation(sapphire.Simulation):
              self.solution_subspaces['S'],
              self.solution_subspaces['H']])
 
-    def run(self, *args, **kwargs):
-
-        return sapphire.Simulation.run(
-            self,
-            *args,
-            solve=self.solve_with_phase_diagram_smoothing_continuation,
-            **kwargs)
-
     def postprocess(self):
 
-        p, U, S, H = self.solution.split()
+        _, U, S, H = self.solution.split()
 
         phi = fe.interpolate(self.porosity(S, H), S.function_space())
 
@@ -510,6 +515,7 @@ class Simulation(sapphire.Simulation):
             raise Exception("Minimum bulk solute concentration {} is above allowable maximum of {}".format(
                 self.maximum_solute, allowable_max_solute))
 
+        """
         if not self.minimum_porosity >= -tolerance:
 
             raise Exception("Minimum porosity {} is below minimum physically valid value of {}".format(
@@ -519,6 +525,7 @@ class Simulation(sapphire.Simulation):
 
             raise Exception("Maximum porosity {} is above maximum physically valid value of {}".format(
                 self.maximum_porosity, 1.))
+        """
 
     def kwargs_for_writeplots(self):
 
@@ -537,3 +544,45 @@ class Simulation(sapphire.Simulation):
             'labels': ('p', '\\mathbf{U}', 'S', 'H', '\\phi'),
             'names': ('p', 'U', 'S', 'H', 'phi'),
             'plotfuns': (fe.tripcolor, fe.quiver, fe.tripcolor, fe.tripcolor, fe.tripcolor)}  # @todo Try fe.streamplot instead of fe.quiver here; but it threw a very weird error when I briefly tried
+
+    def solve_with_solute_rayleigh_number_continuation(self) -> typing.Tuple[fe.Function, typing.Dict]:
+
+        return sapphire.continuation.solve_with_bounded_regularization_sequence(
+            solution=self.solution,
+            # solve=self.solve_with_phase_diagram_smoothing_continuation,
+            solve=self.solve,
+            regularization_parameter=self.solute_rayleigh_number,
+            initial_regularization_sequence=(0., self.solute_rayleigh_number.__float__()),
+            regularization_parameter_name="solute_rayleigh_number",
+            maxcount=self.max_solute_rayleigh_number_continuation_steps)
+
+    def run_using_solute_rayleigh_number_continuation_for_first_timestep(self, *args, write_plots, **kwargs) -> typing.Tuple[typing.List[typing.Dict], typing.Dict]:
+
+        self.postprocess()
+
+        self.write_outputs(
+            headers=True,
+            checkpoint=True,
+            vtk=False,
+            plots=write_plots)
+
+        if self.time.__float__() >= kwargs['endtime']:
+
+            return
+
+        # Solve first time step with continuation on the top wall boundary condition value because it is not consistent with the initial values.
+        self.states = self.push_back_states()
+
+        self.time = self.time.assign(self.time + self.timestep_size)
+
+        self.state["index"] += 1
+
+        self.solution, info = self.solve_with_solute_rayleigh_number_continuation()
+
+        solution, _ = sapphire.Simulation.run(
+            self,
+            *args,
+            write_plots=write_plots,
+            **kwargs)
+
+        return solution, info

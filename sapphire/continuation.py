@@ -2,176 +2,193 @@
 
 for regularized nonlinear problems.
 """
+import typing
+import sapphire.helpers
+import sapphire.data
 import firedrake as fe
 
 
-def solve_with_over_regularization(
-        solve,
-        solution,
-        regularization_parameter,
-        search_operator=lambda r: 2.*r,
-        attempts=24,
-        startval=None,
-        maxval=None,
-        regularization_parameter_name=None):
-    
-    original_regularization_parameter_value = \
-        regularization_parameter.__float__()
-        
-    if startval is None:
-    
-        r0 = original_regularization_parameter_value
-        
-    else:
-    
-        r0 = startval
-    
-    if regularization_parameter_name is None:
+def find_working_continuation_parameter_value(
+        problem: sapphire.data.Problem,
+        nonlinear_solve: typing.Callable[[sapphire.data.Problem], sapphire.data.Solution],
+        continuation_parameter_and_name: typing.Tuple[fe.Constant, str],
+        search_operator: typing.Callable = lambda r: 2.*r,
+        max_attempts: int = 8,
+        backup_solution_function: typing.Union[fe.Function, None] = None,
+        ) -> sapphire.data.Solution:
+    """ Attempt to solve a sequence of nonlinear problems where the continuation parameter value is varied according to the search operator until a solution is found.
 
-        rname = "r"
+    The resulting solution will *not* be the solution to the original problem with the original parameter value.
+    Rather the solution can be used as a starting point for bounded continuation.
+    """
+    solution = problem.solution
 
-    else:
+    continuation_parameter, rname = continuation_parameter_and_name
 
-        rname = regularization_parameter_name
+    if continuation_parameter not in solution.ufl_constants:
 
-    backup_solution = fe.Function(solution)
-    
-    print("Searching for a working regularization")
-    
+        raise Exception("The continuation parameter must be one of the solution's UFL constants.")
+
+    if backup_solution_function is None:
+
+        backup_solution_function = fe.Function(solution.function)
+
+    elif backup_solution_function.function_space() != solution.function_space:
+
+        raise Exception("The backup solution function must use the same function space as the solution function.")
+
+    r0 = continuation_parameter.__float__()
+
     r = r0
-    
-    for attempt in range(attempts):
-        
-        regularization_parameter = regularization_parameter.assign(r)
-        
+
+    print("Searching for a working continuation parameter value")
+
+    for attempt in range(max_attempts):
+
+        continuation_parameter = continuation_parameter.assign(r)
+
         print("Trying {} = {}".format(rname, r))
-        
+
         try:
-            
-            solution = solve()
-            
-            regularization_parameter = regularization_parameter.assign(     
-                original_regularization_parameter_value)
-            
-            return solution, r
-            
+
+            snes_iteration_count = solution.snes_cumulative_iteration_count
+
+            solution = nonlinear_solve(problem)
+
+            solution.continuation_history.append((rname, r, solution.snes_cumulative_iteration_count - snes_iteration_count))
+
+            return solution
+
         except fe.exceptions.ConvergenceError as exception:
-            
+
             r = search_operator(r)
-            
-            solution = solution.assign(backup_solution)
-            
-            if attempt == range(attempts)[-1]:
-            
+
+            solution.function = sapphire.helpers.assign_function_values(backup_solution_function, solution.function)
+
+            if attempt == range(max_attempts)[-1]:
+
+                continuation_parameter = continuation_parameter.assign(r0)
+
                 raise(exception)
 
-            if maxval is not None:
-
-                if r > maxval:
-
-                    regularization_parameter = regularization_parameter.assign(r0)
-
-                    print("Failed to solve before exceeding max continuation parameter. Raising exception")
-
-                    raise(exception)
+    raise Exception("Failed to find working value for continuation parameter before exceeding maximum number of attempts ({})".format(max_attempts))
 
 
-def solve_with_bounded_regularization_sequence(
-        solve,
-        solution,
-        regularization_parameter,
-        initial_regularization_sequence,
-        backup_solution=None,
-        maxcount=24,
-        regularization_parameter_name="r"):
-    """ Solve a strongly nonlinear problem 
-    by solving a sequence of over-regularized problems 
-    with successively reduced regularization.
-    
+def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-arguments
+        problem: sapphire.data.Problem,
+        nonlinear_solve: typing.Callable[[sapphire.data.Problem], sapphire.data.Solution],
+        continuation_parameter_and_name: typing.Tuple[fe.Constant, str],
+        initial_sequence: typing.Tuple[float],
+        maxcount: int = 16,
+        start_from_right: bool = False,
+        backup_solution_function: typing.Union[fe.Function, None] = None,
+        ) -> sapphire.data.Solution:
+    """ Solve a sequence of nonlinear problems where the continuation parameter value varies between bounds.
+
     Always continue from left to right.
+
+    If successful, then the final solution is for the right bounding continuation parameter value.
     """
-    if backup_solution is None:
-    
-        backup_solution = fe.Function(solution)
+    solution = problem.solution
 
-    if regularization_parameter_name is None:
+    continuation_parameter, rname = continuation_parameter_and_name
 
-        rname = "r"
+    if continuation_parameter not in solution.ufl_constants:
+
+        raise Exception("The continuation parameter must be one of the solution's UFL constants")
+
+    r0 = continuation_parameter.__float__()
+
+    if initial_sequence[-1] != r0:
+
+        raise Exception("The sequence must end with the actual parameter value.")
+
+    sequence = initial_sequence
+
+    if start_from_right:
+
+        first_r_to_solve = sequence[-1]
 
     else:
 
-        rname = regularization_parameter_name
-        
-    r0 = regularization_parameter.__float__()
-    
-    assert(initial_regularization_sequence[-1] == r0)
-    
-    regularization_sequence = initial_regularization_sequence
-    
-    first_r_to_solve = regularization_sequence[0]
-    
-    attempts = range(maxcount - len(regularization_sequence))
-    
+        first_r_to_solve = sequence[0]
+
+    attempts = range(maxcount - len(sequence))
+
     solved = False
-    
-    backup_solution = backup_solution.assign(solution)
-    
+
+    if backup_solution_function is None:
+
+        backup_solution_function = fe.Function(solution.function)
+
+    elif backup_solution_function.function_space() != solution.function_space:
+
+        raise Exception("The backup solution function must use the same function space as the solution function.")
+
     for attempt in attempts:
 
-        r_start_index = regularization_sequence.index(first_r_to_solve)
-        
+        r_start_index = sequence.index(first_r_to_solve)
+
         try:
-        
-            for r in regularization_sequence[r_start_index:]:
-                
-                regularization_parameter.assign(r)
+
+            for r in sequence[r_start_index:]:
+
+                continuation_parameter = sapphire.helpers.assign_constant(continuation_parameter, r)
 
                 print("Trying to solve with continuation parameter {} = {}".format(rname, r))
-                
-                solution = solve()
-                
-                backup_solution = backup_solution.assign(solution)
-                
+
+                snes_iteration_count = solution.snes_cumulative_iteration_count
+
+                solution = nonlinear_solve(problem)
+
+                solution.continuation_history.append((rname, r, solution.snes_cumulative_iteration_count - snes_iteration_count))
+
+                backup_solution_function = sapphire.helpers.assign_function_values(solution.function, backup_solution_function)
+
                 print("Solved with continuation parameter {} = {}".format(rname, r))
-                
+
             solved = True
-            
+
             break
-            
+
         except fe.exceptions.ConvergenceError as exception:
-            
-            current_r = regularization_parameter.__float__()
-            
-            rs = regularization_sequence
-        
-            print("Failed to solve with continuation parameter {} = {}"
-                  " from the sequence {}".format(rname, current_r, rs))
-                
+
+            current_r = continuation_parameter.__float__()
+
+            rs = sequence
+
+            print("Failed to solve with continuation parameter {} = {} from the sequence {}".format(rname, current_r, rs))
+
             index = rs.index(current_r)
-            
+
             if attempt == attempts[-1] or (index == 0):
-                
-                regularization_parameter = regularization_parameter.assign(r0)
-                
+
+                continuation_parameter = sapphire.helpers.assign_constant(continuation_parameter, r0)
+
                 raise(exception)
-            
-            solution = solution.assign(backup_solution)
-            
+
+            solution.function = sapphire.helpers.assign_function_values(backup_solution_function, solution.function)
+
             r_to_insert = (current_r + rs[index - 1])/2.
-            
+
             new_rs = rs[:index] + (r_to_insert,) + rs[index:]
-            
-            regularization_sequence = new_rs
-            
+
+            sequence = new_rs
+
             print("Inserted new value of {} = {}".format(rname, r_to_insert))
-            
+
             first_r_to_solve = r_to_insert
-            
-    assert(solved)
-    
-    assert(regularization_parameter.__float__() == r0)
-    
-    assert(regularization_sequence[-1] == r0)
-    
-    return solution, regularization_sequence
-    
+
+    if not solved:
+
+        raise Exception("Failed to solve with continuation")
+
+    if not continuation_parameter.__float__() == r0:
+
+        raise Exception("Invalid state")
+
+    if not sequence[-1] == r0:
+
+        raise Exception("Invalid state")
+
+    return solution

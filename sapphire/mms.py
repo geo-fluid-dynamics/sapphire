@@ -155,11 +155,12 @@ def verify_order_of_accuracy(
         Simulation,
         manufactured_solution,
         norms,
+        sim_kwargs,
+        element_kwargs,
         points_in_rate_estimator = 2,
         expected_orders = None,  # a.k.a. convergence rates
         decimal_places = 2,
         time_dependent = True,
-        sim_kwargs = {},
         endtime = 0.,
         strong_residual = None,
         dirichlet_boundary_conditions = None,

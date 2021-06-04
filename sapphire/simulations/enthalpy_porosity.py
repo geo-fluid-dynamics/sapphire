@@ -14,18 +14,17 @@ import sapphire.simulations.unsteady_navier_stokes_boussinesq
 import sapphire.continuation
 
 
-def phase_dependent_material_property(solid_to_liquid_ratio):
-    
-    a_sl = solid_to_liquid_ratio
-    
-    def a(phil):
-    
-        return a_sl + (1 - a_sl)*phil
-    
-    return a  
+DEFAULT_ENTHALPY_POROSITY_PARAMETERS = {
+    'stefan_number': 1,
+    'liquidus_temperature': 0,
+    'density_solid_to_liquid_ratio': 1,
+    'heat_capacity_solid_to_liquid_ratio': 1,
+    'thermal_conductivity_solid_to_liquid_ratio': 1,
+    'solid_velocity_relaxation_factor': 1.e-12,
+    'porosity_smoothing_factor': 0.1,
+}
 
-
-default_solver_parameters =  {
+DEFAULT_SOLVER_PARAMETERS = {
     'snes_monitor': None,
     'snes_type': 'newtonls',
     'snes_linesearch_type': 'l2',
@@ -40,40 +39,48 @@ default_solver_parameters =  {
     'pc_factor_mat_solver_type': 'mumps',
     'mat_type': 'aij'}
 
-class Simulation(
-        sapphire.simulations.unsteady_navier_stokes_boussinesq.Simulation):
+
+def phase_dependent_material_property(solid_to_liquid_ratio):
+
+    a_sl = solid_to_liquid_ratio
+
+    def a(phil):
+
+        return a_sl + (1 - a_sl)*phil
+
+    return a  
+
+
+class Simulation(sapphire.simulations.unsteady_navier_stokes_boussinesq.Simulation):
     
     def __init__(
             self, 
             *args,
-            stefan_number = 1,
-            liquidus_temperature = 0,
-            density_solid_to_liquid_ratio = 1,
-            heat_capacity_solid_to_liquid_ratio = 1,
-            thermal_conductivity_solid_to_liquid_ratio = 1,
-            solid_velocity_relaxation_factor = 1.e-12,
-            liquidus_smoothing_factor = 0.01,
-            solver_parameters = default_solver_parameters,
+            enthalpy_porosity_parameters,
+            solver_parameters = None,
             **kwargs):
+
+        if enthalpy_porosity_parameters is None:
+
+            enthalpy_porosity_parameters = DEFAULT_ENTHALPY_POROSITY_PARAMETERS
+
+        if solver_parameters is None:
+
+            solver_parameters = DEFAULT_SOLVER_PARAMETERS
         
-        self.stefan_number = fe.Constant(stefan_number)
+        self.stefan_number = fe.Constant(enthalpy_porosity_parameters['stefan_number'])
         
-        self.liquidus_temperature = fe.Constant(liquidus_temperature)
+        self.liquidus_temperature = fe.Constant(enthalpy_porosity_parameters['liquidus_temperature'])
         
-        self.density_solid_to_liquid_ratio = fe.Constant(
-            density_solid_to_liquid_ratio)
+        self.density_solid_to_liquid_ratio = fe.Constant(enthalpy_porosity_parameters['density_solid_to_liquid_ratio'])
         
-        self.heat_capacity_solid_to_liquid_ratio = fe.Constant(
-            heat_capacity_solid_to_liquid_ratio)
+        self.heat_capacity_solid_to_liquid_ratio = fe.Constant(enthalpy_porosity_parameters['heat_capacity_solid_to_liquid_ratio'])
         
-        self.thermal_conductivity_solid_to_liquid_ratio = fe.Constant(
-            thermal_conductivity_solid_to_liquid_ratio)
+        self.thermal_conductivity_solid_to_liquid_ratio = fe.Constant(enthalpy_porosity_parameters['thermal_conductivity_solid_to_liquid_ratio'])
         
-        self.solid_velocity_relaxation_factor = fe.Constant(
-            solid_velocity_relaxation_factor)
+        self.solid_velocity_relaxation_factor = fe.Constant(enthalpy_porosity_parameters['solid_velocity_relaxation_factor'])
         
-        self.liquidus_smoothing_factor = fe.Constant(
-            liquidus_smoothing_factor)
+        self.liquidus_smoothing_factor = fe.Constant(enthalpy_porosity_parameters['liquidus_smoothing_factor'])
         
         self.smoothing_sequence = None
         
