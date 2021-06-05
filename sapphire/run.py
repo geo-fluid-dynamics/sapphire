@@ -1,7 +1,6 @@
 """Module for running simulations"""
 from logging import warning
-from typing import Callable
-from sapphire.helpers.upstream import assign_function_values, rotate_deque
+from typing import Callable, Deque
 from sapphire.data.solution import Solution
 from sapphire.data.simulation import Simulation
 from sapphire.solve import solve as default_solve
@@ -95,7 +94,7 @@ def run(  # pylint: disable=too-many-arguments
 
             sim.solutions = rotate_deque(sim.solutions, 1)
 
-            sim.solutions[0].function = assign_function_values(sim.solutions[1].function, sim.solutions[0].function)
+            sim.solutions[0].function.assign(sim.solutions[1].function)
 
             sim.solutions[0].time = sim.solutions[1].time + timestep_size
 
@@ -110,6 +109,11 @@ def run(  # pylint: disable=too-many-arguments
         time = starttime + stepcount*timestep_size
 
     return sim
+
+
+def rotate_deque(deque_to_rotate: Deque, n: int) -> Deque:
+    """ Rotate a deque without losing type info """
+    return deque_to_rotate.rotate(n)
 
 
 def _run_one_step(

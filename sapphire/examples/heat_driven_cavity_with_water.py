@@ -14,10 +14,9 @@ The result is compared to data published in
         doi = {10.1016/0021-9991(82)90058-4}
     }
 """
-from sapphire import Solution, Simulation
+from sapphire import Solution, Simulation, plot
 from sapphire.forms.natural_convection import residual as natural_convection_residual
-from sapphire.examples.heat_driven_cavity import MESH_COLDWALL_ID, default_mesh, simulation, solve, run
-from sapphire.examples.heat_driven_cavity import output as heat_driven_cavity_output
+from sapphire.examples.heat_driven_cavity import default_mesh, simulation, solve, run
 from firedrake import Constant, dot, grad, FacetNormal, assemble, ds
 
 
@@ -67,9 +66,9 @@ def residual(solution: Solution):
     return natural_convection_residual(solution, buoyancy=buoyancy_with_density_anomaly_of_water)
 
 
-def output(solution: Solution, outdir_path="sapphire_output/heat_driven_cavity_with_water/"):
+def output(solution: Solution):
 
-    heat_driven_cavity_output(solution, outdir_path=outdir_path)
+    plot(solution=solution, outdir_path="sapphire_output/heat_driven_cavity_with_water/plots/")
 
 
 def run_simulation(
@@ -80,7 +79,7 @@ def run_simulation(
         coldwall_temperature=0.,
         reference_temperature_range__degC=10.,
         mesh_dimensions=(20, 20),
-        taylor_hood_pressure_element_degree=1,
+        taylor_hood_velocity_element_degree=2,
         temperature_element_degree=2
         ) -> Simulation:
 
@@ -94,7 +93,7 @@ def run_simulation(
             'reference_temperature_range__degC': reference_temperature_range__degC},
         buoyancy=buoyancy_with_density_anomaly_of_water,
         mesh=default_mesh(mesh_dimensions),
-        taylor_hood_pressure_element_degree=taylor_hood_pressure_element_degree,
+        taylor_hood_velocity_element_degree=taylor_hood_velocity_element_degree,
         temperature_element_degree=temperature_element_degree)
 
     return run(sim=sim, solve=solve, output=output)
@@ -106,11 +105,11 @@ def verify_default_simulation():
 
     solution = sim.solutions[0]
 
-    nhat = FacetNormal(solution.mesh)
+    nhat = FacetNormal(solution.mesh.geometry)
 
     T = solution.ufl_fields.T
 
-    coldwall_heatflux = assemble(dot(grad(T), nhat)*ds(subdomain_id=MESH_COLDWALL_ID))
+    coldwall_heatflux = assemble(dot(grad(T), nhat)*ds(subdomain_id=solution.mesh.boundaries['right']))
 
     expected_coldwall_heatflux = -8
 

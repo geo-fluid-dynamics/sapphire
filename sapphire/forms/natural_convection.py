@@ -4,22 +4,22 @@ from sapphire.data.solution import Solution
 from firedrake import Cell, MixedElement, FiniteElement, VectorElement, Constant, inner, dot, grad, div, sym, dx
 
 
-SOLUTION_FUNCTION_COMPONENT_NAMES = ('p', 'u', 'T')
+COMPONENT_NAMES = ('p', 'u', 'T')
 
 
-def element(cell: Cell, taylor_hood_pressure_degree: int = 1, temperature_degree: int = 2) -> MixedElement:
+def element(cell: Cell, taylor_hood_velocity_degree: int, temperature_degree: int) -> MixedElement:
 
-    if taylor_hood_pressure_degree < 1:
+    if taylor_hood_velocity_degree < 2:
 
-        raise Exception("Taylor-Hood pressure element degree must be at least 1")
+        raise Exception("Taylor-Hood velocity element degree must be at least 2")
 
     if temperature_degree < 1:
 
         raise Exception("Temperature element degree must be at least 1 because continuous Galerkin discretization is assumed")
 
     return MixedElement(
-        FiniteElement('P', cell, taylor_hood_pressure_degree),
-        VectorElement('P', cell, taylor_hood_pressure_degree + 1),
+        FiniteElement('P', cell, taylor_hood_velocity_degree - 1),
+        VectorElement('P', cell, taylor_hood_velocity_degree),
         FiniteElement('P', cell, temperature_degree))
 
 

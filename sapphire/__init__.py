@@ -9,7 +9,7 @@ The symbolic capabilities of Firedrake are used to automatically implement backw
 Nonlinear and linear solvers are provided by PETSc and are accessed via the Firedrake interface.
 """
 from sys import version_info
-from sapphire.helpers.upstream import assign_function_values, assign_constant
+from sapphire.data.mesh import Mesh
 from sapphire.data.solution import Solution
 from sapphire.data.problem import Problem
 from sapphire.data.solver import Solver

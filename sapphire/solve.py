@@ -1,5 +1,4 @@
 """Module for solving nonlinear problems"""
-from sapphire.helpers.upstream import snes_iteration_count
 from sapphire.data.solution import Solution
 from sapphire.data.simulation import Simulation
 from firedrake import NonlinearVariationalProblem, NonlinearVariationalSolver, derivative
@@ -29,3 +28,8 @@ def solve(sim: Simulation) -> Solution:
     solution.snes_cumulative_iteration_count += snes_iteration_count(solver)
 
     return solution
+
+
+def snes_iteration_count(solver: NonlinearVariationalSolver) -> int:
+    """ Get iteration number without losing type info """
+    return solver.snes.getIterationNumber()
