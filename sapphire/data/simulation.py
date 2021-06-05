@@ -7,7 +7,7 @@ from sapphire.data.mesh import Mesh
 from sapphire.data.solution import Solution
 from sapphire.data.problem import Problem
 from sapphire.data.solver import Solver
-from firedrake import Constant, FiniteElement, VectorElement, MixedElement, MixedVectorSpaceBasis
+from firedrake import Constant, Function, FiniteElement, VectorElement, MixedElement, MixedVectorSpaceBasis
 
 
 @dataclass
@@ -38,8 +38,10 @@ class Simulation:
             dirichlet_boundary_conditions: Callable[[Solution], Tuple[DirichletBC]],
             ufl_constants: Dict[str, Constant],
             initial_times: Union[Tuple[float], None],
+            initial_values_functions: Union[Tuple[Function], None] = None,
             firedrake_solver_parameters: dict = None,
-            nullspace: Union[Callable[[Solution], MixedVectorSpaceBasis], None] = None):
+            nullspace: Union[Callable[[Solution], MixedVectorSpaceBasis], None] = None,
+            quadrature_degree: Union[int, None] = None):
 
         solutions = []
 
@@ -51,6 +53,14 @@ class Simulation:
 
             _initial_times = initial_times
 
+        if initial_values_functions is None:
+
+            _initial_values_functions = (None,)
+
+        else:
+
+            _initial_values_functions = initial_values_functions
+
         for i, time in enumerate(_initial_times):
 
             solution = Solution(
@@ -58,9 +68,16 @@ class Simulation:
                 element=element,
                 component_names=solution_component_names,
                 ufl_constants=ufl_constants,
+                quadrature_degree=quadrature_degree,
                 time=time)
 
-            if time is not None:
+            iv = _initial_values_functions[i]
+
+            if iv is not None:
+
+                solution.function.assign(iv)
+
+            if (time is not None) and (i < (len(_initial_times) - 1)):
 
                 solution.ufl_timestep_size.assign(time - _initial_times[i + 1])
 
