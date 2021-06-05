@@ -18,7 +18,6 @@ from typing import Tuple, Union, Callable, Dict, Any
 from sapphire import Problem, Solver, Solution, Simulation, solve_with_bounded_continuation_sequence, run, plot
 from sapphire import solve as default_solve
 from sapphire.forms.natural_convection import SOLUTION_FUNCTION_COMPONENT_NAMES, element, residual
-from sapphire.forms.natural_convection import ufl_constants as form_ufl_constants
 from sapphire.forms.natural_convection import linear_boussinesq_buoyancy as default_buoyancy
 from sapphire.helpers.pointwise_verification import verify_function_values_at_points
 from firedrake import UnitSquareMesh, UnitCubeMesh, Function, FunctionSpace, DirichletBC, MixedVectorSpaceBasis, VectorSpaceBasis, dx, assemble
@@ -31,14 +30,7 @@ MESH_COLDWALL_ID = 2
 DEFAULT_MESH_DIMENSIONS = (20, 20)
 
 
-def bc_ufl_constants(hotwall_temperature: float, coldwall_temperature: float) -> Dict[str, float]:
-
-    return {
-        'hotwall_temperature': hotwall_temperature,
-        'coldwall_temperature': coldwall_temperature}
-
-
-def default_mesh(mesh_dimensions: Union[Tuple[int, int], Tuple[int, int, int]] = None) -> Any:
+def default_mesh(mesh_dimensions: Union[Tuple[int, int], Tuple[int, int, int]] = None):
 
     if mesh_dimensions is None:
 
@@ -53,7 +45,7 @@ def default_mesh(mesh_dimensions: Union[Tuple[int, int], Tuple[int, int, int]] =
         return UnitCubeMesh(*mesh_dimensions)
 
 
-def dirichlet_boundary_conditions(solution: Solution) -> Tuple[DirichletBC]:
+def dirichlet_boundary_conditions(solution: Solution):
     """No-slip BCs for the velocity on every wall and constant temperature BCs on the left and right walls.
 
     The weak formulation does not admit Dirichlet boundary conditions on the pressure solution.
@@ -66,7 +58,7 @@ def dirichlet_boundary_conditions(solution: Solution) -> Tuple[DirichletBC]:
         DirichletBC(solution.function_subspaces.T, solution.ufl_constants.coldwall_temperature, MESH_COLDWALL_ID))
 
 
-def nullspace(solution: Solution) -> MixedVectorSpaceBasis:
+def nullspace(solution: Solution):
     """Inform solver that pressure solution is not unique.
 
     It is only defined up to adding an arbitrary constant because there will be no boundary conditions on the pressure.
@@ -76,7 +68,7 @@ def nullspace(solution: Solution) -> MixedVectorSpaceBasis:
         [VectorSpaceBasis(constant=True), solution.function_subspaces.u, solution.function_subspaces.T])
 
 
-def solve_and_subtract_mean_pressure(sim: Simulation) -> Solution:
+def solve_and_subtract_mean_pressure(sim: Simulation):
 
     solution = default_solve(sim)
 
@@ -95,7 +87,7 @@ def solve_and_subtract_mean_pressure(sim: Simulation) -> Solution:
     return solution
 
 
-def solve_with_rayleigh_number_continuation(sim: Simulation) -> Solution:
+def solve_with_rayleigh_number_continuation(sim: Simulation):
 
     Ra = sim.solutions[0].ufl_constants.rayleigh_number
 
@@ -106,7 +98,7 @@ def solve_with_rayleigh_number_continuation(sim: Simulation) -> Solution:
         initial_sequence=(1, Ra.__float__()))
 
 
-def solve(sim: Simulation) -> Solution:
+def solve(sim: Simulation):
 
     return solve_with_rayleigh_number_continuation(sim)
 
@@ -163,18 +155,15 @@ def run_simulation(
         coldwall_temperature=-0.5,
         mesh_dimensions=(20, 20),
         taylor_hood_pressure_element_degree=1,
-        temperature_element_degree=2
-        ) -> Simulation:
+        temperature_element_degree=2):
 
     sim = simulation(
         ufl_constants={
-            **form_ufl_constants(
-                reynolds_number=reynolds_number,
-                rayleigh_number=rayleigh_number,
-                prandtl_number=prandtl_number),
-            **bc_ufl_constants(
-                hotwall_temperature=hotwall_temperature,
-                coldwall_temperature=coldwall_temperature)},
+            'reynolds_number': reynolds_number,
+            'rayleigh_number': rayleigh_number,
+            'prandtl_number': prandtl_number,
+            'hotwall_temperature': hotwall_temperature,
+            'coldwall_temperature': coldwall_temperature},
         mesh=default_mesh(mesh_dimensions),
         taylor_hood_pressure_element_degree=taylor_hood_pressure_element_degree,
         temperature_element_degree=temperature_element_degree)

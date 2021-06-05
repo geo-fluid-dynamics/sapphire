@@ -23,11 +23,6 @@ def element(cell: Cell, taylor_hood_pressure_degree: int = 1, temperature_degree
         FiniteElement('P', cell, temperature_degree))
 
 
-def ufl_constants(reynolds_number: float, rayleigh_number: float, prandtl_number: float) -> dict:
-
-    return {'reynolds_number': reynolds_number, 'rayleigh_number': rayleigh_number, 'prandtl_number': prandtl_number}
-
-
 def linear_boussinesq_buoyancy(solution: Solution) -> Any:
 
     T = solution.ufl_fields.T

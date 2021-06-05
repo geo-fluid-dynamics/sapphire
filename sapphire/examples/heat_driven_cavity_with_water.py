@@ -14,20 +14,14 @@ The result is compared to data published in
         doi = {10.1016/0021-9991(82)90058-4}
     }
 """
-from typing import Dict, Any
 from sapphire import Solution, Simulation
 from sapphire.forms.natural_convection import residual as natural_convection_residual
-from sapphire.examples.heat_driven_cavity import MESH_COLDWALL_ID, default_mesh, form_ufl_constants, bc_ufl_constants, simulation, solve, run
+from sapphire.examples.heat_driven_cavity import MESH_COLDWALL_ID, default_mesh, simulation, solve, run
 from sapphire.examples.heat_driven_cavity import output as heat_driven_cavity_output
 from firedrake import Constant, dot, grad, FacetNormal, assemble, ds
 
 
-def ufl_constants_for_water_buoyancy(reference_temperature_range__degC: float) -> Dict[str, float]:
-
-    return {'reference_temperature_range__degC': reference_temperature_range__degC}
-
-
-def buoyancy_with_density_anomaly_of_water(solution: Solution) -> Any:
+def buoyancy_with_density_anomaly_of_water(solution: Solution):
     """Eq. (25) from @cite{danaila2014newton}"""
     T = solution.ufl_fields.T
 
@@ -68,12 +62,12 @@ def buoyancy_with_density_anomaly_of_water(solution: Solution) -> Any:
     return Ra/(Pr*Re**2*beta*DeltaT)*(rho_0 - rho(T))/rho_0*ghat
 
 
-def residual(solution: Solution) -> Any:
+def residual(solution: Solution):
 
     return natural_convection_residual(solution, buoyancy=buoyancy_with_density_anomaly_of_water)
 
 
-def output(solution: Solution, outdir_path="sapphire_output/heat_driven_cavity_with_water/") -> None:
+def output(solution: Solution, outdir_path="sapphire_output/heat_driven_cavity_with_water/"):
 
     heat_driven_cavity_output(solution, outdir_path=outdir_path)
 
@@ -92,14 +86,12 @@ def run_simulation(
 
     sim = simulation(
         ufl_constants={
-            **form_ufl_constants(
-                reynolds_number=reynolds_number,
-                rayleigh_number=rayleigh_number,
-                prandtl_number=prandtl_number),
-            **bc_ufl_constants(
-                hotwall_temperature=hotwall_temperature,
-                coldwall_temperature=coldwall_temperature),
-            **ufl_constants_for_water_buoyancy(reference_temperature_range__degC=reference_temperature_range__degC)},
+            'reynolds_number': reynolds_number,
+            'rayleigh_number': rayleigh_number,
+            'prandtl_number': prandtl_number,
+            'hotwall_temperature': hotwall_temperature,
+            'coldwall_temperature': coldwall_temperature,
+            'reference_temperature_range__degC': reference_temperature_range__degC},
         buoyancy=buoyancy_with_density_anomaly_of_water,
         mesh=default_mesh(mesh_dimensions),
         taylor_hood_pressure_element_degree=taylor_hood_pressure_element_degree,
