@@ -19,11 +19,13 @@ class Solution:
 
     component_names: Tuple[str]
 
-    ufl_constants: Union[Dict[str, Constant], Tuple[Constant], None] = None
+    time: Union[float, None]
+
+    ufl_constants: Union[Dict[str, Constant], Tuple[Constant], None]
 
     quadrature_degree: Union[int, None] = None
 
-    time: Union[float, None] = None
+    ufl_timestep_size: Union[Constant, None] = field(init=False)
 
     geometric_dimension: int = field(init=False)
 
@@ -48,7 +50,7 @@ class Solution:
 
     checkpoint_index: int = field(init=False)
 
-    post_processed_functions: List[Function] = field(init=False)
+    post_processed_objects: Dict = field(init=False)
 
     def __post_init__(self):
 
@@ -61,6 +63,14 @@ class Solution:
                 _ufl_constants[key] = Constant(self.ufl_constants[key])
 
             self.ufl_constants = namedtuple('UFLConstants', self.ufl_constants.keys())(**_ufl_constants)
+
+        if self.time is None:
+
+            self.ufl_timestep_size = None
+
+        else:
+
+            self.ufl_timestep_size = Constant(0.)  # This will be set to a valid value later.
 
         self.geometric_dimension = self.mesh.geometry.geometric_dimension()
 
@@ -86,7 +96,7 @@ class Solution:
 
         self.continuation_history = []
 
-        self.post_processed_functions = []
+        self.post_processed_objects = {}
 
         self.checkpoint_index = 0
 

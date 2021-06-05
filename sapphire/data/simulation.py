@@ -1,10 +1,13 @@
 """Simulation data module"""
 from collections import deque
 from dataclasses import dataclass
-from typing import Deque
+from typing import Union, Tuple, Callable, Dict, Any, Deque
+from firedrake.bcs import DirichletBC
+from sapphire.data.mesh import Mesh
 from sapphire.data.solution import Solution
 from sapphire.data.problem import Problem
 from sapphire.data.solver import Solver
+from firedrake import Constant, FiniteElement, VectorElement, MixedElement, MixedVectorSpaceBasis
 
 
 @dataclass
@@ -26,16 +29,53 @@ class Simulation:
     solver: Solver
     """Data for setting up the nonlinear solver"""
 
-    def __post_init__(self):
+    def __init__(
+            self,
+            mesh: Mesh,
+            element: Union[FiniteElement, VectorElement, MixedElement],
+            solution_component_names: Tuple[str],
+            residual: Callable[[Tuple[Solution]], Any],
+            dirichlet_boundary_conditions: Callable[[Solution], Tuple[DirichletBC]],
+            ufl_constants: Dict[str, Constant],
+            initial_times: Union[Tuple[float], None],
+            firedrake_solver_parameters: dict = None,
+            nullspace: Union[Callable[[Solution], MixedVectorSpaceBasis], None] = None):
 
-        if len(self.solutions) < 1:
+        solutions = []
 
-            raise Exception("A simulation must have at least one solution")
+        if initial_times is None:
 
-        if isinstance(self.solutions, tuple) or isinstance(self.solutions, list):
+            _initial_times = (None,)
 
-            self.solutions = deque(self.solutions)
+        else:
 
-        if not isinstance(self.solutions, deque):
+            _initial_times = initial_times
 
-            raise Exception("A simuation must be constructed with either a tuple, list, or deque of solutions.")
+        for i, time in enumerate(_initial_times):
+
+            solution = Solution(
+                mesh=mesh,
+                element=element,
+                component_names=solution_component_names,
+                ufl_constants=ufl_constants,
+                time=time)
+
+            if time is not None:
+
+                solution.ufl_timestep_size.assign(time - _initial_times[i + 1])
+
+            solutions.append(solution)
+
+        self.solutions = deque(solutions)
+
+        self.problem = Problem(
+            residual=residual,
+            dirichlet_boundary_conditions=dirichlet_boundary_conditions(self.solutions[0]))
+
+        if nullspace is None:
+
+            self.solver = Solver(firerake_solver_parameters=firedrake_solver_parameters)
+
+        else:
+
+            self.solver = Solver(firedrake_solver_parameters=firedrake_solver_parameters, nullspace=nullspace(solution))

@@ -15,8 +15,8 @@ The result is compared to data published in
     }
 """
 from sapphire import Solution, Simulation, plot
-from sapphire.forms.natural_convection import residual as natural_convection_residual
-from sapphire.examples.heat_driven_cavity import default_mesh, simulation, solve, run
+from sapphire.examples.heat_driven_cavity import mesh, element, COMPONENT_NAMES, dirichlet_boundary_conditions, nullspace, solve, run
+from sapphire.examples.heat_driven_cavity import residual as heat_driven_cavity_residual
 from firedrake import Constant, dot, grad, FacetNormal, assemble, ds
 
 
@@ -63,7 +63,7 @@ def buoyancy_with_density_anomaly_of_water(solution: Solution):
 
 def residual(solution: Solution):
 
-    return natural_convection_residual(solution, buoyancy=buoyancy_with_density_anomaly_of_water)
+    return heat_driven_cavity_residual(solution, buoyancy=buoyancy_with_density_anomaly_of_water)
 
 
 def output(solution: Solution):
@@ -83,7 +83,12 @@ def run_simulation(
         temperature_element_degree=2
         ) -> Simulation:
 
-    sim = simulation(
+    _mesh = mesh(mesh_dimensions)
+
+    sim = Simulation(
+        mesh=_mesh,
+        element=element(_mesh.cell, taylor_hood_velocity_element_degree, temperature_element_degree),
+        solution_component_names=COMPONENT_NAMES,
         ufl_constants={
             'reynolds_number': reynolds_number,
             'rayleigh_number': rayleigh_number,
@@ -91,10 +96,10 @@ def run_simulation(
             'hotwall_temperature': hotwall_temperature,
             'coldwall_temperature': coldwall_temperature,
             'reference_temperature_range__degC': reference_temperature_range__degC},
-        buoyancy=buoyancy_with_density_anomaly_of_water,
-        mesh=default_mesh(mesh_dimensions),
-        taylor_hood_velocity_element_degree=taylor_hood_velocity_element_degree,
-        temperature_element_degree=temperature_element_degree)
+        residual=residual,
+        dirichlet_boundary_conditions=dirichlet_boundary_conditions,
+        nullspace=nullspace,
+        initial_times=None)
 
     return run(sim=sim, solve=solve, output=output)
 

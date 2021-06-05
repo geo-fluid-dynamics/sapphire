@@ -15,7 +15,7 @@ def find_working_continuation_parameter_value(
         search_operator: Callable = lambda r: 2.*r,
         max_attempts: int = 8,
         backup_solution_function: Union[Function, None] = None,
-        ) -> Solution:
+        ) -> Tuple[float, Solution]:
     """ Attempt to solve a sequence of nonlinear problems where the continuation parameter value is varied according to the search operator until a solution is found.
 
     The resulting solution will *not* be the solution to the original problem with the original parameter value.
@@ -31,11 +31,17 @@ def find_working_continuation_parameter_value(
 
     if backup_solution_function is None:
 
-        backup_solution_function = Function(solution.function)
+        backup_solution_function = Function(solution.function_space)
 
-    elif backup_solution_function.function_space() != solution.function_space:
+        backup_solution_function.assign(solution.function)
 
-        raise Exception("The backup solution function must use the same function space as the solution function.")
+    else:
+
+        if backup_solution_function.function_space() != solution.function_space:
+
+            raise Exception("The backup solution function must use the same function space as the solution function.")
+
+        backup_solution_function.assign(solution.function)
 
     r0 = continuation_parameter.__float__()
 
@@ -57,7 +63,7 @@ def find_working_continuation_parameter_value(
 
             solution.continuation_history.append((rname, r, solution.snes_cumulative_iteration_count - snes_iteration_count))
 
-            return solution
+            return r, solution
 
         except ConvergenceError as exception:
 
@@ -82,7 +88,7 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
         maxcount: int = 16,
         start_from_right: bool = False,
         backup_solution_function: Union[Function, None] = None,
-        ) -> Solution:
+        ) -> Tuple[Solution, Tuple[float]]:
     """ Solve a sequence of nonlinear problems where the continuation parameter value varies between bounds.
 
     Always continue from left to right.
@@ -119,11 +125,17 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
 
     if backup_solution_function is None:
 
-        backup_solution_function = Function(solution.function)
+        backup_solution_function = Function(solution.function_space)
 
-    elif backup_solution_function.function_space() != solution.function_space:
+        backup_solution_function.assign(solution.function)
 
-        raise Exception("The backup solution function must use the same function space as the solution function.")
+    else:
+
+        if backup_solution_function.function_space() != solution.function_space:
+
+            raise Exception("The backup solution function must use the same function space as the solution function.")
+
+        backup_solution_function.assign(solution.function)
 
     for attempt in attempts:
 
@@ -191,4 +203,4 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
 
         raise Exception("Invalid state")
 
-    return solution
+    return solution, tuple(sequence)

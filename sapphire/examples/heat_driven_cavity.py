@@ -14,21 +14,20 @@ The result is compared to data published in
         doi = {10.1016/0021-9991(82)90058-4}
     }
 """
-from typing import Tuple, Callable, Dict, Any
-from sapphire import Mesh, Problem, Solver, Solution, Simulation, solve_with_bounded_continuation_sequence, run, plot
+from typing import Tuple
+from sapphire import Mesh, Solution, Simulation, solve_with_bounded_continuation_sequence, run, plot
 from sapphire import solve as default_solve
 from sapphire.forms.natural_convection import COMPONENT_NAMES, element, residual
-from sapphire.forms.natural_convection import linear_boussinesq_buoyancy as default_buoyancy
 from sapphire.helpers.pointwise_verification import verify_function_values_at_points
 from firedrake import UnitSquareMesh, DirichletBC, MixedVectorSpaceBasis, VectorSpaceBasis, dx, assemble
 
 
-def default_mesh(dimensions: Tuple[int, int] = (20, 20)) -> Mesh:
+def mesh(dimensions: Tuple[int, int] = (20, 20)) -> Mesh:
 
     return Mesh(geometry=UnitSquareMesh(*dimensions), boundaries={'left': 1, 'right': 2, 'bottom': 3, 'top': 4})
 
 
-def dirichlet_boundary_conditions(solution: Solution, hot_boundary_id: int, cold_boundary_id: int):
+def dirichlet_boundary_conditions(solution: Solution):
     """No-slip BCs for the velocity on every wall and constant temperature BCs on the left and right walls.
 
     The weak formulation does not admit Dirichlet boundary conditions on the pressure solution.
@@ -37,8 +36,8 @@ def dirichlet_boundary_conditions(solution: Solution, hot_boundary_id: int, cold
 
     return (
         DirichletBC(solution.function_subspaces.u, (0,)*solution.geometric_dimension, "on_boundary"),
-        DirichletBC(solution.function_subspaces.T, solution.ufl_constants.hotwall_temperature, hot_boundary_id),
-        DirichletBC(solution.function_subspaces.T, solution.ufl_constants.coldwall_temperature, cold_boundary_id))
+        DirichletBC(solution.function_subspaces.T, solution.ufl_constants.hotwall_temperature, solution.mesh.boundaries['left']),
+        DirichletBC(solution.function_subspaces.T, solution.ufl_constants.coldwall_temperature, solution.mesh.boundaries['right']))
 
 
 def nullspace(solution: Solution):
@@ -74,11 +73,13 @@ def solve_with_rayleigh_number_continuation(sim: Simulation):
 
     Ra = sim.solutions[0].ufl_constants.rayleigh_number
 
-    return solve_with_bounded_continuation_sequence(
+    solution, _ = solve_with_bounded_continuation_sequence(
         sim=sim,
         solve=default_solve,
         continuation_parameter_and_name=(Ra, 'Ra'),
         initial_sequence=(1, Ra.__float__()))
+
+    return solution
 
 
 def solve(sim: Simulation):
@@ -91,45 +92,6 @@ def output(solution: Solution):
     plot(solution=solution, outdir_path="sapphire_output/heat_driven_cavity/plots/")
 
 
-def simulation(
-        ufl_constants: Dict[str, float],
-        taylor_hood_velocity_element_degree,
-        temperature_element_degree,
-        buoyancy: Callable[[Solution], Any] = None,  # @todo Investigate type
-        mesh: Mesh = None):
-
-    if buoyancy is None:
-
-        buoyancy = default_buoyancy
-
-    if mesh is None:
-
-        mesh = default_mesh()
-
-    solution = Solution(
-        mesh=mesh,
-        element=element(mesh.cell, taylor_hood_velocity_element_degree, temperature_element_degree),
-        component_names=COMPONENT_NAMES,
-        ufl_constants=ufl_constants)
-
-    def _residual(_solution):
-
-        return residual(_solution, buoyancy=buoyancy)
-
-    problem = Problem(
-        residual=_residual,
-        dirichlet_boundary_conditions=dirichlet_boundary_conditions(
-            solution,
-            hot_boundary_id=mesh.boundaries['left'],
-            cold_boundary_id=mesh.boundaries['right']))
-
-    solver = Solver(nullspace=nullspace(solution))
-
-    sim = Simulation(solutions=(solution,), problem=problem, solver=solver)
-
-    return sim
-
-
 def run_simulation(
         reynolds_number=1.,
         rayleigh_number=1.e6,
@@ -140,16 +102,22 @@ def run_simulation(
         taylor_hood_velocity_element_degree=2,
         temperature_element_degree=2):
 
-    sim = simulation(
+    _mesh = mesh(mesh_dimensions)
+
+    sim = Simulation(
+        mesh=_mesh,
+        element=element(_mesh.cell, taylor_hood_velocity_element_degree, temperature_element_degree),
+        solution_component_names=COMPONENT_NAMES,
         ufl_constants={
             'reynolds_number': reynolds_number,
             'rayleigh_number': rayleigh_number,
             'prandtl_number': prandtl_number,
             'hotwall_temperature': hotwall_temperature,
             'coldwall_temperature': coldwall_temperature},
-        mesh=default_mesh(mesh_dimensions),
-        taylor_hood_velocity_element_degree=taylor_hood_velocity_element_degree,
-        temperature_element_degree=temperature_element_degree)
+        residual=residual,
+        dirichlet_boundary_conditions=dirichlet_boundary_conditions,
+        nullspace=nullspace,
+        initial_times=None)
 
     return run(sim=sim, solve=solve, output=output)
 

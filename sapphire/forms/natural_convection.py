@@ -1,4 +1,10 @@
-"""Natural convection module"""
+"""Natural convection module
+
+Dirichlet BC's must not be placed on the pressure.
+The returned pressure solution will always have zero mean.
+
+Non-homogeneous Neumann BC's are not implemented.
+"""
 from typing import Callable, Tuple, Any
 from sapphire.data.solution import Solution
 from firedrake import Cell, MixedElement, FiniteElement, VectorElement, Constant, inner, dot, grad, div, sym, dx

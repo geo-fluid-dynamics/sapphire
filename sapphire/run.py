@@ -1,6 +1,6 @@
 """Module for running simulations"""
 from logging import warning
-from typing import Callable, Deque
+from typing import Callable, Deque, Dict
 from sapphire.data.solution import Solution
 from sapphire.data.simulation import Simulation
 from sapphire.solve import solve as default_solve
@@ -119,7 +119,7 @@ def rotate_deque(deque_to_rotate: Deque, n: int) -> Deque:
 def _run_one_step(
         sim: Simulation,
         solve: Callable[[Simulation], Solution],
-        postprocess: Callable[[Solution], Solution] = None,
+        postprocess: Callable[[Solution], Dict] = None,
         output: Callable[[Solution], None] = None,
         validate: Callable[[Solution], bool] = None,
         ) -> Solution:
@@ -130,7 +130,7 @@ def _run_one_step(
 
         print("Postprocessing solution data")
 
-        solution = postprocess(solution)
+        postprocess(solution)
 
     if output:
 
