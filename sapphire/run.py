@@ -82,7 +82,7 @@ def run(  # pylint: disable=too-many-arguments
 
     stepcount = 0
 
-    while sim.solutions[0].time <= (endtime + ENDTIME_TOLERANCE):
+    while sim.solutions[0].time <= (endtime - ENDTIME_TOLERANCE):
 
         if stepcount > 0:
 
