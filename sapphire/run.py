@@ -1,10 +1,10 @@
 """Module for running simulations"""
 from logging import warning
-from typing import Callable, Deque, Dict
+from typing import Callable, Dict
 from sapphire.data.solution import Solution
 from sapphire.data.simulation import Simulation
 from sapphire.solve import solve as default_solve
-from sapphire.output.plot import plot
+from sapphire.io.plot import plot
 
 
 ENDTIME_TOLERANCE = 1.e-8
@@ -14,7 +14,7 @@ This is larger than a typical floating point comparison tolerance because errors
 """
 
 
-def default_output(solution: Solution, outdir_path: str) -> None:
+def default_output(solution: Solution, outdir_path: str):
 
     plot(solution=solution, outdir_path=outdir_path)
 
@@ -78,23 +78,19 @@ def run(  # pylint: disable=too-many-arguments
         return sim
 
     #
-    starttime = sim.solutions[1].time
-
-    first_time_to_solve = sim.solutions[0].time
-
-    timestep_size = first_time_to_solve - starttime
+    sim.solutions[0].checkpoint_index += 1
 
     stepcount = 0
 
-    time = starttime
-
-    while time <= (endtime + ENDTIME_TOLERANCE):
+    while sim.solutions[0].time <= (endtime + ENDTIME_TOLERANCE):
 
         if stepcount > 0:
 
-            sim.solutions = rotate_deque(sim.solutions, 1)
+            timestep_size = sim.solutions[0].time - sim.solutions[1].time
 
-            sim.solutions[0].function.assign(sim.solutions[1].function)
+            sim.solutions.rotate(1)
+
+            copy_solution_values(sim.solutions[1], sim.solutions[0])
 
             sim.solutions[0].time = sim.solutions[1].time + timestep_size
 
@@ -102,18 +98,24 @@ def run(  # pylint: disable=too-many-arguments
 
         sim.solutions[0] = _run_one_step(sim=sim, solve=solve, postprocess=postprocess, output=output, validate=validate)
 
-        print("Solved at time t = {}".format(time))
+        print("Solved at time t = {}".format(sim.solutions[0].time))
 
         stepcount += 1
-
-        time = starttime + stepcount*timestep_size
 
     return sim
 
 
-def rotate_deque(deque_to_rotate: Deque, n: int) -> Deque:
-    """ Rotate a deque without losing type info """
-    return deque_to_rotate.rotate(n)
+def copy_solution_values(from_solution: Solution, to_solution: Solution):
+
+    to_solution.function.assign(from_solution.function)
+
+    for cname in from_solution.ufl_constants._fields:
+
+        getattr(to_solution.ufl_constants, cname).assign(getattr(from_solution.ufl_constants, cname))
+
+    for key in from_solution.extras.keys():
+
+        to_solution.extras[key] = from_solution.extras[key]
 
 
 def _run_one_step(
@@ -130,7 +132,7 @@ def _run_one_step(
 
         print("Postprocessing solution data")
 
-        postprocess(solution)
+        solution.post_processed_objects = postprocess(solution)
 
     if output:
 

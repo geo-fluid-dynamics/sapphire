@@ -10,45 +10,45 @@ Derived from
       publisher={Siam}
     }
 """
-from typing import Deque, Any
+from typing import Tuple, Callable, Any
+from collections import namedtuple
 from sapphire.data.solution import Solution
-from firedrake import Constant, split
+from firedrake import Constant
 
 
 def ufl_time_discrete_terms(
-        solutions: Deque[Solution],
-        timestep_size: Constant
-        ) -> Any:
-    """Returns backward difference time discretization.
+        solutions: Tuple[Solution],
+        method: Callable = None,
+        ) -> Tuple[Any]:
+    """Return time discrete terms to be used in UFL forms.
 
     The backward difference formula's stencil size is determine by the number of solutions provided, i.e. `len(solutions)`.
     For example, if `len(solutions == 3)`, then the second-order BDF2 method will be used, because it involves solutions at three discrete times.
 
-    The return type depends on whether or not the solution is based on a mixed finite element.
-    For mixed finite elements, a list of time discrete terms will be returned, each item corresponding to one of the sub-elements of the mixed element.
-    Otherwise, a single term will be returned.
-
-
     More details:
-
-    The return type design choice was made, rather than always returning a list (e.g. with only one item if not using a mixed element), so that it would be more intuitive when not using mixed elements.
 
     This implementation assumes constant time step size.
     Variable time step sizes change the BDF formula for all except first order.
     """
-    functions = [solutions[i].function for i in range(len(solutions))]
+    if method is None:
 
-    component_count = len(functions[0].split())
+        method = bdf
 
-    return [
-        bdf(
-            [split(functions[j])[i] for j in range(len(functions))],
-            timestep_size=timestep_size)
-        for i in range(component_count)]
+    _ufl_time_discrete_terms = {}
+
+    for fieldname in solutions[0].ufl_fields._fields:
+
+        _ufl_time_discrete_terms[fieldname + '_t'] = method(tuple(getattr(sol.ufl_fields, fieldname) for sol in solutions), timestep_size=Constant(solutions[0].time - solutions[1].time))
+
+    return namedtuple('UFLTimeDiscreteTerms', _ufl_time_discrete_terms.keys())(**_ufl_time_discrete_terms)
 
 
 def bdf(solutions, timestep_size):
-    """ Backward difference formulas with constant time step size """
+    """ Backward difference formulas
+
+    This implementation assumes constant time step size.
+    Variable time step sizes change the BDF formula for all except first order.
+    """
     order = len(solutions) - 1
 
     if order < 1:

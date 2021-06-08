@@ -15,7 +15,7 @@ The result is compared to data published in
     }
 """
 from sapphire import Solution, Simulation, plot
-from sapphire.examples.heat_driven_cavity import mesh, element, COMPONENT_NAMES, dirichlet_boundary_conditions, nullspace, solve, run
+from sapphire.examples.heat_driven_cavity import mesh, element, COMPONENT_NAMES, dirichlet_boundary_conditions, nullspace, solve, run, DEFAULT_FIREDRAKE_SOLVER_PARAMTERS
 from sapphire.examples.heat_driven_cavity import residual as heat_driven_cavity_residual
 from firedrake import Constant, dot, grad, FacetNormal, assemble, ds
 
@@ -80,8 +80,13 @@ def run_simulation(
         reference_temperature_range__degC=10.,
         mesh_dimensions=(20, 20),
         taylor_hood_velocity_element_degree=2,
-        temperature_element_degree=2
+        temperature_element_degree=2,
+        firedrake_solver_parameters=None,
         ) -> Simulation:
+
+    if firedrake_solver_parameters is None:
+
+        firedrake_solver_parameters = DEFAULT_FIREDRAKE_SOLVER_PARAMTERS
 
     _mesh = mesh(mesh_dimensions)
 
@@ -99,6 +104,7 @@ def run_simulation(
         residual=residual,
         dirichlet_boundary_conditions=dirichlet_boundary_conditions,
         nullspace=nullspace,
+        firedrake_solver_parameters=firedrake_solver_parameters,
         initial_times=None)
 
     return run(sim=sim, solve=solve, output=output)

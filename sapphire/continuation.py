@@ -8,6 +8,11 @@ from sapphire.data.simulation import Simulation
 from firedrake import Function, Constant, ConvergenceError
 
 
+class ContinuationError(Exception):
+
+    pass
+
+
 def find_working_continuation_parameter_value(
         sim: Simulation,
         solve: Callable[[Simulation], Solution],
@@ -61,9 +66,11 @@ def find_working_continuation_parameter_value(
 
             solution = solve(sim)
 
+            print("Solved with {} = {}".format(rname, r))
+
             solution.continuation_history.append((rname, r, solution.snes_cumulative_iteration_count - snes_iteration_count))
 
-            return r, solution
+            return r
 
         except ConvergenceError as exception:
 
@@ -75,9 +82,9 @@ def find_working_continuation_parameter_value(
 
                 continuation_parameter.assign(r0)
 
-                raise(exception)
+                raise ContinuationError("Failed to find working continuation parameter value after applying search operator {} times".format(max_attempts)) from exception
 
-    raise Exception("Failed to find working value for continuation parameter before exceeding maximum number of attempts ({})".format(max_attempts))
+    raise ContinuationError("Failed to find working value for continuation parameter before exceeding maximum number of attempts ({})".format(max_attempts))
 
 
 def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-arguments
@@ -86,7 +93,7 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
         continuation_parameter_and_name: Tuple[Constant, str],
         initial_sequence: Tuple[float],
         maxcount: int = 16,
-        start_from_right: bool = False,
+        start_index: int = 0,
         backup_solution_function: Union[Function, None] = None,
         ) -> Tuple[Solution, Tuple[float]]:
     """ Solve a sequence of nonlinear problems where the continuation parameter value varies between bounds.
@@ -111,13 +118,7 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
 
     sequence = initial_sequence
 
-    if start_from_right:
-
-        first_r_to_solve = sequence[-1]
-
-    else:
-
-        first_r_to_solve = sequence[0]
+    first_r_to_solve = sequence[start_index]
 
     attempts = range(maxcount - len(sequence))
 
@@ -173,11 +174,17 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
 
             index = rs.index(current_r)
 
-            if attempt == attempts[-1] or (index == 0):
+            if attempt == attempts[-1]:
 
                 continuation_parameter.assign(r0)
 
-                raise(exception)
+                raise ContinuationError("Failed to solve with maximum allowed continuation points {}".format(maxcount)) from exception
+
+            if index == 0:
+
+                continuation_parameter.assign(r0)
+
+                raise ContinuationError("Failed to solve for first continuation parameter value, {} = {}, from the provided sequence".format(rname, current_r)) from exception
 
             solution.function.assign(backup_solution_function)
 
@@ -193,7 +200,7 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
 
     if not solved:
 
-        raise Exception("Failed to solve with continuation")
+        raise ContinuationError("Failed to solve with continuation")
 
     if not continuation_parameter.__float__() == r0:
 

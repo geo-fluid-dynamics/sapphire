@@ -1,18 +1,18 @@
 """Water freezing example module"""
-from typing import Tuple
-from sapphire import Solution, Simulation, plot
+from sapphire import Solution, Simulation, plot, run, find_working_continuation_parameter_value, solve_with_bounded_continuation_sequence, ContinuationError
 from sapphire import solve as default_solve
-from sapphire import find_working_continuation_parameter_value, solve_with_bounded_continuation_sequence, run
 from sapphire.forms.natural_convection import element, COMPONENT_NAMES
-from sapphire.forms.natural_convection import residual as natural_convection_residual
+from sapphire.forms.enthalpy_porosity import postprocess
 from sapphire.forms.enthalpy_porosity import residual as enthalpy_porosity_residual
 from sapphire.examples.heat_driven_cavity import mesh, dirichlet_boundary_conditions, nullspace
 from sapphire.examples.heat_driven_cavity import solve as solve_steady_heat_driven_cavity
 from sapphire.examples.heat_driven_cavity_with_water import buoyancy_with_density_anomaly_of_water
-from firedrake import ConvergenceError, Function
+from sapphire.examples.heat_driven_cavity_with_water import residual as steady_state_heat_driven_cavity_residual
+from sapphire.examples.heat_driven_cavity_with_water import DEFAULT_FIREDRAKE_SOLVER_PARAMTERS as DEFAULT_HEAT_DRIVEN_CAVITY_FIREDRAKE_SOLVER_PARAMETERS
+from firedrake import Function
 
 
-DEFAULT_SOLVER_PARAMETERS = {
+DEFAULT_WATER_FREEZING_FIREDRAKE_SOLVER_PARAMETERS = {
     'snes_monitor': None,
     'snes_type': 'newtonls',
     'snes_linesearch_type': 'l2',
@@ -28,9 +28,14 @@ DEFAULT_SOLVER_PARAMETERS = {
     'mat_type': 'aij'}
 
 
-def solve_with_auto_smoothing(sim: Simulation, initial_sequence: Tuple[float] = None) -> Tuple[Solution, Tuple[float]]:
+LAST_SUCCESSFUL_SMOOTHING_SEQUENCE = None
+
+
+def solve_with_auto_smoothing(sim: Simulation) -> Solution:
 
     solution = sim.solutions[0]
+
+    initial_sequence = solution.extras['sigma_continuation_sequence']
 
     def search_upward():
 
@@ -39,48 +44,60 @@ def solve_with_auto_smoothing(sim: Simulation, initial_sequence: Tuple[float] = 
             solve=default_solve,
             continuation_parameter_and_name=(solution.ufl_constants.porosity_smoothing_factor, 'sigma'))
 
-    def refine_downward(sequence: Tuple(float)):
+    def refine_downward(start_index):
 
         return solve_with_bounded_continuation_sequence(
             sim=sim,
             solve=default_solve,
             continuation_parameter_and_name=(solution.ufl_constants.porosity_smoothing_factor, 'sigma'),
-            initial_sequence=sequence)
+            start_index=start_index,
+            initial_sequence=solution.extras['sigma_continuation_sequence'])
 
     initial_guess = Function(solution.function_space)
 
-    initial_guess.assign(solution)
+    initial_guess.assign(solution.function)
 
     sigma = solution.ufl_constants.porosity_smoothing_factor.__float__()
 
     if initial_sequence is None:
-        # Find an over-regularization that works.
-        working_value, solution = search_upward()
+
+        working_value = search_upward()
 
         if working_value == sigma:
             # No continuation was necessary.
             return solution
 
-    # At this point, either a bounded sequence has been provided or a working upper bound has been found.
-    # Next, continuation will be attempted using the sequence including refinement within the bounds.
+        solution.ufl_constants.porosity_smoothing_factor.assign(sigma)
+
+        solution.extras['sigma_continuation_sequence'] = (working_value, sigma)
+
+        solution, solution.extras['sigma_continuation_sequence'] = refine_downward(start_index=1)
+
+        return solution
+
     try:
 
-        solution, sequence = refine_downward((working_value, sigma))
+        solution, solution.extras['sigma_continuation_sequence'] = refine_downward(start_index=0)
 
-    except ConvergenceError as error:
+    except ContinuationError as exception:
 
         if initial_sequence is not None:
-            # Try one more time without using the given sequence.
-            # This is sometimes useful when trying to solve a later time step with a sequence that was only successful for an earlier time step.
-            solution.assign(initial_guess)
+            # Attempt searching for a working value and refining a new sequence rather than using the provided initial sequence.
+            solution.function.assign(initial_guess)
 
-            working_value, solution = search_upward()
+            solution.ufl_constants.porosity_smoothing_factor.assign(sigma)
 
-            solution, sequence = refine_downward(sequence=(working_value, sigma))
+            working_value = search_upward()
+
+            solution.ufl_constants.porosity_smoothing_factor.assign(sigma)
+
+            solution.extras['sigma_continuation_sequence'] = (working_value, sigma)
+
+            solution, solution.extras['sigma_continuation_sequence'] = refine_downward(start_index=1)
 
         else:
 
-            raise error
+            raise Exception("Failed to find a working continuation sequence.") from exception
 
     # The above procedure was quite complicated.
     # Verify that the problem was solved with the correct regularization and that the simulation's attribute for this has been set to the correct value before returning.
@@ -88,7 +105,7 @@ def solve_with_auto_smoothing(sim: Simulation, initial_sequence: Tuple[float] = 
 
         raise Exception("Continuation procedure ended on the wrong continuation parameter value.")
 
-    return solution, sequence
+    return solution
 
 
 def output(solution: Solution):
@@ -120,8 +137,19 @@ def run_simulation(
         taylor_hood_velocity_element_degree=2,
         temperature_element_degree=2,
         time_discretization_stencil_size=3,
+        quadrature_degree=4,
+        heat_driven_cavity_firedrake_solver_parameters=None,
+        water_freezing_firedrake_solver_parameters=None,
         endtime=1.44,
         timestep_size=1.44/4.):
+
+    if heat_driven_cavity_firedrake_solver_parameters is None:
+
+        heat_driven_cavity_firedrake_solver_parameters = DEFAULT_HEAT_DRIVEN_CAVITY_FIREDRAKE_SOLVER_PARAMETERS
+
+    if water_freezing_firedrake_solver_parameters is None:
+
+        water_freezing_firedrake_solver_parameters = DEFAULT_WATER_FREEZING_FIREDRAKE_SOLVER_PARAMETERS
 
     _mesh = mesh(mesh_dimensions)
 
@@ -138,9 +166,11 @@ def run_simulation(
             'hotwall_temperature': hotwall_temperature,
             'coldwall_temperature': coldwall_temperature_before_freezing,
             'reference_temperature_range__degC': reference_temperature_range__degC},
-        residual=natural_convection_residual,
+        residual=steady_state_heat_driven_cavity_residual,
+        quadrature_degree=quadrature_degree,
         dirichlet_boundary_conditions=dirichlet_boundary_conditions,
         nullspace=nullspace,
+        firedrake_solver_parameters=heat_driven_cavity_firedrake_solver_parameters,
         initial_times=None)
 
     initial_sim = run(sim=initial_sim, solve=solve_steady_heat_driven_cavity)
@@ -164,15 +194,20 @@ def run_simulation(
             'solid_velocity_relaxation_factor': solid_velocity_relaxation_factor,
             'porosity_smoothing_factor': porosity_smoothing_factor},
         residual=residual,
+        quadrature_degree=quadrature_degree,
         dirichlet_boundary_conditions=dirichlet_boundary_conditions,
         nullspace=nullspace,
-        quadrature_degree=4,
-        initial_times=tuple(-i*timestep_size for i in range(time_discretization_stencil_size)),
+        firedrake_solver_parameters=water_freezing_firedrake_solver_parameters,
+        initial_times=tuple((1 - i)*timestep_size for i in range(time_discretization_stencil_size)),
         initial_values_functions=(initial_sim.solutions[0].function,)*time_discretization_stencil_size)
+
+    sim.solutions[0].post_processed_objects = postprocess(sim.solutions[0])
 
     output(sim.solutions[0])
 
-    sim = run(sim=sim, solve=solve_with_auto_smoothing, endtime=endtime)
+    sim.solutions[0].extras['sigma_continuation_sequence'] = None
+
+    sim = run(sim=sim, endtime=endtime, solve=solve_with_auto_smoothing, postprocess=postprocess, output=output)
 
     return sim
 
@@ -181,7 +216,7 @@ def verify_default_simulation():
 
     sim = run_simulation()
 
-    liquid_area = sim.solutions[0].post_processed_object['liquid_area']
+    liquid_area = sim.solutions[0].post_processed_objects['liquid_area']
 
     expected_liquid_area = 0.70
 

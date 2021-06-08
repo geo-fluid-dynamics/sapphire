@@ -37,9 +37,9 @@ class Simulation:
             residual: Callable[[Tuple[Solution]], Any],
             dirichlet_boundary_conditions: Callable[[Solution], Tuple[DirichletBC]],
             ufl_constants: Dict[str, Constant],
+            firedrake_solver_parameters: dict,
             initial_times: Union[Tuple[float], None],
             initial_values_functions: Union[Tuple[Function], None] = None,
-            firedrake_solver_parameters: dict = None,
             nullspace: Union[Callable[[Solution], MixedVectorSpaceBasis], None] = None,
             quadrature_degree: Union[int, None] = None):
 
@@ -55,7 +55,7 @@ class Simulation:
 
         if initial_values_functions is None:
 
-            _initial_values_functions = (None,)
+            _initial_values_functions = (None,)*len(_initial_times)
 
         else:
 
@@ -76,10 +76,6 @@ class Simulation:
             if iv is not None:
 
                 solution.function.assign(iv)
-
-            if (time is not None) and (i < (len(_initial_times) - 1)):
-
-                solution.ufl_timestep_size.assign(time - _initial_times[i + 1])
 
             solutions.append(solution)
 

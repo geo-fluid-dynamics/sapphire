@@ -22,6 +22,15 @@ from sapphire.helpers.pointwise_verification import verify_function_values_at_po
 from firedrake import UnitSquareMesh, DirichletBC, MixedVectorSpaceBasis, VectorSpaceBasis, dx, assemble
 
 
+DEFAULT_FIREDRAKE_SOLVER_PARAMTERS = {
+    'snes_type': 'newtonls',
+    'snes_monitor': None,
+    'ksp_type': 'preonly',
+    'pc_type': 'lu',
+    'mat_type': 'aij',
+    'pc_factor_mat_solver_type': 'mumps'}
+
+
 def mesh(dimensions: Tuple[int, int] = (20, 20)) -> Mesh:
 
     return Mesh(geometry=UnitSquareMesh(*dimensions), boundaries={'left': 1, 'right': 2, 'bottom': 3, 'top': 4})
@@ -100,7 +109,12 @@ def run_simulation(
         coldwall_temperature=-0.5,
         mesh_dimensions=(20, 20),
         taylor_hood_velocity_element_degree=2,
-        temperature_element_degree=2):
+        temperature_element_degree=2,
+        firedrake_solver_parameters=None):
+
+    if firedrake_solver_parameters is None:
+
+        firedrake_solver_parameters = DEFAULT_FIREDRAKE_SOLVER_PARAMTERS
 
     _mesh = mesh(mesh_dimensions)
 
@@ -117,6 +131,7 @@ def run_simulation(
         residual=residual,
         dirichlet_boundary_conditions=dirichlet_boundary_conditions,
         nullspace=nullspace,
+        firedrake_solver_parameters=firedrake_solver_parameters,
         initial_times=None)
 
     return run(sim=sim, solve=solve, output=output)

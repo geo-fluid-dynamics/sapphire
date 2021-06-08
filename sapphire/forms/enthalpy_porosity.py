@@ -8,16 +8,17 @@ The returned pressure solution will always have zero mean.
 Non-homogeneous Neumann BC's are not implemented.
 """
 from typing import Callable, Tuple, Dict, Any
+from sapphire.time_discretization import ufl_time_discrete_terms
 from sapphire.data.solution import Solution
 from sapphire.time_discretization import bdf
 from sapphire.forms.natural_convection import linear_boussinesq_buoyancy, mass_residual
 from sapphire.forms.natural_convection import momentum_residual as natural_convection_momentum_residual
-from firedrake import dot, grad, div, erf, sqrt, assemble, dx
+from firedrake import Constant, dot, grad, div, erf, sqrt, assemble, dx, interpolate
 
 
 def porosity(solution: Solution):
 
-    T = solution.ufl_fields.temperature
+    T = solution.ufl_fields.T
 
     T_m = solution.ufl_constants.melting_temperature
 
@@ -30,7 +31,7 @@ def phase_dependent_material_property(solid_to_liquid_ratio: float) -> Callable:
 
     p_sl = solid_to_liquid_ratio
 
-    if p_sl < 0:
+    if p_sl.__float__() < 0:
 
         raise Exception("The solid-to-liquid ratio for any phase dependent material property must be non-negative.")
 
@@ -72,7 +73,7 @@ def solid_velocity_relaxation(solution: Solution):
     return 1/tau*(1 - phi)
 
 
-def momentum_residual(solutions: Tuple[Solution], buoyancy: Callable[[Solution], Any] = None) -> Any:
+def momentum_residual(solutions: Tuple[Solution], buoyancy: Callable[[Solution], Any]) -> Any:
     """Momentum residual for natural convection governed by the Navier-Stokes-Boussinesq equations.
 
     Non-homogeneous Neumann BC's are not implemented for the velocity.
@@ -83,15 +84,13 @@ def momentum_residual(solutions: Tuple[Solution], buoyancy: Callable[[Solution],
 
     psi_u = solution.test_functions.u
 
-    u_t = bdf((sol.u for sol in solutions), solution.ufl_timestep_size)
+    u_t = ufl_time_discrete_terms(solutions).u_t  # pylint: disable=no-member
 
-    phi_l = porosity(solution)
-
-    d = solid_velocity_relaxation(1 - phi_l)
+    d = solid_velocity_relaxation(solution)
 
     _dx = dx(degree=solution.quadrature_degree)
 
-    r = natural_convection_momentum_residual(solution, buoyancy=buoyancy)
+    r = natural_convection_momentum_residual(solutions, buoyancy=buoyancy)
 
     return r + dot(psi_u, u_t + d*u)*_dx
 
@@ -101,9 +100,11 @@ def energy_residual(solutions: Tuple[Solution]) -> Any:
 
     solution = solutions[0]
 
-    CT_t = bdf((volumetric_heat_capacity(sol)*sol.ufl_fields.T for sol in solutions), solution.ufl_timestep_size)
+    ufl_timestep_size = Constant(solutions[0].time - solutions[1].time)
 
-    phi_t = bdf((porosity(sol) for sol in solutions), solution.ufl_timestep_size)
+    CT_t = bdf(tuple(volumetric_heat_capacity(sol)*sol.ufl_fields.T for sol in solutions), ufl_timestep_size)
+
+    phi_t = bdf(tuple(porosity(sol) for sol in solutions), ufl_timestep_size)
 
     Re = solution.ufl_constants.reynolds_number
 
@@ -137,15 +138,13 @@ def residual(solutions: Tuple[Solution], buoyancy: Callable[[Solution], Any] = N
 
 def postprocess(solution: Solution) -> Dict:
 
-    u = solution.ufl_fields.u
+    phi = porosity(solution)
 
     _dx = dx(degree=solution.quadrature_degree)
 
-    phi = porosity(solution)
+    post_processed_objects = {
+        '\\phi': interpolate(phi, solution.subfunctions.T.function_space()),
+        'liquid_area': assemble(phi*_dx),
+        'velocity_divergence': assemble(div(solution.ufl_fields.u)*_dx)}
 
-    solution.post_processed_objects = {
-        'velocity_divergence': assemble(div(u)*_dx),
-        'porosity_field': phi,
-        'liquid_area': assemble(phi*_dx)}
-
-    return solution.post_processed_objects
+    return post_processed_objects
