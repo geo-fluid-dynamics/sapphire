@@ -21,7 +21,7 @@ class Solution:
 
     time: Union[float, None]
 
-    ufl_constants: Union[Dict[str, Constant], Tuple[Constant], None]
+    ufl_constants: Tuple[Constant]
 
     quadrature_degree: Union[int, None] = None
 

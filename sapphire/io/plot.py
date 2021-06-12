@@ -17,10 +17,10 @@ DEFAULT_SAVEFIG_KWARGS = {
 
 def plot(
         solution: Solution,
-        outdir_path: str,
+        output_directory_path: str,
         savefig_kwargs: dict = None):
     """Save plots of each function (in non-interactive mode)"""
-    Path(outdir_path).mkdir(parents=True, exist_ok=True)
+    Path(output_directory_path).mkdir(parents=True, exist_ok=True)
 
     if savefig_kwargs is None:
 
@@ -92,7 +92,7 @@ def plot(
 
             filename += '_it{}'.format(solution.checkpoint_index)
 
-        filepath = outdir_path + '/' + filename + '.png'
+        filepath = output_directory_path + '/' + filename + '.png'
 
         print("Writing plot to {}".format(filepath))
 

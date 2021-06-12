@@ -1,30 +1,44 @@
-import csv
-import datetime
-import firedrake as fe
-from sapphire.data import Simulation
+from pathlib import Path
+from csv import DictWriter
+from datetime import datetime
+from sapphire.data.solution import Solution
 
 
-def default_report(
-        sim: Simulation,
-        output_directory_path: str
+def report(
+        solution: Solution,
+        filepath_without_extension: str
         ):
 
-    dictionary = sim.__dict__.copy()
+    solution_dict = solution.__dict__.copy()
 
-    for key in dictionary.keys():
+    rowdict = {'datetime': str(datetime.now())}
 
-        if isinstance(dictionary[key], fe.Constant):
+    for key in solution_dict.keys():
 
-            dictionary[key] = dictionary[key].__float__()
+        value = solution_dict[key]
 
-    dictionary["datetime"] = str(datetime.datetime.now())
+        if isinstance(value, float) or isinstance(value, int) or isinstance(value, str):
 
-    with output_directory_path.joinpath("report").with_suffix(".csv").open("a+") as csv_file:
+            rowdict[key] = value
 
-        writer = csv.DictWriter(csv_file, fieldnames=dictionary.keys())
+    ufl_constants_dict = solution.ufl_constants._asdict()
 
-        if len(list(writer)) == 0:
+    for key in ufl_constants_dict:
+
+        rowdict[key] = ufl_constants_dict[key].__float__()
+
+    filepath = filepath_without_extension + '.csv'
+
+    Path(filepath).parent.mkdir(parents=True, exist_ok=True)
+
+    print("Appending row to report " + filepath)
+
+    with open(filepath, 'a+') as file:
+
+        writer = DictWriter(file, fieldnames=rowdict.keys())
+
+        if Path(filepath).stat().st_size == 0:
 
             writer.writeheader()
 
-        writer.writerow(dictionary)
+        writer.writerow(rowdict)

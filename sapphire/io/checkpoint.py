@@ -1,9 +1,10 @@
 """ Checkpointing module """
-from sapphire.data import Simulation
-import firedrake as fe
+from pathlib import Path
+from sapphire.data.solution import Solution
+from firedrake import DumbCheckpoint, Function, FILE_UPDATE, FILE_READ
 
 
-def write_checkpoint(sim: Simulation, file_basename: str):
+def write_checkpoint(solution: Solution, filepath_without_extension: str):
     """Write checkpoint for restarting and/or post-processing.
 
     A solution is stored for each state in states.
@@ -12,42 +13,37 @@ def write_checkpoint(sim: Simulation, file_basename: str):
 
     If a checkpoint already exists for a state's time, then no new checkpoint is written for that state.
     """
+    Path(filepath_without_extension).parent.mkdir(parents=True, exist_ok=True)
 
-    checkpointer = fe.DumbCheckpoint(basename=file_basename, mode=fe.FILE_UPDATE)
+    checkpointer = DumbCheckpoint(basename=filepath_without_extension, mode=FILE_UPDATE)
 
-    stored_times, _ = checkpointer.get_timesteps()
+    checkpointer.set_timestep(t=solution.time, idx=solution.checkpoint_index)
 
-    for solution in sim.solutions:
+    print("Writing checkpoint to {}".format(checkpointer.h5file.filename))
 
-        if solution.time in stored_times:
+    checkpointer.store(solution.function, name='solution.function')
 
-            continue
+    for key in solution.post_processed_objects:
 
-        checkpointer.set_timestep(t=solution.time, idx=solution.checkpoint_index)
+        ppo = solution.post_processed_objects[key]
 
-        print("Writing checkpoint to {}".format(checkpointer.h5file.filename))
+        if isinstance(ppo, Function):
 
-        checkpointer.store(solution.function, name="solution.function")
-
-        for key in solution.post_processed_functions.keys():
-
-            checkpointer.store(solution.post_processed_functions[key], name="solution.post_processed_functions."+key)
+            checkpointer.store(ppo, name='solution.post_processed_objects.'+key)
 
 
-def read_checkpoint(sim: Simulation, file_basename: str) -> Simulation:
+def read_checkpoint(solution_function: Function, time: float, index: int, filepath_without_extension: str):
 
-    checkpointer = fe.DumbCheckpoint(basename=file_basename, mode=fe.FILE_READ)
+    checkpointer = DumbCheckpoint(basename=filepath_without_extension, mode=FILE_READ)
 
     stored_times, _ = checkpointer.get_timesteps()
 
-    for solution in sim.solutions:
+    if time not in stored_times:
 
-        assert(solution.time in stored_times)
+        raise Exception("Checkpoint file does not contain a solution for time {}. Stored times are {}".format(time, stored_times))
 
-        checkpointer.set_timestep(t=solution.time, idx=solution.checkpoint_index)
+    checkpointer.set_timestep(t=time, idx=index)
 
-        print("Reading checkpoint from {}".format(checkpointer.h5file.filename))
+    print("Reading checkpoint from {}".format(checkpointer.h5file.filename))
 
-        checkpointer.load(solution.function, name="solution.function")
-
-    return sim
+    checkpointer.load(solution_function, name='solution.function')

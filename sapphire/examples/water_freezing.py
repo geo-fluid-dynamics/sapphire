@@ -1,5 +1,5 @@
 """Water freezing example module"""
-from sapphire import Solution, Simulation, plot, run, find_working_continuation_parameter_value, solve_with_bounded_continuation_sequence, ContinuationError
+from sapphire import Solution, Simulation, report, write_checkpoint, plot, run, find_working_continuation_parameter_value, solve_with_bounded_continuation_sequence, ContinuationError
 from sapphire import solve as default_solve
 from sapphire.forms.natural_convection import element, COMPONENT_NAMES
 from sapphire.forms.enthalpy_porosity import postprocess
@@ -110,7 +110,13 @@ def solve_with_auto_smoothing(sim: Simulation) -> Solution:
 
 def output(solution: Solution):
 
-    plot(solution=solution, outdir_path="sapphire_output/water_freezing/plots/")
+    outdir = 'sapphire_output/water_freezing/'
+
+    report(solution=solution, filepath_without_extension=outdir+'report')
+
+    write_checkpoint(solution=solution, filepath_without_extension=outdir+'checkpoint')
+
+    plot(solution=solution, output_directory_path=outdir+'plots/')
 
 
 def residual(sim: Simulation):
@@ -200,6 +206,8 @@ def run_simulation(
         firedrake_solver_parameters=water_freezing_firedrake_solver_parameters,
         initial_times=tuple((1 - i)*timestep_size for i in range(time_discretization_stencil_size)),
         initial_values_functions=(initial_sim.solutions[0].function,)*time_discretization_stencil_size)
+
+    sim.solutions[0].snes_cumulative_iteration_count = initial_sim.solutions[0].snes_cumulative_iteration_count
 
     sim.solutions[0].post_processed_objects = postprocess(sim.solutions[0])
 
