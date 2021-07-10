@@ -1,6 +1,6 @@
 """Module for running simulations"""
 from logging import warning
-from typing import Callable, Dict
+from typing import Callable, Dict, Any
 from sapphire.data.solution import Solution
 from sapphire.data.simulation import Simulation
 from sapphire.solve import solve as default_solve
@@ -14,19 +14,19 @@ This is larger than a typical floating point comparison tolerance because errors
 """
 
 
-def default_output(solution: Solution, outdir_path: str):
+def default_output(solution: Solution, output_directory_path: str):
 
-    plot(solution=solution, outdir_path=outdir_path)
+    plot(solution=solution, output_directory_path=output_directory_path)
 
 
 def run(  # pylint: disable=too-many-arguments
         sim: Simulation,
         endtime: float = None,
-        solve: Callable[[Simulation], Solution] = None,
-        postprocess: Callable[[Solution], Solution] = None,
+        solve: Callable[[Simulation], None] = None,
+        postprocess: Callable[[Solution], Dict[str, Any]] = None,
         output: Callable[[Solution], None] = None,
-        validate: Callable[[Solution], bool] = None,
-        ) -> Simulation:
+        validate: Callable[[Solution], None] = None,
+        ):
     """Run simulation forward in time.
 
     :param sim: The simulation data.
@@ -40,7 +40,17 @@ def run(  # pylint: disable=too-many-arguments
     :param output: This is called to write outputs after solving each time step.
 
     :param validate: This is called to validate data before solving.
+
+    Modifies `sim.solutions`.
     """
+    time = sim.solutions[0].time
+
+    if (time is not None) and (time >= (endtime - ENDTIME_TOLERANCE)):
+
+        warning("End time (t_f = {}) already reached (t = {})".format(endtime, time))
+
+        return
+
     for function, default_function, name in zip((solve, output), (default_solve, default_output), ('solve', 'output')):
 
         if function is None:
@@ -49,19 +59,13 @@ def run(  # pylint: disable=too-many-arguments
 
             warning("`run` is using default `{}` function".format(name))
 
-    if validate:
+    if validate is not None:
 
         print("Validating all initial solution data")
 
         for solution in sim.solutions:
 
-            valid = validate(solution)
-
-            if not valid:
-
-                raise Exception("Solution data failed validation")
-
-    time = sim.solutions[0].time
+            validate(solution)
 
     if time is None:
 
@@ -73,36 +77,28 @@ def run(  # pylint: disable=too-many-arguments
 
             raise Exception("`sim.solutions` should only contain a single solution if there is no time discretization")
 
-        sim.solutions[0] = _run_one_step(sim=sim, solve=solve, postprocess=postprocess, output=output, validate=validate)
+        _run_one_step(sim=sim, solve=solve, postprocess=postprocess, output=output, validate=validate)
 
         return sim
 
     #
-    sim.solutions[0].checkpoint_index += 1
+    while time < (endtime - ENDTIME_TOLERANCE):
 
-    stepcount = 0
+        timestep_size = sim.solutions[0].ufl_constants.timestep_size.__float__()
 
-    while sim.solutions[0].time <= (endtime - ENDTIME_TOLERANCE):
+        time += timestep_size
 
-        if stepcount > 0:
+        sim.solutions.rotate(1)
 
-            timestep_size = sim.solutions[0].time - sim.solutions[1].time
+        copy_solution_values(sim.solutions[1], sim.solutions[0])
 
-            sim.solutions.rotate(1)
+        sim.solutions[0].time = time
 
-            copy_solution_values(sim.solutions[1], sim.solutions[0])
+        sim.solutions[0].checkpoint_index = sim.solutions[1].checkpoint_index + 1
 
-            sim.solutions[0].time = sim.solutions[1].time + timestep_size
-
-            sim.solutions[0].checkpoint_index = sim.solutions[1].checkpoint_index + 1
-
-        sim.solutions[0] = _run_one_step(sim=sim, solve=solve, postprocess=postprocess, output=output, validate=validate)
+        _run_one_step(sim=sim, solve=solve, postprocess=postprocess, output=output, validate=validate)
 
         print("Solved at time t = {}".format(sim.solutions[0].time))
-
-        stepcount += 1
-
-    return sim
 
 
 def copy_solution_values(from_solution: Solution, to_solution: Solution):
@@ -120,34 +116,30 @@ def copy_solution_values(from_solution: Solution, to_solution: Solution):
 
 def _run_one_step(
         sim: Simulation,
-        solve: Callable[[Simulation], Solution],
-        postprocess: Callable[[Solution], Dict] = None,
+        solve: Callable[[Simulation], None],
+        postprocess: Callable[[Solution], Dict[str, Any]] = None,
         output: Callable[[Solution], None] = None,
-        validate: Callable[[Solution], bool] = None,
-        ) -> Solution:
+        validate: Callable[[Solution], None] = None,
+        ):
 
-    solution = solve(sim)
+    solve(sim)
 
-    if postprocess:
+    solution = sim.solutions[0]
+
+    if postprocess is not None:
 
         print("Postprocessing solution data")
 
         solution.post_processed_objects = postprocess(solution)
 
-    if output:
+    if output is not None:
 
         print("Writing outputs")
 
         output(solution)
 
-    if validate:
+    if validate is not None:
 
         print("Validating latest solution data")
 
-        valid = validate(solution)
-
-        if not valid:
-
-            raise Exception("Solution data failed validation")
-
-    return solution
+        validate(solution)

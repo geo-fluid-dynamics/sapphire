@@ -38,7 +38,10 @@ def ufl_time_discrete_terms(
 
     for fieldname in solutions[0].ufl_fields._fields:
 
-        _ufl_time_discrete_terms[fieldname + '_t'] = method(tuple(getattr(sol.ufl_fields, fieldname) for sol in solutions), timestep_size=Constant(solutions[0].time - solutions[1].time))
+        # timestep_size = Constant(solutions[0].time - solutions[1].time)
+        timestep_size = solutions[0].ufl_constants.timestep_size
+
+        _ufl_time_discrete_terms[fieldname + '_t'] = method(tuple(getattr(sol.ufl_fields, fieldname) for sol in solutions), timestep_size=timestep_size)
 
     return namedtuple('UFLTimeDiscreteTerms', _ufl_time_discrete_terms.keys())(**_ufl_time_discrete_terms)
 

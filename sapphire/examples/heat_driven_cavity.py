@@ -18,22 +18,9 @@ from typing import Tuple
 from sapphire import Mesh, Solution, Simulation, solve_with_bounded_continuation_sequence, run, plot
 from sapphire import solve as default_solve
 from sapphire.forms.natural_convection import COMPONENT_NAMES, element, residual
+from sapphire.examples.lid_driven_cavity import DEFAULT_FIREDRAKE_SOLVER_PARAMETERS, cavity_mesh
 from sapphire.helpers.pointwise_verification import verify_function_values_at_points
-from firedrake import UnitSquareMesh, DirichletBC, MixedVectorSpaceBasis, VectorSpaceBasis, dx, assemble
-
-
-DEFAULT_FIREDRAKE_SOLVER_PARAMTERS = {
-    'snes_type': 'newtonls',
-    'snes_monitor': None,
-    'ksp_type': 'preonly',
-    'pc_type': 'lu',
-    'mat_type': 'aij',
-    'pc_factor_mat_solver_type': 'mumps'}
-
-
-def mesh(dimensions: Tuple[int, int] = (20, 20)) -> Mesh:
-
-    return Mesh(geometry=UnitSquareMesh(*dimensions), boundaries={'left': 1, 'right': 2, 'bottom': 3, 'top': 4})
+from firedrake import UnitSquareMesh, DirichletBC, MixedVectorSpaceBasis, VectorSpaceBasis
 
 
 def dirichlet_boundary_conditions(solution: Solution):
@@ -44,7 +31,7 @@ def dirichlet_boundary_conditions(solution: Solution):
     """
 
     return (
-        DirichletBC(solution.function_subspaces.u, (0,)*solution.geometric_dimension, "on_boundary"),
+        DirichletBC(solution.function_subspaces.U, (0,)*solution.geometric_dimension, "on_boundary"),
         DirichletBC(solution.function_subspaces.T, solution.ufl_constants.hotwall_temperature, solution.mesh.boundaries['left']),
         DirichletBC(solution.function_subspaces.T, solution.ufl_constants.coldwall_temperature, solution.mesh.boundaries['right']))
 
@@ -56,49 +43,23 @@ def nullspace(solution: Solution):
     """
     return MixedVectorSpaceBasis(
         solution.function.function_space(),
-        [VectorSpaceBasis(constant=True), solution.function_subspaces.u, solution.function_subspaces.T])
-
-
-def solve_and_subtract_mean_pressure(sim: Simulation):
-
-    solution = default_solve(sim)
-
-    print("Subtracting mean pressure to make solution unique")
-
-    p = solution.ufl_fields.p
-
-    mean_pressure = assemble(p*dx(degree=solution.quadrature_degree))
-
-    p = solution.subfunctions.p
-
-    p.assign(p - mean_pressure)
-
-    print("Done subtracting mean pressure")
-
-    return solution
+        [VectorSpaceBasis(constant=True), solution.function_subspaces.U, solution.function_subspaces.T])
 
 
 def solve_with_rayleigh_number_continuation(sim: Simulation):
 
     Ra = sim.solutions[0].ufl_constants.rayleigh_number
 
-    solution, _ = solve_with_bounded_continuation_sequence(
+    solve_with_bounded_continuation_sequence(
         sim=sim,
         solve=default_solve,
         continuation_parameter_and_name=(Ra, 'Ra'),
         initial_sequence=(1, Ra.__float__()))
 
-    return solution
-
-
-def solve(sim: Simulation):
-
-    return solve_with_rayleigh_number_continuation(sim)
-
 
 def output(solution: Solution):
 
-    plot(solution=solution, outdir_path="sapphire_output/heat_driven_cavity/plots/")
+    plot(solution=solution, output_directory_path="sapphire_output/heat_driven_cavity/plots/")
 
 
 def run_simulation(
@@ -114,9 +75,9 @@ def run_simulation(
 
     if firedrake_solver_parameters is None:
 
-        firedrake_solver_parameters = DEFAULT_FIREDRAKE_SOLVER_PARAMTERS
+        firedrake_solver_parameters = DEFAULT_FIREDRAKE_SOLVER_PARAMETERS
 
-    _mesh = mesh(mesh_dimensions)
+    _mesh = cavity_mesh(nx=mesh_dimensions[0], ny=mesh_dimensions[1], Lx=1, Ly=1)
 
     sim = Simulation(
         mesh=_mesh,
@@ -132,9 +93,9 @@ def run_simulation(
         dirichlet_boundary_conditions=dirichlet_boundary_conditions,
         nullspace=nullspace,
         firedrake_solver_parameters=firedrake_solver_parameters,
-        initial_times=None)
+        time_discretization_stencil_size=1)
 
-    return run(sim=sim, solve=solve, output=output)
+    return run(sim=sim, solve=solve_with_rayleigh_number_continuation, output=output)
 
 
 def verify_default_simulation():
@@ -148,10 +109,10 @@ def verify_default_simulation():
     Pr = solution.ufl_constants.prandtl_number.__float__()
 
     verify_function_values_at_points(
-        function=sim.solutions[0].subfunctions.u,
+        function=sim.solutions[0].subfunctions.U,
         points=[(0.5, y) for y in (0., 0.15, 0.34999, 0.5, 0.65, 0.84999)],
         # Checking y coordinates 0.3499 and 0.8499 instead of 0.35, 0.85 because the `firedrake.Function` evaluation fails at the exact coordinates. See https://github.com/firedrakeproject/firedrake/issues/1340
-        expected_values=[(u_x*Ra**0.5/Pr, None) for u_x in (0.0000, -0.0649, -0.0194, 0.0000, 0.0194, 0.0649)],
+        expected_values=[(U_x*Ra**0.5/Pr, None) for U_x in (0.0000, -0.0649, -0.0194, 0.0000, 0.0194, 0.0649)],
         absolute_tolerances=[(tol*Ra**0.5/Pr, None) for tol in (1.e-12, 0.001, 0.001, 1.e-12, 0.001, 0.001)])
 
 

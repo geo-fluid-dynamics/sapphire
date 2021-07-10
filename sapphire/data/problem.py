@@ -22,4 +22,4 @@ class Problem:
 
     This is Callable because the residual must be updated whenever the solution deque rotates to avoid excessive copying of solution function values. """
 
-    dirichlet_boundary_conditions: Tuple[DirichletBC]
+    dirichlet_boundary_conditions: Callable[[Solution], Tuple[DirichletBC]]

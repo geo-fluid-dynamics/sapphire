@@ -7,7 +7,7 @@ from sapphire.data.mesh import Mesh
 from sapphire.data.solution import Solution
 from sapphire.data.problem import Problem
 from sapphire.data.solver import Solver
-from firedrake import Constant, Function, FiniteElement, VectorElement, MixedElement, MixedVectorSpaceBasis
+from firedrake import FiniteElement, VectorElement, MixedElement, MixedVectorSpaceBasis
 
 
 @dataclass
@@ -33,62 +33,50 @@ class Simulation:
             self,
             mesh: Mesh,
             element: Union[FiniteElement, VectorElement, MixedElement],
+            time_discretization_stencil_size: int,
             solution_component_names: Tuple[str],
             residual: Callable[[Tuple[Solution]], Any],
             dirichlet_boundary_conditions: Callable[[Solution], Tuple[DirichletBC]],
-            ufl_constants: Dict[str, Constant],
+            ufl_constants: Dict[str, float],
             firedrake_solver_parameters: dict,
-            initial_times: Union[Tuple[float], None],
-            initial_values_functions: Union[Tuple[Function], None] = None,
             nullspace: Union[Callable[[Solution], MixedVectorSpaceBasis], None] = None,
             quadrature_degree: Union[int, None] = None):
 
+        if time_discretization_stencil_size < 1:
+
+            raise Exception("'time_discretization_stencil_size' must be at least 1 (which would be for steady state simulation).")
+
         solutions = []
 
-        if initial_times is None:
+        for i in range(time_discretization_stencil_size):
 
-            _initial_times = (None,)
+            if 'timestep_size' in ufl_constants:
 
-        else:
+                time = -i*ufl_constants['timestep_size']
 
-            _initial_times = initial_times
+            else:
 
-        if initial_values_functions is None:
+                time = None
 
-            _initial_values_functions = (None,)*len(_initial_times)
-
-        else:
-
-            _initial_values_functions = initial_values_functions
-
-        for i, time in enumerate(_initial_times):
-
-            solution = Solution(
+            solutions.append(Solution(
                 mesh=mesh,
                 element=element,
                 component_names=solution_component_names,
                 ufl_constants=ufl_constants,
                 quadrature_degree=quadrature_degree,
-                time=time)
-
-            iv = _initial_values_functions[i]
-
-            if iv is not None:
-
-                solution.function.assign(iv)
-
-            solutions.append(solution)
+                time=time,
+                checkpoint_index=-i))
 
         self.solutions = deque(solutions)
 
         self.problem = Problem(
             residual=residual,
-            dirichlet_boundary_conditions=dirichlet_boundary_conditions(self.solutions[0]))
+            dirichlet_boundary_conditions=dirichlet_boundary_conditions)
 
         if nullspace is None:
 
-            self.solver = Solver(firerake_solver_parameters=firedrake_solver_parameters)
+            self.solver = Solver(firedrake_solver_parameters=firedrake_solver_parameters)
 
         else:
 
-            self.solver = Solver(firedrake_solver_parameters=firedrake_solver_parameters, nullspace=nullspace(solution))
+            self.solver = Solver(firedrake_solver_parameters=firedrake_solver_parameters, nullspace=nullspace(self.solutions[0]))

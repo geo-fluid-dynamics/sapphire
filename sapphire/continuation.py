@@ -3,7 +3,6 @@
 for regularized nonlinear problems.
 """
 from typing import Callable, Tuple, Union
-from sapphire.data.solution import Solution
 from sapphire.data.simulation import Simulation
 from firedrake import Function, Constant, ConvergenceError
 
@@ -15,12 +14,12 @@ class ContinuationError(Exception):
 
 def find_working_continuation_parameter_value(
         sim: Simulation,
-        solve: Callable[[Simulation], Solution],
+        solve: Callable[[Simulation], None],
         continuation_parameter_and_name: Tuple[Constant, str],
         search_operator: Callable = lambda r: 2.*r,
         max_attempts: int = 8,
         backup_solution_function: Union[Function, None] = None,
-        ) -> Tuple[float, Solution]:
+        ) -> float:
     """ Attempt to solve a sequence of nonlinear problems where the continuation parameter value is varied according to the search operator until a solution is found.
 
     The resulting solution will *not* be the solution to the original problem with the original parameter value.
@@ -64,7 +63,7 @@ def find_working_continuation_parameter_value(
 
             snes_iteration_count = solution.snes_cumulative_iteration_count
 
-            solution = solve(sim)
+            solve(sim)
 
             print("Solved with {} = {}".format(rname, r))
 
@@ -72,7 +71,7 @@ def find_working_continuation_parameter_value(
 
             return r
 
-        except ConvergenceError as exception:
+        except (ConvergenceError, ContinuationError) as exception:
 
             r = search_operator(r)
 
@@ -89,18 +88,20 @@ def find_working_continuation_parameter_value(
 
 def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-arguments
         sim: Simulation,
-        solve: Callable[[Simulation], Solution],
+        solve: Callable[[Simulation], None],
         continuation_parameter_and_name: Tuple[Constant, str],
         initial_sequence: Tuple[float],
         maxcount: int = 16,
         start_index: int = 0,
         backup_solution_function: Union[Function, None] = None,
-        ) -> Tuple[Solution, Tuple[float]]:
+        ):
     """ Solve a sequence of nonlinear problems where the continuation parameter value varies between bounds.
 
     Always continue from left to right.
 
     If successful, then the final solution is for the right bounding continuation parameter value.
+
+    `sim.solutions[0]` will be modified with the result.
     """
     solution = sim.solutions[0]
 
@@ -152,7 +153,7 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
 
                 snes_iteration_count = solution.snes_cumulative_iteration_count
 
-                solution = solve(sim)
+                solve(sim)
 
                 solution.continuation_history.append((rname, r, solution.snes_cumulative_iteration_count - snes_iteration_count))
 
@@ -164,7 +165,7 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
 
             break
 
-        except ConvergenceError as exception:
+        except (ConvergenceError, ContinuationError) as exception:
 
             current_r = continuation_parameter.__float__()
 
@@ -210,4 +211,18 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
 
         raise Exception("Invalid state")
 
-    return solution, tuple(sequence)
+    solution.extras[rname+'_continuation_sequence'] = tuple(sequence)
+
+
+def solve_with_timestep_size_continuation(sim: Simulation, solve: Callable[[Simulation], None], maxcount):
+
+    ufl_timestep_size = sim.solutions[0].ufl_constants.timestep_size
+
+    solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-arguments
+        sim=sim,
+        solve=solve,
+        continuation_parameter_and_name=(ufl_timestep_size, 'Delta_t'),
+        initial_sequence=(0, ufl_timestep_size.__float__()),
+        maxcount=maxcount,
+        start_index=-1,  # Try the actual timestep size first
+        )

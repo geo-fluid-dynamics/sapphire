@@ -1,14 +1,11 @@
 """Water freezing example module"""
 from sapphire import Solution, Simulation, report, write_checkpoint, plot, run, find_working_continuation_parameter_value, solve_with_bounded_continuation_sequence, ContinuationError
 from sapphire import solve as default_solve
-from sapphire.forms.natural_convection import element, COMPONENT_NAMES
-from sapphire.forms.enthalpy_porosity import postprocess
+from sapphire.forms.enthalpy_porosity import element, COMPONENT_NAMES, postprocess
 from sapphire.forms.enthalpy_porosity import residual as enthalpy_porosity_residual
-from sapphire.examples.heat_driven_cavity import mesh, dirichlet_boundary_conditions, nullspace
-from sapphire.examples.heat_driven_cavity import solve as solve_steady_heat_driven_cavity
-from sapphire.examples.heat_driven_cavity_with_water import buoyancy_with_density_anomaly_of_water
+from sapphire.examples.heat_driven_cavity_with_water import buoyancy_with_density_anomaly_of_water, cavity_mesh, dirichlet_boundary_conditions, nullspace, solve_with_rayleigh_number_continuation
 from sapphire.examples.heat_driven_cavity_with_water import residual as steady_state_heat_driven_cavity_residual
-from sapphire.examples.heat_driven_cavity_with_water import DEFAULT_FIREDRAKE_SOLVER_PARAMTERS as DEFAULT_HEAT_DRIVEN_CAVITY_FIREDRAKE_SOLVER_PARAMETERS
+from sapphire.examples.heat_driven_cavity_with_water import DEFAULT_FIREDRAKE_SOLVER_PARAMETERS as DEFAULT_HEAT_DRIVEN_CAVITY_FIREDRAKE_SOLVER_PARAMETERS
 from firedrake import Function
 
 
@@ -157,7 +154,7 @@ def run_simulation(
 
         water_freezing_firedrake_solver_parameters = DEFAULT_WATER_FREEZING_FIREDRAKE_SOLVER_PARAMETERS
 
-    _mesh = mesh(mesh_dimensions)
+    _mesh = cavity_mesh(nx=mesh_dimensions[0], ny=mesh_dimensions[1], Lx=1, Ly=1)
 
     _element = element(_mesh.cell, taylor_hood_velocity_element_degree, temperature_element_degree)
 
@@ -177,15 +174,16 @@ def run_simulation(
         dirichlet_boundary_conditions=dirichlet_boundary_conditions,
         nullspace=nullspace,
         firedrake_solver_parameters=heat_driven_cavity_firedrake_solver_parameters,
-        initial_times=None)
+        time_discretization_stencil_size=1)
 
-    initial_sim = run(sim=initial_sim, solve=solve_steady_heat_driven_cavity)
+    initial_sim = run(sim=initial_sim, solve=solve_with_rayleigh_number_continuation)
 
     sim = Simulation(
         mesh=_mesh,
         element=_element,
         solution_component_names=COMPONENT_NAMES,
         ufl_constants={
+            'timestep_size': timestep_size,
             'reynolds_number': reynolds_number,
             'rayleigh_number': rayleigh_number,
             'prandtl_number': prandtl_number,
@@ -204,8 +202,13 @@ def run_simulation(
         dirichlet_boundary_conditions=dirichlet_boundary_conditions,
         nullspace=nullspace,
         firedrake_solver_parameters=water_freezing_firedrake_solver_parameters,
-        initial_times=tuple((1 - i)*timestep_size for i in range(time_discretization_stencil_size)),
-        initial_values_functions=(initial_sim.solutions[0].function,)*time_discretization_stencil_size)
+        time_discretization_stencil_size=time_discretization_stencil_size)
+
+    for i, solution in enumerate(sim.solutions):
+
+        solution.time = -i*timestep_size
+
+        solution.function.assign(initial_sim.solutions[0].function)
 
     sim.solutions[0].snes_cumulative_iteration_count = initial_sim.solutions[0].snes_cumulative_iteration_count
 

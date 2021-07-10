@@ -15,7 +15,7 @@ The result is compared to data published in
     }
 """
 from sapphire import Solution, Simulation, plot
-from sapphire.examples.heat_driven_cavity import mesh, element, COMPONENT_NAMES, dirichlet_boundary_conditions, nullspace, solve, run, DEFAULT_FIREDRAKE_SOLVER_PARAMTERS
+from sapphire.examples.heat_driven_cavity import cavity_mesh, element, COMPONENT_NAMES, dirichlet_boundary_conditions, nullspace, solve_with_rayleigh_number_continuation, run, DEFAULT_FIREDRAKE_SOLVER_PARAMETERS
 from sapphire.examples.heat_driven_cavity import residual as heat_driven_cavity_residual
 from firedrake import Constant, dot, grad, FacetNormal, assemble, ds
 
@@ -68,7 +68,7 @@ def residual(solution: Solution):
 
 def output(solution: Solution):
 
-    plot(solution=solution, outdir_path="sapphire_output/heat_driven_cavity_with_water/plots/")
+    plot(solution=solution, output_directory_path="sapphire_output/heat_driven_cavity_with_water/plots/")
 
 
 def run_simulation(
@@ -86,9 +86,9 @@ def run_simulation(
 
     if firedrake_solver_parameters is None:
 
-        firedrake_solver_parameters = DEFAULT_FIREDRAKE_SOLVER_PARAMTERS
+        firedrake_solver_parameters = DEFAULT_FIREDRAKE_SOLVER_PARAMETERS
 
-    _mesh = mesh(mesh_dimensions)
+    _mesh = cavity_mesh(nx=mesh_dimensions[0], ny=mesh_dimensions[1], Lx=1, Ly=1)
 
     sim = Simulation(
         mesh=_mesh,
@@ -105,9 +105,9 @@ def run_simulation(
         dirichlet_boundary_conditions=dirichlet_boundary_conditions,
         nullspace=nullspace,
         firedrake_solver_parameters=firedrake_solver_parameters,
-        initial_times=None)
+        time_discretization_stencil_size=1)
 
-    return run(sim=sim, solve=solve, output=output)
+    return run(sim=sim, solve=solve_with_rayleigh_number_continuation, output=output)
 
 
 def verify_default_simulation():

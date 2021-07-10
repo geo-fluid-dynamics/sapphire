@@ -21,6 +21,8 @@ class Solution:
 
     time: Union[float, None]
 
+    checkpoint_index: int
+
     ufl_constants: Tuple[Constant]
 
     quadrature_degree: Union[int, None] = None
@@ -45,8 +47,6 @@ class Solution:
 
     continuation_history: List[Tuple[str, float, int]] = field(init=False)
     """ List of triplets with continuation parameter name, continuation parameter value, and SNES iteration count """
-
-    checkpoint_index: int = field(init=False)
 
     post_processed_objects: Dict = field(init=False)
 
@@ -87,8 +87,6 @@ class Solution:
         self.continuation_history = []
 
         self.post_processed_objects = {}
-
-        self.checkpoint_index = 0
 
         self.snes_cumulative_iteration_count = 0
 

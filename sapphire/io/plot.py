@@ -54,11 +54,15 @@ def plot(
 
             if isinstance(element, VectorElement):
 
+                if f.vector().array().max() == f.vector().array().min():
+                    # `firedrake.streamplot` seems to not handle this case very well, raises `ValueError: Points to evaluate are inconsistent among processes.`
+                    continue
+
                 mappable = streamplot(f, axes=axes)
 
             elif isinstance(element, FiniteElement):
 
-                mappable = tricontourf(f, axes=axes)
+                mappable = tricontourf(f, axes=axes, levels=128)
 
             else:
 

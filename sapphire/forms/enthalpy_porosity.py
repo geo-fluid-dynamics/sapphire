@@ -11,9 +11,9 @@ from typing import Callable, Tuple, Dict, Any
 from sapphire.time_discretization import ufl_time_discrete_terms
 from sapphire.data.solution import Solution
 from sapphire.time_discretization import bdf
-from sapphire.forms.natural_convection import linear_boussinesq_buoyancy, mass_residual
+from sapphire.forms.natural_convection import linear_boussinesq_buoyancy, mass_residual, element, COMPONENT_NAMES  # pylint: disable=unused-import
 from sapphire.forms.natural_convection import momentum_residual as natural_convection_momentum_residual
-from firedrake import Constant, dot, grad, div, erf, sqrt, assemble, dx, interpolate
+from firedrake import dot, grad, div, erf, sqrt, assemble, dx, interpolate
 
 
 def porosity(solution: Solution):
@@ -80,11 +80,11 @@ def momentum_residual(solutions: Tuple[Solution], buoyancy: Callable[[Solution],
     """
     solution = solutions[0]
 
-    u = solution.ufl_fields.u
+    U = solution.ufl_fields.U
 
-    psi_u = solution.test_functions.u
+    psi_U = solution.test_functions.U
 
-    u_t = ufl_time_discrete_terms(solutions).u_t  # pylint: disable=no-member
+    U_t = ufl_time_discrete_terms(solutions).U_t  # pylint: disable=no-member
 
     d = solid_velocity_relaxation(solution)
 
@@ -92,7 +92,7 @@ def momentum_residual(solutions: Tuple[Solution], buoyancy: Callable[[Solution],
 
     r = natural_convection_momentum_residual(solutions, buoyancy=buoyancy)
 
-    return r + dot(psi_u, u_t + d*u)*_dx
+    return r + dot(psi_U, U_t + d*U)*_dx
 
 
 def energy_residual(solutions: Tuple[Solution]) -> Any:
@@ -100,11 +100,9 @@ def energy_residual(solutions: Tuple[Solution]) -> Any:
 
     solution = solutions[0]
 
-    ufl_timestep_size = Constant(solutions[0].time - solutions[1].time)
+    CT_t = bdf(tuple(volumetric_heat_capacity(sol)*sol.ufl_fields.T for sol in solutions), solution.ufl_constants.timestep_size)
 
-    CT_t = bdf(tuple(volumetric_heat_capacity(sol)*sol.ufl_fields.T for sol in solutions), ufl_timestep_size)
-
-    phi_t = bdf(tuple(porosity(sol) for sol in solutions), ufl_timestep_size)
+    phi_t = bdf(tuple(porosity(sol) for sol in solutions), solution.ufl_constants.timestep_size)
 
     Re = solution.ufl_constants.reynolds_number
 
@@ -112,7 +110,7 @@ def energy_residual(solutions: Tuple[Solution]) -> Any:
 
     Ste = solution.ufl_constants.stefan_number
 
-    u = solution.ufl_fields.u
+    U = solution.ufl_fields.U
 
     T = solution.ufl_fields.T
 
@@ -124,7 +122,7 @@ def energy_residual(solutions: Tuple[Solution]) -> Any:
 
     _dx = dx(degree=solution.quadrature_degree)
 
-    return (psi_T*(CT_t + 1/Ste*phi_t + dot(u, grad(C*T))) + 1/(Re*Pr)*dot(grad(psi_T), k*grad(T)))*_dx
+    return (psi_T*(CT_t + 1/Ste*phi_t + dot(U, grad(C*T))) + 1/(Re*Pr)*dot(grad(psi_T), k*grad(T)))*_dx
 
 
 def residual(solutions: Tuple[Solution], buoyancy: Callable[[Solution], Any] = None) -> Any:
@@ -142,9 +140,7 @@ def postprocess(solution: Solution) -> Dict:
 
     _dx = dx(degree=solution.quadrature_degree)
 
-    post_processed_objects = {
+    return {
         '\\phi': interpolate(phi, solution.subfunctions.T.function_space()),
         'liquid_area': assemble(phi*_dx),
-        'velocity_divergence': assemble(div(solution.ufl_fields.u)*_dx)}
-
-    return post_processed_objects
+        'velocity_divergence': assemble(div(solution.ufl_fields.U)*_dx)}

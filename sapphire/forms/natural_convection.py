@@ -1,19 +1,20 @@
 """Natural convection module
 
-Dirichlet BC's must not be placed on the pressure.
-The returned pressure solution will always have zero mean.
+Dirichlet BC's should not be placed on the pressure.
 
 Non-homogeneous Neumann BC's are not implemented.
 """
 from typing import Callable, Tuple, Any
 from sapphire.data.solution import Solution
-from firedrake import Cell, MixedElement, FiniteElement, VectorElement, Constant, inner, dot, grad, div, sym, dx
+from sapphire.forms.incompressible_flow import mass_residual
+from sapphire.forms.incompressible_flow import momentum_residual as incompressible_flow_momentum_residual
+from firedrake import Cell, MixedElement, FiniteElement, VectorElement, Constant, dot, grad, dx
 
 
-COMPONENT_NAMES = ('p', 'u', 'T')
+COMPONENT_NAMES = ('p', 'U', 'T')
 
 
-def element(cell: Cell, taylor_hood_velocity_degree: int, temperature_degree: int) -> MixedElement:
+def element(cell: Cell, taylor_hood_velocity_degree: int, temperature_degree: int):
 
     if taylor_hood_velocity_degree < 2:
 
@@ -44,19 +45,6 @@ def linear_boussinesq_buoyancy(solution: Solution) -> Any:
     return Ra/(Pr*Re**2)*T*ghat
 
 
-def mass_residual(solutions: Tuple[Solution]) -> Any:
-    """Mass residual assuming incompressible flow"""
-    solution = solutions[0]
-
-    u = solution.ufl_fields.u
-
-    psi_p = solution.test_functions.p
-
-    _dx = dx(degree=solution.quadrature_degree)
-
-    return psi_p*div(u)*_dx
-
-
 def momentum_residual(solutions: Tuple[Solution], buoyancy: Callable[[Solution], Any] = None) -> Any:
     """Momentum residual for natural convection governed by the Navier-Stokes-Boussinesq equations.
 
@@ -64,19 +52,13 @@ def momentum_residual(solutions: Tuple[Solution], buoyancy: Callable[[Solution],
     """
     solution = solutions[0]
 
-    p = solution.ufl_fields.p
-
-    u = solution.ufl_fields.u
-
-    psi_u = solution.test_functions.u
+    psi_U = solution.test_functions.U
 
     b = buoyancy(solution)
 
-    Re = solution.ufl_constants.reynolds_number
-
     _dx = dx(degree=solution.quadrature_degree)
 
-    return (dot(psi_u, grad(u)*u + b) - div(psi_u)*p + 2./Re*inner(sym(grad(psi_u)), sym(grad(u))))*_dx
+    return incompressible_flow_momentum_residual(solutions) + dot(psi_U, b)*_dx
 
 
 def energy_residual(solutions: Tuple[Solution]) -> Any:
@@ -87,7 +69,7 @@ def energy_residual(solutions: Tuple[Solution]) -> Any:
 
     Pr = solution.ufl_constants.prandtl_number
 
-    u = solution.ufl_fields.u
+    U = solution.ufl_fields.U
 
     T = solution.ufl_fields.T
 
@@ -95,7 +77,7 @@ def energy_residual(solutions: Tuple[Solution]) -> Any:
 
     _dx = dx(degree=solution.quadrature_degree)
 
-    return (psi_T*dot(u, grad(T)) + dot(grad(psi_T), 1./(Re*Pr)*grad(T)))*_dx
+    return (psi_T*dot(U, grad(T)) + dot(grad(psi_T), 1./(Re*Pr)*grad(T)))*_dx
 
 
 def residual(solutions: Tuple[Solution], buoyancy: Callable[[Solution], Any] = None) -> Any:

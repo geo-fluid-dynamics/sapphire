@@ -15,7 +15,7 @@ from sapphire.data.problem import Problem
 from sapphire.data.solver import Solver
 from sapphire.data.simulation import Simulation
 from sapphire.time_discretization import bdf
-from sapphire.continuation import solve_with_bounded_continuation_sequence, find_working_continuation_parameter_value, ContinuationError
+from sapphire.continuation import solve_with_bounded_continuation_sequence, find_working_continuation_parameter_value, ContinuationError, solve_with_timestep_size_continuation
 from sapphire.solve import solve
 from sapphire.io.report import report
 from sapphire.io.checkpoint import write_checkpoint, read_checkpoint
