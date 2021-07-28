@@ -9,8 +9,10 @@ from firedrake import plot as plot_1d
 
 matplotlib_use('Agg')  # Only use back-end to prevent displaying image
 
+DEFAULT_RESOLUTION = 256
+
 DEFAULT_SAVEFIG_KWARGS = {
-    'dpi': 256,
+    'dpi': DEFAULT_RESOLUTION,
     'bbox_inches': "tight",
     'pad_inches': 0.02}
 

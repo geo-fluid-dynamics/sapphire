@@ -17,7 +17,6 @@ The result is compared to data published in
 from sapphire import Mesh, Solution, Simulation, solve_with_bounded_continuation_sequence, run, plot
 from sapphire import solve as default_solve
 from sapphire.forms.incompressible_flow import COMPONENT_NAMES, element, residual
-from sapphire.helpers.pointwise_verification import verify_function_values_at_points
 from firedrake import RectangleMesh, DirichletBC, MixedVectorSpaceBasis, VectorSpaceBasis, dx, assemble
 
 
@@ -77,8 +76,6 @@ def solve_and_subtract_mean_pressure(sim: Simulation):
     p.assign(p - mean_pressure)
 
     print("Done subtracting mean pressure")
-
-    return solution
 
 
 def solve_with_reynolds_number_continuation(sim: Simulation):
@@ -140,4 +137,4 @@ def run_simulation(
 if __name__ == '__main__':
 
     # run_simulation(meshsize=50, reynolds_number=1000, lid_speed=1)
-    run_simulation(meshsize=100, reynolds_number=1, lid_speed=10000, solve=solve_with_lid_speed_continuation)
+    run_simulation(meshsize=50, reynolds_number=1, lid_speed=100, solve=solve_with_lid_speed_continuation)

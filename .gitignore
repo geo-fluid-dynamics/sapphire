@@ -1,3 +1,6 @@
+*.h5
+*.png
+*.csv
 output
 debug
 old*
