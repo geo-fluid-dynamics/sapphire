@@ -573,7 +573,7 @@ if __name__ == '__main__':
     # Diffusive solidification seems to work fine without any continuation (though I didn't try very small sigma)!
     # run_diffusive_solidification_simulation()
 
-    # Maybe it's a better idea to reproduce my own brine plume simulation, especially after talking to Jamie (from PMWK2019) and seeing they ommitted critical information about their top boundary conditions.
+    # Maybe it's a better idea to reproduce my own brine plume simulation.
     # run_draft2019_regression_simulation(
     #     solve_first_timestep=solve_with_timestep_size_continuation,
     #     solve_during_run=solve_with_timestep_size_continuation)
@@ -598,12 +598,7 @@ if __name__ == '__main__':
     #     temperature_rayleigh_number=0.,
     #     )
 
-    # This almost looks good but the pressure doesn't seem right. It is nearly zero everywhere and has a checkerboard pattern.
-    # run_lid_driven_flow_simulation()
-
-    # This looks fine but will need higher speeds to see the pressure better.
-    # run_lid_driven_cavity_simulation(lid_speed=1)
-
+    # Lid driven cavity using the BAS equations looks right.
     run_lid_driven_cavity_simulation(lid_speed=1000, meshsize=50)
 
     # None of the pmwk2019 simulations are working. I can't solve the first timestep. I've tried many combinations of continuation procedures.
