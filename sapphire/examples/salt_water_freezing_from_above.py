@@ -1,5 +1,5 @@
 from typing import Tuple
-from sapphire import Mesh, Solution, Simulation, run, plot, report, write_checkpoint, solve_with_bounded_continuation_sequence
+from sapphire import Mesh, Solution, Simulation, run, plot, report, write_checkpoint, solve_with_bounded_continuation_sequence, EutecticBinaryAlloy, MATERIALS
 from sapphire import solve_with_timestep_size_continuation as _solve_with_timestep_size_continuation
 from sapphire.examples.lid_driven_cavity import cavity_mesh, solve_and_subtract_mean_pressure, solve_with_lid_speed_continuation
 from sapphire.examples.lid_driven_cavity import DEFAULT_FIREDRAKE_SOLVER_PARAMETERS as LID_DRIVEN_CAVITY_FIREDRAKE_SOLVER_PARAMETERS
@@ -8,24 +8,36 @@ from sapphire.forms.binary_alloy_enthalpy_porosity import residual as default_re
 from firedrake import PeriodicRectangleMesh, MixedVectorSpaceBasis, VectorSpaceBasis, DirichletBC
 
 
-DIMENSIONAL_MELTING_TEMPERATURE_OF_SOLVENT = 0.  # [deg C]
+SOLID_TO_LIQUID_HEAT_CAPACITY_RATIO = 1  # Assume equal heat capacity in solid and liquid
 
-DIMENSIONAL_EUTECTIC_TEMPERATURE = -21.  # [deg C]
+PARTITION_COEFFICIENT = 0.  # My formulation sets this to zero rather than an arbitrary small number.
 
-DIMENSIONAL_EUTECTIC_CONCENTRATION = 23.  # [% wt. NaCl]
+PMWK_2019_FIXED_CHILL = {
+    'frame_translation_velocity': (0., 0.),
+    'solute_rayleigh_number': 1.e6,
+    'temperature_rayleigh_number': 0.,
+    'concentration_ratio': 2,
+    'darcy_number': 1.e-4,
+    'prandtl_number': 10,
+    'stefan_number': 5,
+    'lewis_number': 200,  # According to https://github.com/jrgparkinson/mushy-layer/blob/master/params/convergenceTest/FixedChill.parameters
+    'reference_permeability': 1.e4,
+    'thermal_conductivity_solid_to_liquid_ratio': 1.,
+    'heat_capacity_solid_to_liquid_ratio': 1.,
+    'partition_coefficient': 1.e-5,
+    'initial_enthalpy': 6.3,  # This is above the initial liquidus enthalpy H_L_S0 = Ste - S_0 = 5 - (-1) = 6
+    'top_wall_enthalpy': 2.5,  # Jamie said in an e-mail that this was deliberately set to the initial eutectic enthalpy, H_E = (1 + S_0/r)*Ste which indeed equals 2.5.
+    'end_time': 0.0147,
+    }
 
-SOLID_TO_LIQUID_HEAT_CAPACITY_RATIO = 1  # Assume equal heat capacity in solid and liquie
 
-PMWK_2019 = {'stefan_number': 5, 'concentration_ratio': 2, 'prandtl_number': 10}
+def liquidus_temperature(S, alloy: EutecticBinaryAlloy):
 
+    T_e = alloy.eutectic_temperature
 
-def liquidus_temperature(S):
+    T_m = alloy.melting_temperature_of_solvent
 
-    T_e = DIMENSIONAL_EUTECTIC_TEMPERATURE
-
-    T_m = DIMENSIONAL_MELTING_TEMPERATURE_OF_SOLVENT
-
-    S_e = DIMENSIONAL_EUTECTIC_CONCENTRATION
+    S_e = alloy.eutectic_concentration
 
     m = (T_e - T_m)/S_e
 
@@ -34,13 +46,13 @@ def liquidus_temperature(S):
     return T_L
 
 
-def nondimensional_temperature(S_0, T):
+def nondimensional_temperature(S_0, T, alloy: EutecticBinaryAlloy):
 
-    T_L = liquidus_temperature
+    T_L_S0 = liquidus_temperature(S=S_0, alloy=alloy)
 
-    T_e = DIMENSIONAL_EUTECTIC_TEMPERATURE
+    T_e = alloy.eutectic_temperature
 
-    return (T - T_e)/(T_L(S_0) - T_e)
+    return (T - T_e)/(T_L_S0 - T_e)
 
 
 def nondimensional_enthalpy(Ste, T, f):
@@ -50,9 +62,9 @@ def nondimensional_enthalpy(Ste, T, f):
     return Ste*f + (f + (1 - f)*c_sl)*T
 
 
-def nondimensional_solute_concentration(S_0, S):
+def nondimensional_solute_concentration(S_0, S, alloy: EutecticBinaryAlloy):
 
-    S_e = DIMENSIONAL_EUTECTIC_CONCENTRATION
+    S_e = alloy.eutectic_concentration
 
     return (S - S_e)/(S_e - S_0)
 
@@ -61,12 +73,14 @@ DEFAULT_FIREDRAKE_SOLVER_PARAMETERS = {
     'snes_monitor': None,
     'snes_type': 'newtonls',
     'snes_linesearch_type': 'l2',
+    # 'snes_linesearch_type': 'nleqerr',
+    'snes_linesearch_monitor': None,
     'snes_linesearch_maxstep': 1,
-    'snes_linesearch_damping': 1,
-    'snes_atol': 1.e-9,
+    'snes_linesearch_damping': 0.8,  # @todo Experiment with damping values (max 1)
+    'snes_atol': 1.e-8,
     'snes_stol': 1.e-9,
-    'snes_rtol': 0.,
-    'snes_max_it': 24,
+    'snes_rtol': 1.e-7,
+    'snes_max_it': 32,
     'ksp_type': 'preonly',
     'pc_type': 'lu',
     'pc_factor_mat_solver_type': 'mumps',
@@ -134,29 +148,25 @@ def lid_driven_cavity_dirichlet_boundary_conditions(solution: Solution):
 
 def dirichlet_boundary_conditions_almost_pmwk2019_but_fixed_top_salinity(solution: Solution):
 
-    bottom_wall = solution.mesh.boundaries['bottom']
-
-    top_wall = solution.mesh.boundaries['top']
+    Gamma = solution.mesh.boundaries
 
     return (
-        DirichletBC(solution.function_subspaces.U, (0, 0), (top_wall, bottom_wall)),
-        DirichletBC(solution.function_subspaces.H, solution.ufl_constants.top_wall_enthalpy, top_wall),
-        DirichletBC(solution.function_subspaces.H, solution.ufl_constants.initial_enthalpy, bottom_wall),
-        DirichletBC(solution.function_subspaces.S, solution.ufl_constants.initial_solute_concentration, top_wall))
+        DirichletBC(solution.function_subspaces.U, (0, 0), (Gamma['top'], Gamma['bottom'])),
+        DirichletBC(solution.function_subspaces.H, solution.ufl_constants.top_wall_enthalpy, Gamma['top']),
+        DirichletBC(solution.function_subspaces.H, solution.ufl_constants.initial_enthalpy, Gamma['bottom']),
+        DirichletBC(solution.function_subspaces.S, solution.ufl_constants.initial_solute_concentration, Gamma['top']))
 
 
 def dirichlet_boundary_conditions_from_2019_sapphire_regression_test(solution: Solution):
     # The only difference is that I no longer constrain the pressure on the bottom wall, rather inform the solver of the nullspace and subtract mean pressure.
     # If I keep having trouble then I can try reverting to applying a Dirichlet BC to the pressure on the top wall instead of the nullspace.
-    bottom_wall = solution.mesh.boundaries['bottom']
-
-    top_wall = solution.mesh.boundaries['top']
+    Gamma = solution.mesh.boundaries
 
     return (
-        DirichletBC(solution.function_subspaces.U, (0, 0), (top_wall, bottom_wall)),
-        DirichletBC(solution.function_subspaces.H, solution.ufl_constants.top_wall_enthalpy, top_wall),
-        DirichletBC(solution.function_subspaces.S, solution.ufl_constants.top_wall_solute_concentration, top_wall),
-        DirichletBC(solution.function_subspaces.H, solution.ufl_constants.initial_enthalpy, bottom_wall),
+        DirichletBC(solution.function_subspaces.U, (0, 0), (Gamma['top'], Gamma['bottom'])),
+        DirichletBC(solution.function_subspaces.H, solution.ufl_constants.top_wall_enthalpy, Gamma['top']),
+        DirichletBC(solution.function_subspaces.S, solution.ufl_constants.top_wall_solute_concentration, Gamma['top']),
+        DirichletBC(solution.function_subspaces.H, solution.ufl_constants.initial_enthalpy, Gamma['bottom']),
         )
 
 
@@ -284,42 +294,42 @@ def solve_with_solute_rayleigh_number_and_porosity_smoothing_continuation(sim: S
 
 
 def run_simulation(
-        reference_permeability=1.e4,
-        thermal_conductivity_solid_to_liquid_ratio=1,
-        heat_capacity_solid_to_liquid_ratio=1,
-        prandtl_number=PMWK_2019['prandtl_number'],
-        darcy_number=1.e-4,
-        # partition_coefficient=1.e-5,  # Actual value from pmwk2019, but I intend to use a value of zero. @todo Compare with 1.e-5 later.
-        partition_coefficient=0.,
-        lewis_number=200,  # The high Lewis number (Le = 200) from pmwk2019 might be too difficult without DG
-        frame_translation_velocity=(0., 0.),
-        stefan_number=PMWK_2019['stefan_number'],
-        solute_rayleigh_number=1.e6,
-        temperature_rayleigh_number=0,
-        concentration_ratio=PMWK_2019['concentration_ratio'],
-        initial_enthalpy=6.3,  # Ste + 1.3 from pmwk2019; @todo Can that be right? In my 2019 draft I used the same nondimensionalization and saw that the nondimensional initial temperature is always 1, enthalpy with pure liquid then always Ste + 1
-        top_wall_enthalpy=2.5,  # Ste/2 from pmwk2019
-        top_wall_solute_concentration=None,
-        lid_speed=None,
+        reference_permeability=PMWK_2019_FIXED_CHILL['reference_permeability'],
+        thermal_conductivity_solid_to_liquid_ratio=PMWK_2019_FIXED_CHILL['thermal_conductivity_solid_to_liquid_ratio'],
+        heat_capacity_solid_to_liquid_ratio=PMWK_2019_FIXED_CHILL['heat_capacity_solid_to_liquid_ratio'],
+        prandtl_number=PMWK_2019_FIXED_CHILL['prandtl_number'],
+        darcy_number=PMWK_2019_FIXED_CHILL['darcy_number'],
+        lewis_number=PMWK_2019_FIXED_CHILL['lewis_number'],
+        frame_translation_velocity=PMWK_2019_FIXED_CHILL['frame_translation_velocity'],
+        stefan_number=PMWK_2019_FIXED_CHILL['stefan_number'],
+        solute_rayleigh_number=PMWK_2019_FIXED_CHILL['solute_rayleigh_number'],
+        temperature_rayleigh_number=PMWK_2019_FIXED_CHILL['temperature_rayleigh_number'],
+        concentration_ratio=PMWK_2019_FIXED_CHILL['concentration_ratio'],
+        initial_enthalpy=PMWK_2019_FIXED_CHILL['initial_enthalpy'],
+        top_wall_enthalpy=PMWK_2019_FIXED_CHILL['top_wall_enthalpy'],
         Lx=0.2,
         Ly=0.4,
+        endtime=PMWK_2019_FIXED_CHILL['end_time'],
+        timestep_size=0.0001,
+        time_discretization_stencil_size=3,
         nx=32,
         ny=64,
         taylor_hood_velocity_element_degree=2,
-        enthalpy_element_degree=1,
-        solute_element_degree=1,
-        time_discretization_stencil_size=2,
-        timestep_size=0.0001,
-        endtime=0.0147,
+        enthalpy_element_degree=2,
+        solute_element_degree=2,
         porosity_smoothing_factor=0.2,  # For the problem from pmwk2019, a value of 0.2 looks like it yields a good approximation; but it will be good to run a sensitivity study here.
         quadrature_degree=4,
         firedrake_solver_parameters=None,
-        residual=residual_sapphire2019,
+        residual=residual_pmwk2019,
         mesh=periodic_mesh,
-        dirichlet_boundary_conditions=dirichlet_boundary_conditions_from_2019_sapphire_regression_test,
+        dirichlet_boundary_conditions=dirichlet_boundary_conditions_pmwk2019,
         solve_first_timestep=solve_with_top_wall_enthalpy_continuation,
         solve_during_run=solve_with_solute_rayleigh_number_continuation,
-        outdir='sapphire_output/salt_water_freezing_from_above/pmwk2019/'):
+        outdir='sapphire_output/salt_water_freezing_from_above/pmwk2019/',
+        # The following were used for debugging.
+        lid_speed=0.,
+        top_wall_solute_concentration=None,
+        ):
 
     if firedrake_solver_parameters is None:
 
@@ -338,7 +348,7 @@ def run_simulation(
     _element = element(cell=_mesh.cell, taylor_hood_velocity_degree=taylor_hood_velocity_element_degree, solute_degree=solute_element_degree, enthalpy_degree=enthalpy_element_degree)
 
     ufl_constants = {
-        'partition_coefficient': partition_coefficient,
+        'partition_coefficient': PARTITION_COEFFICIENT,
         'reference_permeability': reference_permeability,
         'concentration_ratio': concentration_ratio,
         'initial_solute_concentration': INITIAL_SOLUTE_CONCENTRATION,
@@ -354,15 +364,11 @@ def run_simulation(
         'heat_capacity_solid_to_liquid_ratio': heat_capacity_solid_to_liquid_ratio,
         'thermal_conductivity_solid_to_liquid_ratio': thermal_conductivity_solid_to_liquid_ratio,
         'porosity_smoothing_factor': porosity_smoothing_factor,
-        'timestep_size': timestep_size}
-
-    if top_wall_solute_concentration is not None:
-
-        ufl_constants['top_wall_solute_concentration'] = top_wall_solute_concentration
-
-    if lid_speed is not None:
-
-        ufl_constants['lid_speed'] = lid_speed
+        'timestep_size': timestep_size,
+        # The following were used for debugging
+        'top_wall_solute_concentration': top_wall_solute_concentration,
+        'lid_speed': lid_speed,
+        }
 
     sim = Simulation(
         mesh=_mesh,
@@ -426,7 +432,7 @@ def run_lid_driven_cavity_simulation(lid_speed, meshsize):
 
     endtime = 1.e12
 
-    Ste = PMWK_2019['stefan_number']
+    Ste = PMWK_2019_FIXED_CHILL['stefan_number']
 
     H_L = Ste - INITIAL_SOLUTE_CONCENTRATION
 
@@ -484,11 +490,11 @@ def run_draft2019_regression_simulation(
 
     T_L = liquidus_temperature
 
-    T_m_dim = DIMENSIONAL_MELTING_TEMPERATURE_OF_SOLVENT
-
     S_0_dim = 3.8  # [% wt. NaCl]
 
-    T_m = nondimensional_temperature(S_0_dim, T_L(T_m_dim))
+    alloy = MATERIALS.sodium_chloride_dissolved_in_water
+
+    T_m = nondimensional_temperature(S_0=S_0_dim, T=T_L(S=S_0_dim, alloy=alloy), alloy=alloy)
 
     T_0 = T_m
 
@@ -531,8 +537,6 @@ def run_draft2019_regression_simulation(
         heat_capacity_solid_to_liquid_ratio=1,
         prandtl_number=7,
         darcy_number=1.e-4,
-        # partition_coefficient=1.e-5,  # Actual value from pmwk2019, but I intend to use a value of zero. @todo Compare with 1.e-5 later.
-        partition_coefficient=0.,
         lewis_number=80,
         frame_translation_velocity=(0., 0.),
         stefan_number=Ste,
@@ -570,6 +574,35 @@ if __name__ == '__main__':
     #     porosity_smoothing_factor=0.5,
     #     output_directory_path='sapphire_output/salt_water_freezing_from_above/phase_diagram/')
 
+    # Lid driven cavity using the BAS equations looks right.
+    # run_lid_driven_cavity_simulation(lid_speed=1000, meshsize=50)
+
+    # This fails, keeps getting stuck at H_top ~= 6
+    run_simulation()
+
+    # Try to see if top wall enthalpy continuation always gets stuck near the liquidus enthalpy (at initial concentration)
+    # Ste = 3.
+
+    # r = PMWK_2019_FIXED_CHILL['concentration_ratio']
+
+    # S_0 = INITIAL_SOLUTE_CONCENTRATION
+
+    # phi_E_S0 = 1 + S_0/r
+
+    # H_E_S0 = phi_E_S0*Ste
+
+    # H_L_S0 = Ste - S_0
+
+    # print("Ste = {}, H_E_S0 = {}, H_L_S0 = {}".format(Ste, H_E_S0, H_L_S0))
+
+    # run_simulation(stefan_number=Ste, concentration_ratio=r, initial_enthalpy=H_L_S0 + 0.3, top_wall_enthalpy=H_E_S0)
+    # This got stuck around H_top = 2.89. Here, H_L_S0 = 4, so the continuation issue seems unrelated to the liquidus enthalpy (which is good!)
+
+    # Then: Try diffusive solidification benchmark from Parkinson's paper/thesis.
+    # Then: Try porous media flow benchmark from Parkinson's paper/thesis.
+
+    # Old Notes:
+
     # Diffusive solidification seems to work fine without any continuation (though I didn't try very small sigma)!
     # run_diffusive_solidification_simulation()
 
@@ -597,9 +630,6 @@ if __name__ == '__main__':
     #     solve_during_run=solve_with_solute_rayleigh_number_and_porosity_smoothing_continuation,
     #     temperature_rayleigh_number=0.,
     #     )
-
-    # Lid driven cavity using the BAS equations looks right.
-    run_lid_driven_cavity_simulation(lid_speed=1000, meshsize=50)
 
     # None of the pmwk2019 simulations are working. I can't solve the first timestep. I've tried many combinations of continuation procedures.
     # run_simulation(
