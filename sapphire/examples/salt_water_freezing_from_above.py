@@ -4,7 +4,6 @@ from sapphire import solve_with_timestep_size_continuation as _solve_with_timest
 from sapphire.examples.lid_driven_cavity import cavity_mesh, solve_and_subtract_mean_pressure, solve_with_lid_speed_continuation
 from sapphire.examples.lid_driven_cavity import DEFAULT_FIREDRAKE_SOLVER_PARAMETERS as LID_DRIVEN_CAVITY_FIREDRAKE_SOLVER_PARAMETERS
 from sapphire.forms.binary_alloy_enthalpy_porosity import INITIAL_SOLUTE_CONCENTRATION, COMPONENT_NAMES, element, postprocess, validate, thin_hele_shaw_cell_permeability, normalized_kozeny_carman_permeability
-# from sapphire.forms.binary_alloy_enthalpy_porosity plot_phase_diagram_with_and_without_smoothing
 from sapphire.forms.binary_alloy_enthalpy_porosity import residual as default_residual
 from firedrake import PeriodicRectangleMesh, MixedVectorSpaceBasis, VectorSpaceBasis, DirichletBC
 
@@ -16,6 +15,8 @@ DIMENSIONAL_EUTECTIC_TEMPERATURE = -21.  # [deg C]
 DIMENSIONAL_EUTECTIC_CONCENTRATION = 23.  # [% wt. NaCl]
 
 SOLID_TO_LIQUID_HEAT_CAPACITY_RATIO = 1  # Assume equal heat capacity in solid and liquie
+
+PMWK_2019 = {'stefan_number': 5, 'concentration_ratio': 2, 'prandtl_number': 10}
 
 
 def liquidus_temperature(S):
@@ -128,9 +129,6 @@ def lid_driven_cavity_dirichlet_boundary_conditions(solution: Solution):
     return (
         DirichletBC(solution.function_subspaces.U, (solution.ufl_constants.lid_speed, 0), Gamma['top']),
         DirichletBC(solution.function_subspaces.U, (0, 0), (Gamma['bottom'], Gamma['left'], Gamma['right'])),
-        DirichletBC(solution.function_subspaces.S, INITIAL_SOLUTE_CONCENTRATION, Gamma['top']),
-        DirichletBC(solution.function_subspaces.H, solution.ufl_constants.top_wall_enthalpy, Gamma['bottom']),
-        DirichletBC(solution.function_subspaces.H, solution.ufl_constants.initial_enthalpy, Gamma['bottom']),
         )
 
 
@@ -289,16 +287,16 @@ def run_simulation(
         reference_permeability=1.e4,
         thermal_conductivity_solid_to_liquid_ratio=1,
         heat_capacity_solid_to_liquid_ratio=1,
-        prandtl_number=10,
+        prandtl_number=PMWK_2019['prandtl_number'],
         darcy_number=1.e-4,
         # partition_coefficient=1.e-5,  # Actual value from pmwk2019, but I intend to use a value of zero. @todo Compare with 1.e-5 later.
         partition_coefficient=0.,
         lewis_number=200,  # The high Lewis number (Le = 200) from pmwk2019 might be too difficult without DG
         frame_translation_velocity=(0., 0.),
-        stefan_number=5,
+        stefan_number=PMWK_2019['stefan_number'],
         solute_rayleigh_number=1.e6,
         temperature_rayleigh_number=0,
-        concentration_ratio=2,
+        concentration_ratio=PMWK_2019['concentration_ratio'],
         initial_enthalpy=6.3,  # Ste + 1.3 from pmwk2019; @todo Can that be right? In my 2019 draft I used the same nondimensionalization and saw that the nondimensional initial temperature is always 1, enthalpy with pure liquid then always Ste + 1
         top_wall_enthalpy=2.5,  # Ste/2 from pmwk2019
         top_wall_solute_concentration=None,
@@ -313,7 +311,7 @@ def run_simulation(
         time_discretization_stencil_size=2,
         timestep_size=0.0001,
         endtime=0.0147,
-        porosity_smoothing_factor=0.1,  # @todo Try setting a smaller value. Might need to use an inner continuation loop.
+        porosity_smoothing_factor=0.2,  # For the problem from pmwk2019, a value of 0.2 looks like it yields a good approximation; but it will be good to run a sensitivity study here.
         quadrature_degree=4,
         firedrake_solver_parameters=None,
         residual=residual_sapphire2019,
@@ -428,21 +426,23 @@ def run_lid_driven_cavity_simulation(lid_speed, meshsize):
 
     endtime = 1.e12
 
-    Ste = 2.
+    Ste = PMWK_2019['stefan_number']
 
     H_L = Ste - INITIAL_SOLUTE_CONCENTRATION
 
-    # @todo Why can't I set the enthalpy at or above the liquidus?
-    # enthalpy = H_L + 2.  # This doesn't work
-    # enthalpy = H_L  # This doesn't work
-    enthalpy = 0.99999*H_L  # This works
-    # enthalpy = 0.9999*H_L  # This works
-    # enthalpy = 0.999*H_L  # This works
-    # enthalpy = 0.99*H_L  # This works
-    # enthalpy = 0.9*H_L  # This works
-    # enthalpy = 0.8*H_L  # This works
-    # enthalpy = 0.75*H_L  # This works
-    # enthalpy = H_L/2.  # This works
+    # Oddly, we can't I set the enthalpy at exactly H_L or far above H_L. I'm going to throw that into the backlog.
+    # H = H_L + 3.  # This doesn't work
+    # H = H_L + 2.  # This doesn't work
+    H = H_L + 1.5  # This works
+    # H = H_L + 1.  # This works
+    # H = H_L + 0.1  # This works
+    # H = H_L + 0.01  # This works
+    # H = H_L  # This doesn't work.
+    # H = 0.99999*H_L  # This works
+    # H = 0.9999*H_L  # This works
+    # H = 0.999*H_L  # This works
+    # H = 0.99*H_L  # This works
+    # H = 0.9*H_L  # This works
 
     return run_simulation(
         residual=residual_sapphire2019,
@@ -452,8 +452,8 @@ def run_lid_driven_cavity_simulation(lid_speed, meshsize):
         nx=meshsize,
         ny=meshsize,
         dirichlet_boundary_conditions=lid_driven_cavity_dirichlet_boundary_conditions,
-        initial_enthalpy=enthalpy,
-        top_wall_enthalpy=enthalpy,
+        initial_enthalpy=H,
+        top_wall_enthalpy=H,
         lid_speed=lid_speed,
         stefan_number=Ste,
         prandtl_number=2.,  # Momentum diffusion term has coefficient Pr in binary alloy enthalpy porosity form, 2/Re in incompressible flow form
@@ -462,9 +462,10 @@ def run_lid_driven_cavity_simulation(lid_speed, meshsize):
         temperature_rayleigh_number=0.,
         darcy_number=1.e16,
         lewis_number=0.001,
+        porosity_smoothing_factor=0.2,  # This works
         # porosity_smoothing_factor=0.1,  # This works
         # porosity_smoothing_factor=0.01,  # This works
-        porosity_smoothing_factor=0.001,  # This works
+        # porosity_smoothing_factor=0.001,  # This works
         endtime=endtime,
         timestep_size=endtime,
         solve_first_timestep=solve_with_lid_speed_continuation,

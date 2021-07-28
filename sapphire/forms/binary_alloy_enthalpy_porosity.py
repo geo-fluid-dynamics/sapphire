@@ -193,7 +193,7 @@ def liquid_solute(solution: Solution):
     phi = porosity(solution)
 
     # S = phi*S_l + (1 - phi) * S_s (Lever Rule)
-    return S/phi
+    return S/phi  # Assuming S_s = 0, i.e. zero partition coefficient
 
 
 def linear_boussinesq_buoyancy(solution: Solution):
