@@ -76,11 +76,11 @@ DEFAULT_FIREDRAKE_SOLVER_PARAMETERS = {
     # 'snes_linesearch_type': 'nleqerr',
     'snes_linesearch_monitor': None,
     'snes_linesearch_maxstep': 1,
-    'snes_linesearch_damping': 0.4,  # @todo Experiment with damping values (max 1)
+    'snes_linesearch_damping': 0.9,  # @todo Experiment with damping values (max 1)
     'snes_atol': 1.e-8,
     'snes_stol': 1.e-9,
     'snes_rtol': 1.e-7,
-    'snes_max_it': 100,  # This should be higher for lower damping value (i.e. more damping)
+    'snes_max_it': 24,  # This should be higher for lower damping value (i.e. more damping)
     'ksp_type': 'preonly',
     'pc_type': 'lu',
     'pc_factor_mat_solver_type': 'mumps',
@@ -355,7 +355,7 @@ def run_simulation(
         mesh=periodic_mesh,
         dirichlet_boundary_conditions=dirichlet_boundary_conditions_almost_pmwk2019_but_for_periodic_domain_and_with_fixed_top_salinity,
         solve_first_timestep=solve_with_top_wall_enthalpy_continuation,
-        solve_during_run=solve_with_solute_rayleigh_number_continuation,
+        solve_during_run=solve_with_timestep_size_continuation,
         outdir='sapphire_output/salt_water_freezing_from_above/pmwk2019/',
         # The following were used for debugging.
         lid_speed=0.,
