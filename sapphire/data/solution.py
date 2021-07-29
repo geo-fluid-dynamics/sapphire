@@ -25,6 +25,8 @@ class Solution:
 
     ufl_constants: Tuple[Constant]
 
+    output_directory: str
+
     quadrature_degree: Union[int, None] = None
 
     geometric_dimension: int = field(init=False)

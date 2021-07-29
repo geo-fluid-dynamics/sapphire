@@ -3,7 +3,7 @@ from pathlib import Path
 from matplotlib import use as matplotlib_use
 from matplotlib import pyplot as plt
 from sapphire.data.solution import Solution
-from firedrake import FiniteElement, VectorElement, Function, tricontourf, streamplot
+from firedrake import FiniteElement, VectorElement, Function, tricontourf, streamplot, quiver
 from firedrake import plot as plot_1d
 
 
@@ -16,10 +16,13 @@ DEFAULT_SAVEFIG_KWARGS = {
     'bbox_inches': "tight",
     'pad_inches': 0.02}
 
+VECTOR_PLOT_FUNCTION_NAMES = ('quiver', 'streamplot')
+
 
 def plot(
         solution: Solution,
         output_directory_path: str,
+        vector_plot_function_name: str = 'quiver',
         savefig_kwargs: dict = None):
     """Save plots of each function (in non-interactive mode)"""
     Path(output_directory_path).mkdir(parents=True, exist_ok=True)
@@ -27,6 +30,10 @@ def plot(
     if savefig_kwargs is None:
 
         savefig_kwargs = DEFAULT_SAVEFIG_KWARGS
+
+    if vector_plot_function_name not in VECTOR_PLOT_FUNCTION_NAMES:
+
+        raise Exception("Invalid `vector_plot_function_name` ({}) not in `VECTOR_PLOT_FUNCTION_NAMES` ({})".format(vector_plot_function_name, VECTOR_PLOT_FUNCTION_NAMES))
 
     functions = list(solution.subfunctions)
 
@@ -56,11 +63,19 @@ def plot(
 
             if isinstance(element, VectorElement):
 
-                if f.vector().array().max() == f.vector().array().min():
-                    # `firedrake.streamplot` seems to not handle this case very well, raises `ValueError: Points to evaluate are inconsistent among processes.`
-                    continue
+                if vector_plot_function_name == 'quiver':
 
-                mappable = streamplot(f, axes=axes)
+                    mappable = quiver(f, axes=axes)
+
+                elif vector_plot_function_name == 'streamplot':
+
+                    if f.vector().array().max() == f.vector().array().min():
+                        # `firedrake.streamplot` seems to not handle this case very well, raises `ValueError: Points to evaluate are inconsistent among processes.`
+                        continue
+
+                    print("Plotting streamlines. Computing them can take a while")
+
+                    mappable = streamplot(f, axes=axes)
 
             elif isinstance(element, FiniteElement):
 

@@ -1,4 +1,5 @@
 """Simulation data module"""
+from warnings import warn
 from collections import deque
 from dataclasses import dataclass
 from typing import Union, Tuple, Callable, Dict, Any, Deque
@@ -39,12 +40,17 @@ class Simulation:
             dirichlet_boundary_conditions: Callable[[Solution], Tuple[DirichletBC]],
             ufl_constants: Dict[str, float],
             firedrake_solver_parameters: dict,
+            output_directory: str,
             nullspace: Union[Callable[[Solution], MixedVectorSpaceBasis], None] = None,
             quadrature_degree: Union[int, None] = None):
 
         if time_discretization_stencil_size < 1:
 
-            raise Exception("'time_discretization_stencil_size' must be at least 1 (which would be for steady state simulation).")
+            raise Exception("`time_discretization_stencil_size` must be at least `1` (which would be for steady state simulation).")
+
+        if time_discretization_stencil_size == 1:
+
+            warn("`time_discretization_stencil_size` was set to `1`. This is valid for a steady state simulation.")
 
         solutions = []
 
@@ -65,7 +71,8 @@ class Simulation:
                 ufl_constants=ufl_constants,
                 quadrature_degree=quadrature_degree,
                 time=time,
-                checkpoint_index=-i))
+                checkpoint_index=-i,
+                output_directory=output_directory))
 
         self.solutions = deque(solutions)
 

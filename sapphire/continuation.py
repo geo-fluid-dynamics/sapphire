@@ -3,7 +3,7 @@
 for regularized nonlinear problems.
 """
 from typing import Callable, Tuple, Union
-from sapphire.data.simulation import Simulation
+from sapphire.data.simulation import Simulation, Solution
 from firedrake import Function, Constant, ConvergenceError
 
 
@@ -19,6 +19,7 @@ def find_working_continuation_parameter_value(
         search_operator: Callable = lambda r: 2.*r,
         max_attempts: int = 8,
         backup_solution_function: Union[Function, None] = None,
+        output: Union[Callable[[Solution], None], None] = None,
         ) -> float:
     """ Attempt to solve a sequence of nonlinear problems where the continuation parameter value is varied according to the search operator until a solution is found.
 
@@ -69,6 +70,12 @@ def find_working_continuation_parameter_value(
 
             solution.continuation_history.append((rname, r, solution.snes_cumulative_iteration_count - snes_iteration_count))
 
+            if output:
+
+                print("Writing output for this intermediate solution")
+
+                output(solution)
+
             return r
 
         except (ConvergenceError, ContinuationError) as exception:
@@ -94,6 +101,7 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
         maxcount: int = 16,
         start_index: int = 0,
         backup_solution_function: Union[Function, None] = None,
+        output: Union[Callable[[Solution], None], None] = None,
         ):
     """ Solve a sequence of nonlinear problems where the continuation parameter value varies between bounds.
 
@@ -160,6 +168,12 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
                 backup_solution_function.assign(solution.function)
 
                 print("Solved with continuation parameter {} = {}".format(rname, r))
+
+                if output:
+
+                    print("Writing output for this intermediate solution")
+
+                    output(solution)
 
             solved = True
 
