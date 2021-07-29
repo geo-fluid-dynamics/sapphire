@@ -24,6 +24,8 @@ def solve(sim: Simulation):
         nullspace=sim.solver.nullspace,
         solver_parameters=sim.solver.firedrake_solver_parameters)
 
+    print("Solving nonlinear problem with {} degrees of freedom".format(solution.function.vector().size()))
+
     solver.solve()
 
     solution.snes_cumulative_iteration_count += snes_iteration_count(solver)

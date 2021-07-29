@@ -80,7 +80,7 @@ DEFAULT_FIREDRAKE_SOLVER_PARAMETERS = {
     'snes_atol': 1.e-8,
     'snes_stol': 1.e-9,
     'snes_rtol': 1.e-7,
-    'snes_max_it': 32,
+    'snes_max_it': 50,  # This should be higher for lower damping value (i.e. more damping) 
     'ksp_type': 'preonly',
     'pc_type': 'lu',
     'pc_factor_mat_solver_type': 'mumps',
