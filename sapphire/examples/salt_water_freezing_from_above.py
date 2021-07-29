@@ -73,7 +73,6 @@ DEFAULT_FIREDRAKE_SOLVER_PARAMETERS = {
     'snes_monitor': None,
     'snes_type': 'newtonls',
     'snes_linesearch_type': 'l2',
-    # 'snes_linesearch_type': 'nleqerr',
     'snes_linesearch_monitor': None,
     'snes_linesearch_maxstep': 1,
     'snes_linesearch_damping': 0.9,  # @todo Experiment with damping values (max 1)
@@ -145,8 +144,11 @@ def dirichlet_boundary_conditions_pmwk2019(solution: Solution):
         DirichletBC(solution.function_subspaces.H, solution.ufl_constants.initial_enthalpy, Gamma['bottom']))
 
 
-def dirichlet_boundary_conditions_almost_pmwk2019_but_for_periodic_domain_and_with_fixed_top_salinity(solution: Solution):
-
+def dirichlet_boundary_conditions_pmwk2019_modified(solution: Solution):
+    """Mostly the BCs from PMWK2019 
+    but with a spatial perturbation to the top wall enthalpy to make the periodic solution unique
+    and with another BC on the top wall salinity to cover the case where it becomes decoupled from temperature (below eutectic enthalpy and above liquidus enthalpy).
+    """
     Gamma = solution.mesh.boundaries
 
     x = solution.mesh.geometry.coordinates[0]
@@ -173,17 +175,6 @@ def lid_driven_cavity_dirichlet_boundary_conditions(solution: Solution):
         DirichletBC(solution.function_subspaces.U, (solution.ufl_constants.lid_speed, 0), Gamma['top']),
         DirichletBC(solution.function_subspaces.U, (0, 0), (Gamma['bottom'], Gamma['left'], Gamma['right'])),
         )
-
-
-def dirichlet_boundary_conditions_almost_pmwk2019_but_fixed_top_salinity(solution: Solution):
-
-    Gamma = solution.mesh.boundaries
-
-    return (
-        DirichletBC(solution.function_subspaces.U, (0, 0), (Gamma['top'], Gamma['bottom'])),
-        DirichletBC(solution.function_subspaces.H, solution.ufl_constants.top_wall_enthalpy, Gamma['top']),
-        DirichletBC(solution.function_subspaces.H, solution.ufl_constants.initial_enthalpy, Gamma['bottom']),
-        DirichletBC(solution.function_subspaces.S, INITIAL_SOLUTE_CONCENTRATION, Gamma['top']))
 
 
 def dirichlet_boundary_conditions_from_2019_sapphire_regression_test(solution: Solution):
@@ -353,7 +344,7 @@ def run_simulation(
         firedrake_solver_parameters=None,
         residual=residual_pmwk2019,
         mesh=periodic_mesh,
-        dirichlet_boundary_conditions=dirichlet_boundary_conditions_almost_pmwk2019_but_for_periodic_domain_and_with_fixed_top_salinity,
+        dirichlet_boundary_conditions=dirichlet_boundary_conditions_pmwk2019_modified,
         solve_first_timestep=solve_with_top_wall_enthalpy_continuation,
         solve_during_run=solve_with_timestep_size_continuation,
         outdir='sapphire_output/salt_water_freezing_from_above/pmwk2019/',
