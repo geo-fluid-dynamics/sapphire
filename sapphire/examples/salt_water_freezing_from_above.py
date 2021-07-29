@@ -408,28 +408,33 @@ def run_simulation(
 
 
 def run_pmwk2019_modified_simulation(
+        endtime,
+        timestep_size,
         nx,
         ny,
-        timestep_size,
-        endtime=PMWK_2019_FIXED_CHILL['end_time'],
+        snes_linesearch_damping=0.9,
+        snes_max_it=24,
         porosity_smoothing_factor=0.2,  # For the problem from pmwk2019, a value of 0.2 looks like it yields a good approximation; but it will be good to run a sensitivity study here.
-        solve_first_timestep=solve_with_top_wall_enthalpy_continuation,
-        solve_during_run=solve_with_timestep_size_continuation,
         taylor_hood_velocity_element_degree=2,
         solute_element_degree=1,
         enthalpy_element_degree=1,
+        time_discretization_stencil_size=2,
+        solve_first_timestep=solve_with_top_wall_enthalpy_continuation,
+        solve_during_run=solve_with_timestep_size_continuation,
         **kwargs):
 
     return run_simulation(
+        endtime=endtime,
+        timestep_size=timestep_size,
         nx=nx,
         ny=ny,
-        timestep_size=timestep_size,
         porosity_smoothing_factor=porosity_smoothing_factor,
-        solve_first_timestep=solve_first_timestep,
-        solve_during_run=solve_during_run,
         taylor_hood_velocity_element_degree=taylor_hood_velocity_element_degree,
         solute_element_degree=solute_element_degree,
         enthalpy_element_degree=enthalpy_element_degree,
+        time_discretization_stencil_size=time_discretization_stencil_size,
+        solve_first_timestep=solve_first_timestep,
+        solve_during_run=solve_during_run,
         reference_permeability=PMWK_2019_FIXED_CHILL['reference_permeability'],
         thermal_conductivity_solid_to_liquid_ratio=PMWK_2019_FIXED_CHILL['thermal_conductivity_solid_to_liquid_ratio'],
         heat_capacity_solid_to_liquid_ratio=PMWK_2019_FIXED_CHILL['heat_capacity_solid_to_liquid_ratio'],
@@ -443,14 +448,13 @@ def run_pmwk2019_modified_simulation(
         concentration_ratio=PMWK_2019_FIXED_CHILL['concentration_ratio'],
         initial_enthalpy=PMWK_2019_FIXED_CHILL['initial_enthalpy'],
         top_wall_enthalpy=PMWK_2019_FIXED_CHILL['top_wall_enthalpy'],
-        endtime=endtime,
         mesh=periodic_mesh,
         mesh_width=0.2,
         mesh_height=0.4,
         residual=residual_pmwk2019,
         dirichlet_boundary_conditions=dirichlet_boundary_conditions_pmwk2019_modified,
         top_wall_enthalpy_perturbation_relative_magnitude=0.01,
-        outdir='sapphire_output/salt_water_freezing_from_above/pmwk2019_modified_nx{}_ny{}_Deltat{}_sigma{}/'.format(nx, ny, timestep_size, porosity_smoothing_factor),
+        outdir='sapphire_output/salt_water_freezing_from_above/pmwk2019_modified_tf{}_Deltat{}_nx{}_ny{}_sigma{}_omega{}_nits{}/'.format(endtime, timestep_size, nx, ny, porosity_smoothing_factor, snes_linesearch_damping, snes_max_it),
         **kwargs)
 
 
@@ -661,7 +665,7 @@ if __name__ == '__main__':
     # Lid driven cavity using the BAS equations looks right.
     # run_lid_driven_cavity_simulation(lid_speed=1000, meshsize=50)
 
-    run_pmwk2019_modified_simulation(endtime=0.015, timestep_size=0.001, nx=20, ny=40, solute_element_degree=1, enthalpy_element_degree=1, time_discretization_stencil_size=2)
+    run_pmwk2019_modified_simulation(endtime=0.015, timestep_size=0.001, nx=20, ny=40, porosity_smoothing_factor=0.2)
 
     # Old Notes:
 
