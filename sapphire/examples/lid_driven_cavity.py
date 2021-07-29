@@ -101,6 +101,11 @@ def solve_with_lid_speed_continuation(sim: Simulation):
         start_index=0)
 
 
+def output(solution: Solution):
+
+    plot(solution=solution, output_directory_path=solution.output_directory+'/plots/')
+
+
 def run_simulation(
         reynolds_number,
         lid_speed,
@@ -110,10 +115,6 @@ def run_simulation(
         outdir='sapphire_output/lid_driven_cavity/'):
 
     outdir += '/Re{}_u{}_n{}/'.format(reynolds_number, lid_speed, meshsize)
-
-    def output(solution: Solution):
-
-        plot(solution=solution, output_directory_path=outdir+'/plots/')
 
     _mesh = cavity_mesh(nx=meshsize, ny=meshsize, Lx=1, Ly=1)
 
@@ -129,7 +130,8 @@ def run_simulation(
         dirichlet_boundary_conditions=dirichlet_boundary_conditions,
         nullspace=nullspace,
         firedrake_solver_parameters=DEFAULT_FIREDRAKE_SOLVER_PARAMETERS,
-        time_discretization_stencil_size=1)
+        time_discretization_stencil_size=1,
+        output_directory=outdir)
 
     return run(sim=sim, solve=solve, output=output)
 
