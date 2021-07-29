@@ -145,7 +145,7 @@ def dirichlet_boundary_conditions_pmwk2019(solution: Solution):
 
 
 def dirichlet_boundary_conditions_pmwk2019_modified(solution: Solution):
-    """Mostly the BCs from PMWK2019 
+    """Mostly the BCs from PMWK2019
     but with a spatial perturbation to the top wall enthalpy to make the periodic solution unique
     and with another BC on the top wall salinity to cover the case where it becomes decoupled from temperature (below eutectic enthalpy and above liquidus enthalpy).
     """
@@ -416,6 +416,28 @@ def run_simulation(
     return sim
 
 
+def run_pmwk2019_modified_simulation_for_any_stefan_number(stefan_number):
+    """ Run simulation similar to PMWK2019 fixed chill but for any Stefan numbers.
+
+    The top wall enthalpy BC is the eutectic enthalpy given the initial concentration, while the initial enthalpy and bottom wall enthalpy BC are a bit above the liquidus enthalpy at that concentration
+    """
+    Ste = stefan_number
+
+    r = PMWK_2019_FIXED_CHILL['concentration_ratio']
+
+    S_0 = INITIAL_SOLUTE_CONCENTRATION
+
+    phi_E_S0 = 1 + S_0/r
+
+    H_E_S0 = phi_E_S0*Ste
+
+    H_L_S0 = Ste - S_0
+
+    print("Ste = {}, H_E_S0 = {}, H_L_S0 = {}".format(Ste, H_E_S0, H_L_S0))
+
+    run_simulation(stefan_number=Ste, concentration_ratio=r, initial_enthalpy=H_L_S0 + 0.3, top_wall_enthalpy=H_E_S0)
+
+
 def run_diffusive_solidification_simulation():
 
     return run_simulation(
@@ -593,51 +615,14 @@ if __name__ == '__main__':
     # Lid driven cavity using the BAS equations looks right.
     # run_lid_driven_cavity_simulation(lid_speed=1000, meshsize=50)
 
-    # This fails, keeps getting stuck at H_top ~= 6
-    # run_simulation()
-
-    # Try  lower order bases because that has been more robust previously
     run_simulation(endtime=0.015, timestep_size=0.001, nx=20, ny=40, solute_element_degree=1, enthalpy_element_degree=1, time_discretization_stencil_size=2)
-
-    # next: try more refinement
-    # run_simulation(nx=64, ny=128, solute_element_degree=1, enthalpy_element_degree=1, time_discretization_stencil_size=2)
-
-    # Try to see if top wall enthalpy continuation always gets stuck near the liquidus enthalpy (at initial concentration)
-    # Ste = 3.
-
-    # r = PMWK_2019_FIXED_CHILL['concentration_ratio']
-
-    # S_0 = INITIAL_SOLUTE_CONCENTRATION
-
-    # phi_E_S0 = 1 + S_0/r
-
-    # H_E_S0 = phi_E_S0*Ste
-
-    # H_L_S0 = Ste - S_0
-
-    # print("Ste = {}, H_E_S0 = {}, H_L_S0 = {}".format(Ste, H_E_S0, H_L_S0))
-
-    # run_simulation(stefan_number=Ste, concentration_ratio=r, initial_enthalpy=H_L_S0 + 0.3, top_wall_enthalpy=H_E_S0)
-    # This got stuck around H_top = 2.89. Here, H_L_S0 = 4, so the continuation issue seems unrelated to the liquidus enthalpy (which is good!)
-
-    # Then: Try diffusive solidification benchmark from Parkinson's paper/thesis.
-    # Then: Try porous media flow benchmark from Parkinson's paper/thesis.
 
     # Old Notes:
 
-    # Diffusive solidification seems to work fine without any continuation (though I didn't try very small sigma)!
+    # Diffusive solidification seems to work fine without any continuation
     # run_diffusive_solidification_simulation()
 
     # Maybe it's a better idea to reproduce my own brine plume simulation.
-    # run_draft2019_regression_simulation(
-    #     solve_first_timestep=solve_with_timestep_size_continuation,
-    #     solve_during_run=solve_with_timestep_size_continuation)
-
-    # run_draft2019_regression_simulation(
-    #     solve_first_timestep=solve_with_top_wall_enthalpy_continuation,
-    #     solve_during_run=solve_with_timestep_size_continuation)
-
-    # This worked well! The porosity smoothing continuation was necessary.
     # run_draft2019_regression_simulation(
     #     solve_first_timestep=solve_with_porosity_smoothing_continuation,
     #     solve_during_run=solve_with_porosity_smoothing_continuation,
@@ -645,41 +630,11 @@ if __name__ == '__main__':
     #     temperature_rayleigh_number=0.,
     #     outdir='sapphire_output/diffusive_solidification/draft2019/',
     #     )
+    # The porosity smoothing continuation was necessary.
 
-    # Nothing is working. Something has to be wrong which isn't part of the diffusive solidification problem.
+    # Nothing is working with convection enabled.
     # run_draft2019_regression_simulation(
     #     solve_first_timestep=solve_with_solute_rayleigh_number_and_porosity_smoothing_continuation,
     #     solve_during_run=solve_with_solute_rayleigh_number_and_porosity_smoothing_continuation,
     #     temperature_rayleigh_number=0.,
     #     )
-
-    # None of the pmwk2019 simulations are working. I can't solve the first timestep. I've tried many combinations of continuation procedures.
-    # run_simulation(
-    #     residual=residual_pmwk2019,
-    #     dirichlet_boundary_conditions=dirichlet_boundary_conditions_almost_pmwk2019_but_fixed_top_salinity)
-
-    # run_simulation(
-    #     residual=residual_pmwk2019,
-    #     dirichlet_boundary_conditions=dirichlet_boundary_conditions_almost_pmwk2019_but_fixed_top_salinity,
-    #     ny=128)
-
-    # run_simulation(
-    #    residual=residual_pmwk2019,
-    #    dirichlet_boundary_conditions=dirichlet_boundary_conditions_almost_pmwk2019_but_fixed_top_salinity,
-    #    solve_first_timestep=solve_with_rayleigh_number_continuation,
-    #    solve_during_run=solve_with_rayleigh_number_continuation,
-    #    nx=100,
-    #    ny=200,
-    #    taylor_hood_velocity_element_degree=2,
-    #    enthalpy_element_degree=1,
-    #    solute_element_degree=1,
-    #    time_discretization_stencil_size=2,
-    #    timestep_size=0.001,
-    #    endtime=0.015,
-    # )
-
-    # run_simulation(
-    #     residual=residual_pmwk2019,
-    #     dirichlet_boundary_conditions=dirichlet_boundary_conditions_almost_pmwk2019_but_fixed_top_salinity,
-    #     solve_first_timestep=solve_with_top_wall_enthalpy_and_timestep_size_continuation,
-    #     solve_during_run=solve_with_timestep_size_continuation)
