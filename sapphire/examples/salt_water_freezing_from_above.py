@@ -1,4 +1,5 @@
 from typing import Tuple
+from decorator import DEF
 from sapphire import Mesh, Solution, Simulation, run, plot, report, write_checkpoint, solve_with_bounded_continuation_sequence, EutecticBinaryAlloy, MATERIALS
 from sapphire import solve_with_timestep_size_continuation as _solve_with_timestep_size_continuation
 from sapphire.examples.lid_driven_cavity import cavity_mesh, solve_and_subtract_mean_pressure, solve_with_lid_speed_continuation
@@ -333,20 +334,64 @@ def run_simulation(
         enthalpy_element_degree,
         solute_element_degree,
         porosity_smoothing_factor,
-        solve_first_timestep,
-        solve_during_run,
         mesh,
+        continuation_parameter_for_first_timestep='top_wall_enthalpy',
+        continuation_parameter_after_first_timestep='solute_rayleigh_number',
         top_wall_enthalpy_perturbation_relative_magnitude=0.01,
         quadrature_degree=4,
-        firedrake_solver_parameters=None,
+        snes_linesearch_damping=0.9,
+        snes_max_it=24,
         # The following were used for debugging.
         lid_speed=0.,
         top_wall_solute_concentration=None,
         ):
 
-    if firedrake_solver_parameters is None:
+    firedrake_solver_parameters = DEFAULT_FIREDRAKE_SOLVER_PARAMETERS
 
-        firedrake_solver_parameters = DEFAULT_FIREDRAKE_SOLVER_PARAMETERS
+    firedrake_solver_parameters['snes_linesearch_damping'] = snes_linesearch_damping
+
+    firedrake_solver_parameters['snes_max_it'] = snes_max_it
+
+    if continuation_parameter_for_first_timestep == 'top_wall_enthalpy':
+
+        solve_first_timestep = solve_with_top_wall_enthalpy_continuation
+
+        initial_continuation_parameter_label = "Htop"
+
+    elif continuation_parameter_for_first_timestep is None:
+
+        solve_first_timestep = solve_and_subtract_mean_pressure
+
+        initial_continuation_parameter_label = "None"
+
+    else:
+
+        raise Exception("This choice of continuation parameter is not implemented")
+
+    if continuation_parameter_after_first_timestep == 'solute_rayleigh_number':
+
+        solve_during_run = solve_with_solute_rayleigh_number_continuation
+
+        run_continuation_parameter_label = "RaS"
+
+    elif continuation_parameter_after_first_timestep == 'timestep_size':
+
+        solve_during_run = solve_with_timestep_size_continuation
+
+        run_continuation_parameter_label = "Deltat"
+
+    elif continuation_parameter_after_first_timestep is None:
+
+        solve_during_run = solve_and_subtract_mean_pressure
+
+        run_continuation_parameter_label = "None"
+
+    else:
+
+        raise Exception("This choice of continuation parameter is not implemented")
+
+    outdir += 'Ste{}_r{}_Pr{}_Le{}_tf{}_Deltat{}_nx{}_ny{}_sigma{}_omega{}_nits{}_con0{}_con1{}/'.format(
+        stefan_number, concentration_ratio, prandtl_number, lewis_number, endtime, timestep_size, nx, ny, porosity_smoothing_factor, snes_linesearch_damping, snes_max_it, initial_continuation_parameter_label, run_continuation_parameter_label)
 
     _mesh = mesh(nx=nx, ny=ny, Lx=mesh_width, Ly=mesh_height)
 
@@ -407,65 +452,28 @@ def run_simulation(
     return sim
 
 
-def run_pmwk2019_modified_simulation(
-        endtime,
+def run_pmwk2019_fixedchill_modified_simulation(
         timestep_size,
         nx,
         ny,
-        snes_linesearch_damping=0.9,
-        snes_max_it=24,
+        endtime=PMWK_2019_FIXED_CHILL['end_time'],
+        stefan_number=PMWK_2019_FIXED_CHILL['stefan_number'],
+        concentration_ratio=PMWK_2019_FIXED_CHILL['concentration_ratio'],
+        prandtl_number=PMWK_2019_FIXED_CHILL['prandtl_number'],
+        lewis_number=PMWK_2019_FIXED_CHILL['lewis_number'],
+        solute_rayleigh_number=PMWK_2019_FIXED_CHILL['solute_rayleigh_number'],
+        temperature_rayleigh_number=PMWK_2019_FIXED_CHILL['temperature_rayleigh_number'],
+        cold_enthalpy_bc_offset_from_eutectic=0.,
         porosity_smoothing_factor=0.2,  # For the problem from pmwk2019, a value of 0.2 looks like it yields a good approximation; but it will be good to run a sensitivity study here.
         taylor_hood_velocity_element_degree=2,
         solute_element_degree=1,
         enthalpy_element_degree=1,
         time_discretization_stencil_size=2,
-        solve_first_timestep=solve_with_top_wall_enthalpy_continuation,
-        solve_during_run=solve_with_timestep_size_continuation,
         **kwargs):
 
-    return run_simulation(
-        endtime=endtime,
-        timestep_size=timestep_size,
-        nx=nx,
-        ny=ny,
-        porosity_smoothing_factor=porosity_smoothing_factor,
-        taylor_hood_velocity_element_degree=taylor_hood_velocity_element_degree,
-        solute_element_degree=solute_element_degree,
-        enthalpy_element_degree=enthalpy_element_degree,
-        time_discretization_stencil_size=time_discretization_stencil_size,
-        solve_first_timestep=solve_first_timestep,
-        solve_during_run=solve_during_run,
-        reference_permeability=PMWK_2019_FIXED_CHILL['reference_permeability'],
-        thermal_conductivity_solid_to_liquid_ratio=PMWK_2019_FIXED_CHILL['thermal_conductivity_solid_to_liquid_ratio'],
-        heat_capacity_solid_to_liquid_ratio=PMWK_2019_FIXED_CHILL['heat_capacity_solid_to_liquid_ratio'],
-        prandtl_number=PMWK_2019_FIXED_CHILL['prandtl_number'],
-        darcy_number=PMWK_2019_FIXED_CHILL['darcy_number'],
-        lewis_number=PMWK_2019_FIXED_CHILL['lewis_number'],
-        frame_translation_velocity=PMWK_2019_FIXED_CHILL['frame_translation_velocity'],
-        stefan_number=PMWK_2019_FIXED_CHILL['stefan_number'],
-        solute_rayleigh_number=PMWK_2019_FIXED_CHILL['solute_rayleigh_number'],
-        temperature_rayleigh_number=PMWK_2019_FIXED_CHILL['temperature_rayleigh_number'],
-        concentration_ratio=PMWK_2019_FIXED_CHILL['concentration_ratio'],
-        initial_enthalpy=PMWK_2019_FIXED_CHILL['initial_enthalpy'],
-        top_wall_enthalpy=PMWK_2019_FIXED_CHILL['top_wall_enthalpy'],
-        mesh=periodic_mesh,
-        mesh_width=0.2,
-        mesh_height=0.4,
-        residual=residual_pmwk2019,
-        dirichlet_boundary_conditions=dirichlet_boundary_conditions_pmwk2019_modified,
-        top_wall_enthalpy_perturbation_relative_magnitude=0.01,
-        outdir='sapphire_output/salt_water_freezing_from_above/pmwk2019_modified_tf{}_Deltat{}_nx{}_ny{}_sigma{}_omega{}_nits{}/'.format(endtime, timestep_size, nx, ny, porosity_smoothing_factor, snes_linesearch_damping, snes_max_it),
-        **kwargs)
-
-
-def run_pmwk2019_modified_simulation_for_any_stefan_number(stefan_number, **kwargs):
-    """ Run simulation similar to PMWK2019 fixed chill but for any Stefan numbers.
-
-    The top wall enthalpy BC is the eutectic enthalpy given the initial concentration, while the initial enthalpy and bottom wall enthalpy BC are a bit above the liquidus enthalpy at that concentration
-    """
     Ste = stefan_number
 
-    r = PMWK_2019_FIXED_CHILL['concentration_ratio']
+    r = concentration_ratio
 
     S_0 = INITIAL_SOLUTE_CONCENTRATION
 
@@ -475,14 +483,54 @@ def run_pmwk2019_modified_simulation_for_any_stefan_number(stefan_number, **kwar
 
     H_L_S0 = Ste - S_0
 
-    print("Ste = {}, H_E_S0 = {}, H_L_S0 = {}".format(Ste, H_E_S0, H_L_S0))
+    H_0 = H_L_S0 + 0.3
 
-    return run_pmwk2019_modified_simulation(stefan_number=Ste, concentration_ratio=r, initial_enthalpy=H_L_S0 + 0.3, top_wall_enthalpy=H_E_S0, **kwargs)
+    H_top = H_E_S0 + cold_enthalpy_bc_offset_from_eutectic
+
+    if Ste == PMWK_2019_FIXED_CHILL['stefan_number']:
+
+        if (H_0 != PMWK_2019_FIXED_CHILL['initial_enthalpy']) | (H_top != (PMWK_2019_FIXED_CHILL['top_wall_enthalpy'] + cold_enthalpy_bc_offset_from_eutectic)):
+
+            raise Exception("Hey check your maths!")
+
+    print("Running modified version of PMWK2019 fixed chill simulation with Ste = {} (H_E_S0 = {}, H_L_S0 = {})".format(Ste, H_E_S0, H_L_S0))
+
+    return run_simulation(
+        endtime=endtime,
+        timestep_size=timestep_size,
+        nx=nx,
+        ny=ny,
+        stefan_number=stefan_number,
+        porosity_smoothing_factor=porosity_smoothing_factor,
+        taylor_hood_velocity_element_degree=taylor_hood_velocity_element_degree,
+        solute_element_degree=solute_element_degree,
+        enthalpy_element_degree=enthalpy_element_degree,
+        time_discretization_stencil_size=time_discretization_stencil_size,
+        prandtl_number=prandtl_number,
+        lewis_number=lewis_number,
+        solute_rayleigh_number=solute_rayleigh_number,
+        temperature_rayleigh_number=temperature_rayleigh_number,
+        reference_permeability=PMWK_2019_FIXED_CHILL['reference_permeability'],
+        thermal_conductivity_solid_to_liquid_ratio=PMWK_2019_FIXED_CHILL['thermal_conductivity_solid_to_liquid_ratio'],
+        heat_capacity_solid_to_liquid_ratio=PMWK_2019_FIXED_CHILL['heat_capacity_solid_to_liquid_ratio'],
+        darcy_number=PMWK_2019_FIXED_CHILL['darcy_number'],
+        frame_translation_velocity=PMWK_2019_FIXED_CHILL['frame_translation_velocity'],
+        concentration_ratio=r,
+        initial_enthalpy=H_0,
+        top_wall_enthalpy=H_top,
+        mesh=periodic_mesh,
+        mesh_width=0.2,
+        mesh_height=0.4,
+        residual=residual_pmwk2019,
+        dirichlet_boundary_conditions=dirichlet_boundary_conditions_pmwk2019_modified,
+        top_wall_enthalpy_perturbation_relative_magnitude=0.01,
+        outdir='sapphire_output/salt_water_freezing_from_above/pmwk2019_fixedchill_modified_HtopHEp{}/'.format(cold_enthalpy_bc_offset_from_eutectic),
+        **kwargs)
 
 
 def run_fixed_chill_without_convection():
 
-    return run_pmwk2019_modified_simulation(
+    return run_pmwk2019_fixedchill_modified_simulation(
         nx=32,
         ny=64,
         endtime=0.015,
@@ -498,7 +546,7 @@ def run_lid_driven_flow_simulation():
 
     endtime = 1.e12
 
-    return run_pmwk2019_modified_simulation(
+    return run_pmwk2019_fixedchill_modified_simulation(
         nx=32,
         ny=64,
         residual=residual_sapphire2019,
@@ -535,7 +583,7 @@ def run_lid_driven_cavity_simulation(lid_speed, meshsize):
     # H = 0.99*H_L  # This works
     # H = 0.9*H_L  # This works
 
-    return run_pmwk2019_modified_simulation(
+    return run_pmwk2019_fixedchill_modified_simulation(
         residual=residual_sapphire2019,
         mesh=cavity_mesh,
         mesh_width=1,
@@ -566,8 +614,6 @@ def run_lid_driven_cavity_simulation(lid_speed, meshsize):
 
 
 def run_draft2019_regression_simulation(
-        solve_first_timestep,
-        solve_during_run,
         solute_rayleigh_number=5.e6,
         temperature_rayleigh_number=1.e6,
         outdir='sapphire_output/salt_water_freezing_from_above/draft2019/'
@@ -646,9 +692,6 @@ def run_draft2019_regression_simulation(
         endtime=0.025,
         porosity_smoothing_factor=0.1,  # @todo Try setting a smaller value. Might need to use an inner continuation loop.
         quadrature_degree=4,
-        firedrake_solver_parameters=None,
-        solve_first_timestep=solve_first_timestep,
-        solve_during_run=solve_during_run,
         outdir=outdir,
         )
 
@@ -665,7 +708,23 @@ if __name__ == '__main__':
     # Lid driven cavity using the BAS equations looks right.
     # run_lid_driven_cavity_simulation(lid_speed=1000, meshsize=50)
 
-    run_pmwk2019_modified_simulation(endtime=0.015, timestep_size=0.001, nx=20, ny=40, porosity_smoothing_factor=0.2)
+    run_pmwk2019_fixedchill_modified_simulation(
+        cold_enthalpy_bc_offset_from_eutectic=0.1,
+        timestep_size=0.001,
+        nx=20,
+        ny=40,
+        snes_linesearch_damping=0.9,
+        snes_max_it=50,
+        continuation_parameter_for_first_timestep='top_wall_enthalpy',
+        continuation_parameter_after_first_timestep='solute_rayleigh_number',
+        porosity_smoothing_factor=0.2,
+        )
+
+    # Run something close to my brine plume simulation from 2019
+    # run_pmwk2019_fixedchill_modified_simulation(stefan_number=0.27, concentration_ratio=1.2, prandtl_number=7., lewis_number=80., endtime=0.025, timestep_size=0.001, nx=20, ny=40, porosity_smoothing_factor=0.1, snes_linesearch_damping=0.4, snes_max_it=100)
+
+    # Try the following overnight:
+    # run_pmwk2019_fixedchill_modified_simulation(endtime=0.0147, timestep_size=0.0001, nx=100, ny=200, porosity_smoothing_factor=0.2, snes_linesearch_damping=0.4, snes_max_it=100)
 
     # Old Notes:
 
