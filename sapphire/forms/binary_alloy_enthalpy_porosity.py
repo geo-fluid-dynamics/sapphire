@@ -23,9 +23,6 @@ COMPONENT_NAMES = ('p', 'U', 'S', 'H')
 # T = (T_dim - T_e_dim)/(T_L(S_0_dim) - T_e_dim)
 EUTECTIC_TEMPERATURE = 0.
 
-# H = Ste * phi + (phi + (1 - phi)c_sl)*T
-EUTECTIC_ENTHALPY = 0.
-
 # S = (S_dim - S_e_dim)/(S_e_dim - S_0_dim)
 EUTECTIC_CONCENTRATION = 0.
 
@@ -355,9 +352,9 @@ def validate(solution: Solution):
 
     minimum_enthalpy = solution.post_processed_objects['minimum_enthalpy']
 
-    if (minimum_enthalpy < EUTECTIC_ENTHALPY):
+    if (minimum_enthalpy < SOLIDUS_ENTHALPY):
 
-        raise Exception("Minimum enthalpy {} is below allowable minimum of {}".format(minimum_enthalpy, EUTECTIC_ENTHALPY))
+        raise Exception("Minimum enthalpy {} is below allowable minimum of {}".format(minimum_enthalpy, SOLIDUS_ENTHALPY))
 
     minimum_solute = solution.post_processed_objects['minimum_solute']
 
@@ -373,9 +370,9 @@ def validate(solution: Solution):
 
     minimum_porosity = solution.post_processed_objects['minimum_porosity']
 
-    if minimum_porosity < -tolerance:
+    if minimum_porosity <= 0.:
 
-        raise Exception("Minimum porosity {} is below minimum physically valid value of {}".format(minimum_porosity, 0.))
+        raise Exception("Minimum porosity {} must be above zero to avoid division by zero".format(minimum_porosity))
 
     maximum_porosity = solution.post_processed_objects['maximum_porosity']
 
@@ -423,7 +420,7 @@ def plot_phase_diagram(
 
     axes.set_xticks(S_ticks)
 
-    H_ticks = numpy.linspace(EUTECTIC_ENTHALPY, H_max, H_tick_count)
+    H_ticks = numpy.linspace(SOLIDUS_ENTHALPY, H_max, H_tick_count)
 
     axes.set_yticks(H_ticks)
 
@@ -431,7 +428,7 @@ def plot_phase_diagram(
 
     axes.yaxis.set_major_formatter(ticker.FormatStrFormatter(y_tick_string_format))
 
-    axes.set_aspect((EUTECTIC_CONCENTRATION - S_min) / (H_max - EUTECTIC_ENTHALPY))
+    axes.set_aspect((EUTECTIC_CONCENTRATION - S_min) / (H_max - SOLIDUS_ENTHALPY))
 
     colorbar_axes = fig.add_axes([axes.get_position().x1 + 0.01, axes.get_position().y0, 0.01, axes.get_position().height])
 

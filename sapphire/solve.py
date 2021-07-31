@@ -1,6 +1,6 @@
 """Module for solving nonlinear problems"""
 from sapphire.data.simulation import Simulation
-from firedrake import NonlinearVariationalProblem, NonlinearVariationalSolver, derivative
+from firedrake import NonlinearVariationalProblem, NonlinearVariationalSolver, derivative, ConvergenceError
 
 
 def solve(sim: Simulation):
@@ -26,9 +26,17 @@ def solve(sim: Simulation):
 
     print("Solving nonlinear problem with {} degrees of freedom".format(solution.function.vector().size()))
 
-    solver.solve()
+    try:
 
-    solution.snes_cumulative_iteration_count += snes_iteration_count(solver)
+        solver.solve()
+
+        solution.snes_cumulative_iteration_count += snes_iteration_count(solver)
+
+    except (ConvergenceError) as exception:
+
+        solution.snes_cumulative_iteration_count += snes_iteration_count(solver)
+
+        raise exception
 
 
 def snes_iteration_count(solver: NonlinearVariationalSolver) -> int:

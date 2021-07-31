@@ -2,7 +2,7 @@
 
 for regularized nonlinear problems.
 """
-from typing import Callable, Tuple, Union
+from typing import Callable, Tuple
 from sapphire.data.simulation import Simulation, Solution
 from firedrake import Function, Constant, ConvergenceError
 
@@ -18,8 +18,10 @@ def find_working_continuation_parameter_value(
         continuation_parameter_and_name: Tuple[Constant, str],
         search_operator: Callable = lambda r: 2.*r,
         max_attempts: int = 8,
-        backup_solution_function: Union[Function, None] = None,
-        output: Union[Callable[[Solution], None], None] = None,
+        backup_solution_function: Function = None,
+        report: Callable[[Solution], None] = None,
+        output: Callable[[Solution], None] = None,
+        validate: Callable[[Solution], None] = None,
         ) -> float:
     """ Attempt to solve a sequence of nonlinear problems where the continuation parameter value is varied according to the search operator until a solution is found.
 
@@ -70,15 +72,27 @@ def find_working_continuation_parameter_value(
 
             solution.continuation_history.append((rname, r, solution.snes_cumulative_iteration_count - snes_iteration_count))
 
-            if output:
+            if (r != r0):
 
-                print("Writing output for this intermediate solution")
+                if output:
 
-                output(solution)
+                    print("Writing output for this intermediate solution")
+
+                    output(solution)
+
+                if validate:
+
+                    print("Validating this intermediate solution")
+
+                    validate(solution)
 
             return r
 
         except (ConvergenceError, ContinuationError) as exception:
+
+            print("Reporting failed continuation attempt")
+
+            report(solution)
 
             r = search_operator(r)
 
@@ -100,8 +114,10 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
         initial_sequence: Tuple[float],
         maxcount: int = 16,
         start_index: int = 0,
-        backup_solution_function: Union[Function, None] = None,
-        output: Union[Callable[[Solution], None], None] = None,
+        backup_solution_function: Function = None,
+        report: Callable[[Solution], None] = None,
+        output: Callable[[Solution], None] = None,
+        validate: Callable[[Solution], None] = None,
         ):
     """ Solve a sequence of nonlinear problems where the continuation parameter value varies between bounds.
 
@@ -169,11 +185,19 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
 
                 print("Solved with continuation parameter {} = {}".format(rname, r))
 
-                if output:
+                if r != r0:
 
-                    print("Writing output for this intermediate solution")
+                    if output:
 
-                    output(solution)
+                        print("Writing output for this intermediate solution")
+
+                        output(solution)
+
+                    if validate:
+
+                        print("Validating this intermediate solution")
+
+                        validate(solution)
 
             solved = True
 
@@ -186,6 +210,10 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
             rs = sequence
 
             print("Failed to solve with continuation parameter {} = {} from the sequence {}".format(rname, current_r, rs))
+
+            print("Reporting failed continuation attempt")
+
+            report(solution)
 
             index = rs.index(current_r)
 
@@ -228,7 +256,7 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
     solution.extras[rname+'_continuation_sequence'] = tuple(sequence)
 
 
-def solve_with_timestep_size_continuation(sim: Simulation, solve: Callable[[Simulation], None], maxcount):
+def solve_with_timestep_size_continuation(sim: Simulation, solve: Callable[[Simulation], None], maxcount, **kwargs):
 
     ufl_timestep_size = sim.solutions[0].ufl_constants.timestep_size
 
@@ -239,4 +267,5 @@ def solve_with_timestep_size_continuation(sim: Simulation, solve: Callable[[Simu
         initial_sequence=(0, ufl_timestep_size.__float__()),
         maxcount=maxcount,
         start_index=-1,  # Try the actual timestep size first
+        **kwargs,
         )
