@@ -92,7 +92,9 @@ def find_working_continuation_parameter_value(
 
             print("Reporting failed continuation attempt")
 
-            report(solution)
+            if report:
+
+                report(solution)
 
             r = search_operator(r)
 
@@ -213,7 +215,9 @@ def solve_with_bounded_continuation_sequence(  # pylint: disable=too-many-argume
 
             print("Reporting failed continuation attempt")
 
-            report(solution)
+            if report:
+
+                report(solution)
 
             index = rs.index(current_r)
 
