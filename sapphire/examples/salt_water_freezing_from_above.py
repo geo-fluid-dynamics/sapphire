@@ -1,10 +1,10 @@
 from typing import Tuple, Callable
 from decorator import DEF
 from firedrake.exceptions import ConvergenceError
-from pytools import perm
 from sapphire import Mesh, Solution, Simulation, continuation, run, plot, write_checkpoint, solve_with_bounded_continuation_sequence, EutecticBinaryAlloy, MATERIALS, ContinuationError
 from sapphire import report as default_report
 from sapphire import solve_with_timestep_size_continuation as _solve_with_timestep_size_continuation
+from sapphire import solve as default_solve
 from sapphire.examples.lid_driven_cavity import cavity_mesh, solve_and_subtract_mean_pressure, solve_with_lid_speed_continuation
 from sapphire.examples.lid_driven_cavity import dirichlet_boundary_conditions as lid_driven_cavity_dirichlet_boundary_conditions
 from sapphire.examples.lid_driven_cavity import DEFAULT_FIREDRAKE_SOLVER_PARAMETERS as LID_DRIVEN_CAVITY_FIREDRAKE_SOLVER_PARAMETERS
@@ -12,6 +12,9 @@ from sapphire.forms.binary_alloy_enthalpy_porosity import INITIAL_SOLUTE_CONCENT
 from sapphire.forms.binary_alloy_enthalpy_porosity import residual as default_residual
 from firedrake import PeriodicRectangleMesh, MixedVectorSpaceBasis, VectorSpaceBasis, DirichletBC, cos, pi
 
+
+base_solve = default_solve
+# base_solve = solve_and_subtract_mean_pressure
 
 SOLID_TO_LIQUID_HEAT_CAPACITY_RATIO = 1  # Assume equal heat capacity in solid and liquid
 
@@ -200,10 +203,11 @@ def dirichlet_boundary_conditions_pmwk2019_with_lidspeed(solution: Solution):
 
 
 def dirichlet_boundary_conditions_pmwk2019_modified(solution: Solution):
-    """Mostly the BCs from PMWK2019 but with two modifications:
-    
-    1. a spatial perturbation to the top wall enthalpy to make the periodic solution unique, and 
-    2. fix the top wall salinity to the initial salinity.
+    """Mostly the BCs from PMWK2019 but with some modifications:
+
+    - a spatial perturbation to the top wall enthalpy to make the periodic solution unique
+    - fix the top wall salinity to the initial salinity
+    - fix the bottom wall pressure to make the pressure solution unique
     """
     Gamma = solution.mesh.boundaries
 
@@ -216,6 +220,7 @@ def dirichlet_boundary_conditions_pmwk2019_modified(solution: Solution):
     pmag = solution.ufl_constants.top_wall_enthalpy_perturbation_relative_magnitude
 
     return (
+        DirichletBC(solution.function_subspaces.p, 0., Gamma['bottom']),
         DirichletBC(solution.function_subspaces.U, (0, 0), Gamma['top']),
         DirichletBC(solution.function_subspaces.U, (0, 0), Gamma['bottom']),
         DirichletBC(solution.function_subspaces.H, H_top + pmag*H_top*cos(2*pi*x/Lx), Gamma['top']),
@@ -224,11 +229,11 @@ def dirichlet_boundary_conditions_pmwk2019_modified(solution: Solution):
 
 
 def dirichlet_boundary_conditions_from_2019_sapphire_regression_test(solution: Solution):
-    # The only difference is that I no longer constrain the pressure on the bottom wall, rather inform the solver of the nullspace and subtract mean pressure.
-    # If I keep having trouble then I can try reverting to applying a Dirichlet BC to the pressure on the top wall instead of the nullspace.
+    
     Gamma = solution.mesh.boundaries
 
     return (
+        DirichletBC(solution.function_subspaces.p, 0., Gamma['top']),
         DirichletBC(solution.function_subspaces.U, (0, 0), (Gamma['top'], Gamma['bottom'])),
         DirichletBC(solution.function_subspaces.H, solution.ufl_constants.top_wall_enthalpy, Gamma['top']),
         DirichletBC(solution.function_subspaces.S, solution.ufl_constants.top_wall_solute_concentration, Gamma['top']),
@@ -254,7 +259,7 @@ def solve_with_top_wall_enthalpy_continuation(sim: Simulation):
 
     solve_with_bounded_continuation_sequence(
         sim=sim,
-        solve=solve_and_subtract_mean_pressure,
+        solve=base_solve,
         continuation_parameter_and_name=(H_top, 'H_top'),
         initial_sequence=(H_0.__float__(), H_top.__float__()),
         start_index=0,
@@ -270,7 +275,7 @@ def solve_with_lewis_number_continuation(sim: Simulation):
 
     solve_with_bounded_continuation_sequence(
         sim=sim,
-        solve=solve_and_subtract_mean_pressure,
+        solve=base_solve,
         continuation_parameter_and_name=(Le, 'Le'),
         initial_sequence=(0., Le.__float__()),
         # Can have zero on the left only because starting from the right, won't ever try solving with Le = 0
@@ -323,7 +328,7 @@ def solve_with_solute_rayleigh_number_continuation(sim: Simulation):
 
     solve_with_bounded_continuation_sequence(
         sim=sim,
-        solve=solve_and_subtract_mean_pressure,
+        solve=base_solve,
         continuation_parameter_and_name=(Ra_S, 'Ra_S'),
         initial_sequence=(0., Ra_S.__float__()),
         maxcount=64,
@@ -340,7 +345,7 @@ def solve_with_porosity_smoothing_continuation(sim: Simulation):
 
     solve_with_bounded_continuation_sequence(
         sim=sim,
-        solve=solve_and_subtract_mean_pressure,
+        solve=base_solve,
         continuation_parameter_and_name=(sigma, 'sigma'),
         initial_sequence=(4., 2., 1., sigma.__float__()),
         maxcount=24,
@@ -355,7 +360,7 @@ def solve_with_timestep_size_continuation(sim: Simulation):
 
     _solve_with_timestep_size_continuation(
         sim=sim,
-        solve=solve_and_subtract_mean_pressure,
+        solve=base_solve,
         maxcount=10,
         output=output,
         validate=validate,
@@ -448,7 +453,7 @@ def solve_with_solute_rayleigh_number_and_porosity_smoothing_continuation(sim: S
 
 def solve_with_auto_timestep_size(
         sim: Simulation,
-        solve: Callable[[Simulation], None] = solve_and_subtract_mean_pressure,
+        solve: Callable[[Simulation], None] = base_solve,
         report: Callable[[Solution], None] = _report,
         minimum_timestep_size: float = 1.e-6):
     """ Crude adaptive time stepping
@@ -577,6 +582,12 @@ def run_simulation(
 
         initial_solution_procedure_label = 'CONHtop'
 
+    elif solution_approach_for_first_timestep == ('continue_solute_rayleigh_number', ):
+
+        solve_first_timestep = solve_with_solute_rayleigh_number_continuation
+
+        initial_solution_procedure_label = 'CONRaS'
+
     elif solution_approach_for_first_timestep == ('continue_timestep_size', ):
 
         solve_first_timestep = solve_with_timestep_size_continuation
@@ -591,7 +602,7 @@ def run_simulation(
 
     elif solution_approach_for_first_timestep is None:
 
-        solve_first_timestep = solve_and_subtract_mean_pressure
+        solve_first_timestep = base_solve
 
         initial_solution_procedure_label = 'None'
 
@@ -649,7 +660,7 @@ def run_simulation(
 
     elif solution_approach_after_first_timestep is None:
 
-        solve_during_run = solve_and_subtract_mean_pressure
+        solve_during_run = base_solve
 
         run_solution_procedure_label = 'None'
 
@@ -828,13 +839,13 @@ def run_draft2019_regression_simulation(
         **kwargs,
         ):
 
-    T_L = liquidus_temperature
-
     S_0_dim = dimensional_initial_concentration
 
     alloy = MATERIALS.sodium_chloride_dissolved_in_water
 
-    T_m = nondimensional_temperature(S_0=S_0_dim, T=T_L(S=S_0_dim, alloy=alloy), alloy=alloy)
+    T_L = liquidus_temperature(S=S_0_dim, alloy=alloy)
+
+    T_m = nondimensional_temperature(S_0=S_0_dim, T=T_L, alloy=alloy)
 
     T_0 = T_m
 
@@ -904,8 +915,8 @@ def run_fixed_chill_without_convection():
         timestep_size=0.001,
         dirichlet_boundary_conditions=dirichlet_boundary_conditions_pmwk2019_modified,
         solute_rayleigh_number=0.,
-        solve_first_timestep=solve_and_subtract_mean_pressure,
-        solve_during_run=solve_and_subtract_mean_pressure,
+        solve_first_timestep=base_solve,
+        solve_during_run=base_solve,
         outdir='sapphire_output/salt_water_freezing_from_above/pmwk2019_fixed_chill_without_convection/')
 
 
@@ -923,7 +934,7 @@ def run_lid_driven_flow_simulation():
         darcy_number=1.e12,
         endtime=endtime,
         timestep_size=endtime,
-        solve_first_timestep=solve_and_subtract_mean_pressure,
+        solve_first_timestep=base_solve,
         outdir='sapphire_output/salt_water_freezing_from_above/sapphire2019_lid_driven_flow/',
     )
 
@@ -993,33 +1004,33 @@ if __name__ == '__main__':
     # run_lid_driven_cavity_simulation(lid_speed=1000, meshsize=50)
 
     run_pmwk2019_fixedchill_modified_simulation(
-        # endtime=0.0085,
-        disable_convection_in_first_timestep=True,
-        # permeability='P',
-        permeability='Z',
+        endtime=1.,
+        # disable_convection_in_first_timestep=True,
+        permeability='P',
+        # permeability='Z',
         cold_enthalpy_bc_offset_from_eutectic=0.1,  # @todo Lower toward zero to reproduce PMWK2019
         stefan_number=5,
         concentration_ratio=2.,
         lewis_number=200.,
         prandtl_number=10.,
-        # solute_rayleigh_number=5.e6,
-        solute_rayleigh_number=1.e4,
+        solute_rayleigh_number=5.e6,
         timestep_size=0.001,
         # timestep_size=0.0001,
         mesh_width=0.2,
         mesh_height=1.,
-        nx=10,
-        ny=50,
-        # snes_linesearch_damping=0.9,
-        snes_linesearch_damping=0.4,
+        nx=20,
+        ny=100,
+        snes_linesearch_damping=1.,
         # Raise `snes_max_it` when lowering `snes_linesearch_damping`
-        # snes_max_it=100,
-        snes_max_it=1000,
+        snes_max_it=100,
         # solution_approach_for_first_timestep=('continue_top_wall_enthalpy', 'continue_solute_rayleigh_number', 'continue_lewis_number'),
         # solution_approach_for_first_timestep=('continue_top_wall_enthalpy', 'continue_lewis_number'),
-        solution_approach_for_first_timestep=('continue_top_wall_enthalpy', ),
+        # solution_approach_for_first_timestep=('continue_top_wall_enthalpy', ),
+        # solution_approach_for_first_timestep=None,
+        solution_approach_for_first_timestep=('continue_solute_rayleigh_number', ),
         # solution_approach_after_first_timestep=('adjust_timestep_size', ),
-        solution_approach_after_first_timestep=('continue_solute_rayleigh_number', ),
+        # solution_approach_after_first_timestep=('continue_solute_rayleigh_number', ),
+        solution_approach_after_first_timestep=None,
         # solution_approach_after_first_timestep=('adjust_timestep_size', 'continue_lewis_number'),
         # solution_approach_after_first_timestep=('continue_timestep_size', 'continue_lewis_number'),
         # solution_approach_after_first_timestep=('continue_solute_rayleigh_number', 'continue_lewis_number'),
@@ -1031,10 +1042,11 @@ if __name__ == '__main__':
 
     """
     run_draft2019_regression_simulation(
-        snes_linesearch_damping=0.4,
-        snes_max_it=1000,
-        nx=10,
-        ny=20,
+        snes_linesearch_damping=0.9,
+        snes_max_it=100,
+        disable_convection_in_first_timestep=True,
+        nx=20,
+        ny=40,
         timestep_size=0.001,
         cold_enthalpy_bc_offset_from_eutectic=0.01,
         solution_approach_for_first_timestep=('continue_top_wall_enthalpy', ),
@@ -1048,7 +1060,8 @@ if __name__ == '__main__':
         temperature_rayleigh_number=SAPPHIRE_2019_BRINE_PLUME['temperature_rayleigh_number'],
         top_wall_porosity=SAPPHIRE_2019_BRINE_PLUME['top_wall_porosity'],
         initial_porosity=SAPPHIRE_2019_BRINE_PLUME['initial_porosity'],
-        porosity_smoothing_factor=SAPPHIRE_2019_BRINE_PLUME['porosity_smoothing_factor'],
+        #porosity_smoothing_factor=SAPPHIRE_2019_BRINE_PLUME['porosity_smoothing_factor'],
+        porosity_smoothing_factor=0.2,
     )
     """
 
