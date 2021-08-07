@@ -1,7 +1,8 @@
-from typing import Tuple
+from typing import Tuple, Callable
 from decorator import DEF
+from firedrake.exceptions import ConvergenceError
 from pytools import perm
-from sapphire import Mesh, Solution, Simulation, run, plot, report, write_checkpoint, solve_with_bounded_continuation_sequence, EutecticBinaryAlloy, MATERIALS
+from sapphire import Mesh, Solution, Simulation, continuation, run, plot, report, write_checkpoint, solve_with_bounded_continuation_sequence, EutecticBinaryAlloy, MATERIALS, ContinuationError
 from sapphire import solve_with_timestep_size_continuation as _solve_with_timestep_size_continuation
 from sapphire.examples.lid_driven_cavity import cavity_mesh, solve_and_subtract_mean_pressure, solve_with_lid_speed_continuation
 from sapphire.examples.lid_driven_cavity import dirichlet_boundary_conditions as lid_driven_cavity_dirichlet_boundary_conditions
@@ -51,8 +52,7 @@ SAPPHIRE_2019_BRINE_PLUME = {
     'partition_coefficient': 0.,
     'thermal_conductivity_solid_to_liquid_ratio': 1.,
     'heat_capacity_solid_to_liquid_ratio': 1.,
-    'endtime': 0.025,
-}
+    'endtime': 0.025}
 
 
 def liquidus_temperature(S, alloy: EutecticBinaryAlloy):
@@ -262,8 +262,45 @@ def solve_with_lewis_number_continuation(sim: Simulation):
         sim=sim,
         solve=solve_and_subtract_mean_pressure,
         continuation_parameter_and_name=(Le, 'Le'),
-        initial_sequence=(1, Le.__float__()),
+        initial_sequence=(0., Le.__float__()),
+        # Can have zero on the left only because starting from the right, won't ever try solving with Le = 0
         start_index=-1,
+        maxcount=12,
+        output=output,
+        validate=validate,
+        report=_report
+        )
+
+
+def solve_with_solute_rayleigh_number_and_lewis_number_continuation(sim: Simulation):
+
+    Ra_S = sim.solutions[0].ufl_constants.solute_rayleigh_number
+
+    solve_with_bounded_continuation_sequence(
+        sim=sim,
+        solve=solve_with_lewis_number_continuation,
+        continuation_parameter_and_name=(Ra_S, 'Ra_S'),
+        initial_sequence=(0., Ra_S.__float__()),
+        maxcount=64,
+        start_index=0,
+        output=output,
+        validate=validate,
+        report=_report
+        )
+
+
+def solve_with_top_wall_enthalpy_and_solute_rayleigh_number_and_lewis_number_continuation(sim: Simulation):
+
+    H_top = sim.solutions[0].ufl_constants.top_wall_enthalpy
+
+    H_0 = sim.solutions[0].ufl_constants.initial_enthalpy
+
+    solve_with_bounded_continuation_sequence(
+        sim=sim,
+        solve=solve_with_solute_rayleigh_number_and_lewis_number_continuation,
+        continuation_parameter_and_name=(H_top, 'H_top'),
+        initial_sequence=(H_0.__float__(), H_top.__float__()),
+        start_index=0,
         output=output,
         validate=validate,
         report=_report
@@ -309,6 +346,18 @@ def solve_with_timestep_size_continuation(sim: Simulation):
     _solve_with_timestep_size_continuation(
         sim=sim,
         solve=solve_and_subtract_mean_pressure,
+        maxcount=10,
+        output=output,
+        validate=validate,
+        report=_report
+        )
+
+
+def solve_with_timestep_size_and_lewis_number_continuation(sim: Simulation):
+
+    _solve_with_timestep_size_continuation(
+        sim=sim,
+        solve=solve_with_lewis_number_continuation,
         maxcount=10,
         output=output,
         validate=validate,
@@ -387,6 +436,68 @@ def solve_with_solute_rayleigh_number_and_porosity_smoothing_continuation(sim: S
         )
 
 
+def solve_with_auto_timestep_size(sim: Simulation, solve: Callable[[Simulation], None] = solve_and_subtract_mean_pressure, minimum_timestep_size=1.e-6):
+    """ Crude adaptive time stepping
+
+    Halve the timestep size if solution fails or double it if it succeeds.
+    Do not exceed original timestep size.
+    """
+    if len(sim.solutions) > 2:
+
+        raise NotImplementedError("Auto timestepping is only implemented for first order accurate scheme")
+
+    print("Solving with automatic timestep size adjustment")
+
+    solution = sim.solutions[0]
+
+    if 'max_timestep_size' not in sim.extras:
+
+        sim.extras['max_timestep_size'] = solution.ufl_constants.timestep_size.__float__()
+
+    if 'next_timestep_size' in sim.extras:
+
+        timestep_size = sim.extras['next_timestep_size']
+
+    else:
+
+        timestep_size = solution.ufl_constants.timestep_size.__float__()
+
+    while timestep_size >= minimum_timestep_size:
+
+        solution.ufl_constants.timestep_size.assign(timestep_size)
+
+        try:
+
+            print("Attempting to solve with timestep size = {}".format(timestep_size))
+
+            solve(sim)
+
+            if timestep_size < sim.extras['max_timestep_size']:
+
+                sim.extras['next_timestep_size'] = 2*timestep_size
+
+            break
+
+        except (ConvergenceError, ContinuationError) as exception:
+
+            print("Failed to solve with timestep size {}".format(timestep_size))
+
+            timestep_size /= 2.
+
+            if timestep_size < minimum_timestep_size:
+
+                print("Reached minimum timestep size without solution")
+
+                raise exception
+
+            print("Adjusted timestep size to {}".format(timestep_size))
+
+
+def solve_with_auto_timestep_size_and_lewis_number_continuation(sim: Simulation, minium_timestep_size=1.e-6):
+
+    solve_with_auto_timestep_size(sim=sim, solve=solve_with_lewis_number_continuation, minimum_timestep_size=minium_timestep_size)
+
+
 def run_simulation(
         thermal_conductivity_solid_to_liquid_ratio,
         heat_capacity_solid_to_liquid_ratio,
@@ -414,14 +525,15 @@ def run_simulation(
         solute_element_degree,
         porosity_smoothing_factor,
         mesh,
+        disable_convection_in_first_timestep=False,
         permeability='P',
         reference_permeability=PMWK_2019_FIXED_CHILL['reference_permeability'],
-        continuation_parameter_for_first_timestep='top_wall_enthalpy',
-        continuation_parameter_after_first_timestep='solute_rayleigh_number',
+        solution_approach_for_first_timestep=('continue_top_wall_enthalpy', ),
+        solution_approach_after_first_timestep=('adjust_timestep', 'continue_lewis_number'),
         top_wall_enthalpy_perturbation_relative_magnitude=0.01,
         quadrature_degree=4,
-        snes_linesearch_damping=0.9,
-        snes_max_it=24,
+        snes_linesearch_damping=0.4,
+        snes_max_it=1000,
         # The following were used for debugging.
         lid_speed=0.,
         top_wall_solute_concentration=None,
@@ -441,64 +553,95 @@ def run_simulation(
 
     firedrake_solver_parameters['snes_max_it'] = snes_max_it
 
-    if continuation_parameter_for_first_timestep == 'top_wall_enthalpy':
+    if solution_approach_for_first_timestep == ('continue_top_wall_enthalpy', ):
 
         solve_first_timestep = solve_with_top_wall_enthalpy_continuation
 
-        initial_continuation_parameter_label = 'Htop'
+        initial_solution_procedure_label = 'CONHtop'
 
-    elif continuation_parameter_for_first_timestep == 'timestep_size':
+    elif solution_approach_for_first_timestep == ('continue_timestep_size', ):
 
         solve_first_timestep = solve_with_timestep_size_continuation
 
-        initial_continuation_parameter_label = 'Deltat'
+        initial_solution_procedure_label = 'CONDeltat'
 
-    elif continuation_parameter_for_first_timestep is None:
+    elif solution_approach_for_first_timestep == ('continue_top_wall_enthalpy', 'continue_solute_rayleigh_number', 'continue_lewis_number'):
+
+        solve_first_timestep = solve_with_top_wall_enthalpy_and_solute_rayleigh_number_and_lewis_number_continuation
+
+        initial_solution_procedure_label = 'CONHtopCONRaSCONLe'
+
+    elif solution_approach_for_first_timestep is None:
 
         solve_first_timestep = solve_and_subtract_mean_pressure
 
-        initial_continuation_parameter_label = 'None'
+        initial_solution_procedure_label = 'None'
 
     else:
 
         raise Exception("This choice of continuation parameter is not implemented")
 
-    if continuation_parameter_after_first_timestep == 'solute_rayleigh_number':
+    if solution_approach_after_first_timestep == ('continue_solute_rayleigh_number', ):
 
         solve_during_run = solve_with_solute_rayleigh_number_continuation
 
-        run_continuation_parameter_label = 'RaS'
+        run_solution_procedure_label = 'CONRaS'
 
-    elif continuation_parameter_after_first_timestep == 'timestep_size':
+    elif solution_approach_after_first_timestep == ('continue_timestep_size', ):
 
         solve_during_run = solve_with_timestep_size_continuation
 
-        run_continuation_parameter_label = 'Deltat'
+        run_solution_procedure_label = 'CONDeltat'
 
-    elif continuation_parameter_after_first_timestep == 'porosity_smoothing_factor':
+    elif solution_approach_after_first_timestep == ('continue_porosity_smoothing_factor', ):
 
         solve_during_run = solve_with_porosity_smoothing_continuation
 
-        run_continuation_parameter_label = 'sigma'
+        run_solution_procedure_label = 'CONsigma'
 
-    elif continuation_parameter_after_first_timestep == 'lewis_number':
+    elif solution_approach_after_first_timestep == ('continue_lewis_number', ):
 
         solve_during_run = solve_with_lewis_number_continuation
 
-        run_continuation_parameter_label = 'Le'
+        run_solution_procedure_label = 'CONLe'
 
-    elif continuation_parameter_after_first_timestep is None:
+    elif solution_approach_after_first_timestep == ('continue_solute_rayleigh_number', 'continue_lewis_number'):
+
+        solve_during_run = solve_with_solute_rayleigh_number_and_lewis_number_continuation
+
+        run_solution_procedure_label = 'CONRaSCONLe'
+
+    elif solution_approach_after_first_timestep == ('continue_timestep_size', 'continue_lewis_number'):
+
+        solve_during_run = solve_with_timestep_size_and_lewis_number_continuation
+
+        run_solution_procedure_label = 'CONDeltatCONLe'
+
+    elif solution_approach_after_first_timestep == ('adjust_timestep_size', ):
+
+        solve_during_run = solve_with_auto_timestep_size
+
+        run_solution_procedure_label = 'ADJDeltat'
+
+    elif solution_approach_after_first_timestep == ('adjust_timestep_size', 'continue_lewis_number'):
+
+        solve_during_run = solve_with_auto_timestep_size_and_lewis_number_continuation
+
+        run_solution_procedure_label = 'ADJDeltatCONLe'
+
+    elif solution_approach_after_first_timestep is None:
 
         solve_during_run = solve_and_subtract_mean_pressure
 
-        run_continuation_parameter_label = 'None'
+        run_solution_procedure_label = 'None'
 
     else:
 
         raise Exception("This choice of continuation parameter is not implemented")
 
-    outdir += 'perm{}_Ste{}_r{}_Pr{}_Le{}_RaS{}_Lx{}_Ly{}_tf{}_Deltat{}_nx{}_ny{}_sigma{}_omega{}_nits{}_con0{}_con1{}/'.format(
-        permeability, stefan_number, concentration_ratio, prandtl_number, lewis_number, solute_rayleigh_number, mesh_width, mesh_height, endtime, timestep_size, nx, ny, porosity_smoothing_factor, snes_linesearch_damping, snes_max_it, initial_continuation_parameter_label, run_continuation_parameter_label)
+    outdir += 'disstartconv{}_perm{}_Ste{}_r{}_Pr{}_Le{}_RaS{}_Lx{}_Ly{}_tf{}_Deltat{}_nx{}_ny{}_sigma{}_omega{}_nits{}_PROI{}_PROR{}/'.format(
+        disable_convection_in_first_timestep, permeability, stefan_number, concentration_ratio, prandtl_number, lewis_number, solute_rayleigh_number, mesh_width, mesh_height, endtime,
+        timestep_size, nx, ny, porosity_smoothing_factor, snes_linesearch_damping, snes_max_it, initial_solution_procedure_label, run_solution_procedure_label)
 
     _mesh = mesh(nx=nx, ny=ny, Lx=mesh_width, Ly=mesh_height)
 
@@ -552,7 +695,19 @@ def run_simulation(
 
         validate(solution)
 
+    if disable_convection_in_first_timestep:
+
+        for solution in sim.solutions:
+
+            solution.ufl_constants.solute_rayleigh_number.assign(0.)
+
     run(sim=sim, endtime=timestep_size, solve=solve_first_timestep, postprocess=postprocess, validate=validate, output=output)
+
+    if disable_convection_in_first_timestep:
+
+        for solution in sim.solutions:
+
+            solution.ufl_constants.solute_rayleigh_number.assign(solute_rayleigh_number)
 
     run(sim=sim, endtime=endtime, solve=solve_during_run, postprocess=postprocess, validate=validate, output=output)
 
@@ -817,30 +972,34 @@ if __name__ == '__main__':
     # run_lid_driven_cavity_simulation(lid_speed=1000, meshsize=50)
 
     run_pmwk2019_fixedchill_modified_simulation(
+        disable_convection_in_first_timestep=True,
         permeability='P',
         cold_enthalpy_bc_offset_from_eutectic=0.1,  # @todo Lower toward zero to reproduce PMWK2019
         stefan_number=5,
         concentration_ratio=2.,
         lewis_number=200.,
         prandtl_number=10.,
-        solute_rayleigh_number=0.,
-        # solute_rayleigh_number=5.e6,
+        solute_rayleigh_number=5.e6,
         timestep_size=0.001,
         mesh_width=0.2,
         mesh_height=1.,
         nx=10,
         ny=50,
-        snes_linesearch_damping=0.4,
-        snes_max_it=1000,
-        continuation_parameter_for_first_timestep='top_wall_enthalpy',
-        # continuation_parameter_for_first_timestep=None,  # This rarely works without continuation.
-        # continuation_parameter_for_first_timestep='timestep_size',
-        continuation_parameter_after_first_timestep='lewis_number',
-        # continuation_parameter_after_first_timestep='solute_rayleigh_number',
-        # continuation_parameter_after_first_timestep='timestep_size',
-        # continuation_parameter_after_first_timestep=None,
-        porosity_smoothing_factor=0.195,  # @todo Check sensitivity
-        # porosity_smoothing_factor=0.2,  # @todo Check sensitivity
+        snes_linesearch_damping=0.9,
+        # snes_linesearch_damping=0.4,
+        ## Raise `snes_max_it` when lowering `snes_linesearch_damping`
+        snes_max_it=100,
+        # snes_max_it=1000,  
+        # solution_approach_for_first_timestep=('continue_top_wall_enthalpy', 'continue_solute_rayleigh_number', 'continue_lewis_number'),
+        # solution_approach_for_first_timestep=('continue_top_wall_enthalpy', 'continue_lewis_number'),
+        solution_approach_for_first_timestep=('continue_top_wall_enthalpy', ),
+        # solution_approach_after_first_timestep=('adjust_timestep_size', 'continue_lewis_number'),
+        # solution_approach_after_first_timestep=('continue_timestep_size', 'continue_lewis_number'),
+        solution_approach_after_first_timestep=('continue_solute_rayleigh_number', 'continue_lewis_number'),
+        # solution_approach_after_first_timestep=('continue_lewis_number', ),
+        # solution_approach_after_first_timestep=('continue_solute_rayleigh_number', ),
+        # solution_approach_after_first_timestep=None,
+        porosity_smoothing_factor=0.2,  # @todo Check sensitivity
         )
 
     """
@@ -864,12 +1023,6 @@ if __name__ == '__main__':
         porosity_smoothing_factor=0.2,  # SAPPHIRE_2019_BRINE_PLUME['porosity_smoothing_factor'],
     )
     """
-
-    # Run something close to my brine plume simulation from 2019
-    # run_pmwk2019_fixedchill_modified_simulation(stefan_number=0.27, concentration_ratio=1.2, prandtl_number=7., lewis_number=80., endtime=0.025, timestep_size=0.001, nx=20, ny=40, porosity_smoothing_factor=0.1, snes_linesearch_damping=0.4, snes_max_it=100)
-
-    # Try the following overnight:
-    # run_pmwk2019_fixedchill_modified_simulation(endtime=0.0147, timestep_size=0.0001, nx=100, ny=200, porosity_smoothing_factor=0.2, snes_linesearch_damping=0.4, snes_max_it=100)
 
     # Old Notes:
 

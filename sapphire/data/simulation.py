@@ -1,7 +1,7 @@
 """Simulation data module"""
 from warnings import warn
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Union, Tuple, Callable, Dict, Any, Deque
 from firedrake.bcs import DirichletBC
 from sapphire.data.mesh import Mesh
@@ -29,6 +29,8 @@ class Simulation:
 
     solver: Solver
     """Data for setting up the nonlinear solver"""
+
+    extras: Dict = field(init=False)
 
     def __init__(
             self,
@@ -87,3 +89,5 @@ class Simulation:
         else:
 
             self.solver = Solver(firedrake_solver_parameters=firedrake_solver_parameters, nullspace=nullspace(self.solutions[0]))
+
+        self.extras = {}

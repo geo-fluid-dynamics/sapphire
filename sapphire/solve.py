@@ -32,9 +32,13 @@ def solve(sim: Simulation):
 
         solution.snes_cumulative_iteration_count += snes_iteration_count(solver)
 
+        solution.solved = True
+
     except (ConvergenceError) as exception:
 
         solution.snes_cumulative_iteration_count += snes_iteration_count(solver)
+
+        solution.solved = False
 
         raise exception
 

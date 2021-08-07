@@ -29,6 +29,8 @@ class Solution:
 
     quadrature_degree: Union[int, None] = None
 
+    solved: bool = field(init=False)
+
     geometric_dimension: int = field(init=False)
 
     unit_vectors: Any = field(init=False)
@@ -53,6 +55,8 @@ class Solution:
     post_processed_objects: Dict = field(init=False)
 
     def __post_init__(self):
+
+        self.solved = False
 
         if isinstance(self.ufl_constants, dict):
 
